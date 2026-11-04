@@ -4,7 +4,7 @@ const DataSync = {
     localStorage.setItem(key, JSON.stringify(data));
     try {
       if (typeof db !== 'undefined') {
-        await db.collection('laser_expert_data').doc(key).set({
+        await db.collection('sistema_data').doc(key).set({
           content: data,
           updatedAt: new Date()
         });
@@ -21,7 +21,7 @@ const DataSync = {
   async load(key) {
     try {
       if (typeof db !== 'undefined') {
-        const docRef = await db.collection('laser_expert_data').doc(key).get();
+        const docRef = await db.collection('sistema_data').doc(key).get();
         if (docRef.exists) {
           const rawData = docRef.data();
           // Compatibilidade robusta: verifica se está guardado em .content ou diretamente no documento
@@ -44,7 +44,7 @@ const DataSync = {
   listen(key, callback) {
     try {
       if (typeof db !== 'undefined') {
-        db.collection('laser_expert_data').doc(key).onSnapshot((doc) => {
+        db.collection('sistema_data').doc(key).onSnapshot((doc) => {
           if (doc.exists) {
             const rawData = doc.data();
             const remoteData = (rawData && rawData.content !== undefined) ? rawData.content : rawData;
