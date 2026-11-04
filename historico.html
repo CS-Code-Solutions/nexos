@@ -144,7 +144,7 @@
   </div>
 
   <footer class="no-print">
-    <p>&copy; 2026 Laser Expert — Todos os direitos reservados. | Powered by <strong>CS Code Solutions</strong></p>
+    <p>&copy; 2026 — Todos os direitos reservados. | Powered by <strong>CS Code Solutions</strong></p>
   </footer>
 
  <script>
@@ -272,12 +272,12 @@
         if (!rep) { alert("Relatório não encontrado."); return; }
         
         const defaultConfig = { 
-          name: 'LASER EXPERT SERVICO E COMERCIO DE PECAS LTDA', 
-          tech: 'Otávio Barbosa',
-          doc: '48.959.536/0001-65',
-          email: 'comercial@laserexpertbr.com.br',
-          contact: '+55 51 98144-1865',
-          location: 'Rua Corte Real 487 – Scharlau – São Leopoldo – RS',
+          name: 'UA MARCA AQUI', 
+          tech: 'Sua marca',
+          doc: '0000000000/0000000',
+          email: 'seuemail@teste.com.br',
+          contact: '+55 51 000000000',
+          location: 'Rua...',
           techSignature: ''
         };
 
@@ -371,7 +371,7 @@
           anexosHtml = `
             <div class="page-break"></div>
             <div class="print-header" style="margin-top: 4px;">
-              <img src="logo.png" alt="Logo">
+              <img src="marca.png" alt="Logo">
               <div class="print-header-info">
                 <h1>ANEXOS / FOTOGRAFIAS DO EQUIPAMENTO</h1>
                 <p><strong>RS Nº:</strong> ${escapeHTML(rep.number)} | <strong>Cliente:</strong> ${escapeHTML(rep.client)}</p>
@@ -404,10 +404,10 @@
 
         const fullReportHtml = `
           <div class="print-body" id="pdfContentToPrint">
-            <div class="watermark">LASER EXPERT</div>
+            <div class="watermark">Sua marca aqui</div>
 
             <div class="print-header">
-              <img src="logo.png" alt="Logo">
+              <img src="marca.png" alt="Logo">
               <div class="print-header-info">
                 <h1>RELATÓRIO DE SERVIÇO (RS)</h1>
                 <p><strong>Nº do RS:</strong> ${safeRepNum} | <strong>Data:</strong> ${safeRepDate}</p>
