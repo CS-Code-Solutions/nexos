@@ -175,7 +175,7 @@
 
     async function validarWhitelist(emailUser) {
       try {
-        const docRef = await db.collection('laser_expert_data').doc('rg_allowed_emails').get();
+        const docRef = await db.collection('sistema_data').doc('rg_allowed_emails').get();
         if (!docRef.exists) return false;
         
         const data = docRef.data();
