@@ -28,7 +28,7 @@ body {
 header {
   background-color: var(--deep-navy);
   color: var(--white);
-  padding: 5px 15px;
+  padding: 4px 15px; /* Reduzido para remover todo o espaço vertical livre */
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   position: sticky;
   top: 0;
@@ -41,25 +41,28 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 0;
+  min-height: auto;
 }
 
 .logo {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: bold;
   color: var(--electric-cyan);
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
+  line-height: 1; /* Elimina a altura de linha extra */
+  padding: 2px 0;
 }
 
 .logo img {
-  height: 40px;
+  height: 35px; /* Mantém o logótipo visível sem forçar a faixa */
   width: auto;
   object-fit: contain;
 }
+
 
 nav ul {
   list-style: none;
@@ -199,14 +202,17 @@ footer {
 /* Responsividade Mobile */
 @media (max-width: 768px) {
   .nav-container {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
   }
-  nav ul {
-    justify-content: center;
-    gap: 8px;
+  
+  header nav ul {
+    display: none !important;
   }
+  /* Mantenha o restante código da .bottom-nav igual */
+}
+
 }
 /* ========================================================
    ESTILOS DA BARRA DE NAVEGAÇÃO INFERIOR MOBILE 
