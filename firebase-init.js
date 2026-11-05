@@ -16,3 +16,23 @@ if (!firebase.apps.length) {
 // Instâncias globais partilhadas em todo o sistema
 const db = firebase.firestore();
 const auth = firebase.auth();
+
+// Função Global de Logout do NexOS
+async function fazerLogout() {
+  try {
+    await firebase.auth().signOut();
+    
+    // Limpa a sessão
+    localStorage.removeItem('rg_logged');
+    localStorage.removeItem('rg_user_email');
+    localStorage.removeItem('rg_user_uid');
+    localStorage.removeItem('rg_tenant_id');
+    localStorage.removeItem('rg_user_role');
+    
+    // Redireciona para o login
+    window.location.href = 'login.html';
+  } catch (error) {
+    console.error("[NexOS] Erro ao encerrar sessão:", error);
+    alert("Erro ao encerrar sessão. Tente novamente.");
+  }
+}
