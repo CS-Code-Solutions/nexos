@@ -5,7 +5,7 @@
   <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title> - Iniciar Sessão</title>
+  <title>OS Flow SaaS - Iniciar Sessão</title>
   <link rel="stylesheet" href="style.css">
   <script src="global-modal.js"></script>
   <!-- Firebase SDKs Compat -->
@@ -18,10 +18,7 @@
 
   <style>
     body {
-      background-image: url('image.jpeg');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+      background-color: #FFFFFF; /* Fundo branco liso */
       display: flex;
       justify-content: center;
       align-items: center;
@@ -29,36 +26,31 @@
       margin: 0;
       font-family: Arial, sans-serif;
       overflow: hidden;
-      perspective: 1000px;
-    }
-
-    /* Imagem de fundo específica para telemóveis */
-    @media (max-width: 768px) {
-      body {
-        background-image: url('mobilaser.png');
-      }
     }
 
     .login-card {
-      background: rgba(11, 19, 43, 0.85); /* Vidro escuro combinando com a imagem */
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 245, 212, 0.3); /* Linha subtil em ciano néon */
+      background: #0B132B; /* Fundo escuro para destacar a marca e o LED */
+      border: 1px solid rgba(0, 245, 212, 0.2); 
       padding: 40px 30px;
       border-radius: 12px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 245, 212, 0.15);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
       width: 100%;
       max-width: 400px;
       text-align: center;
-      transition: transform 0.1s ease-out;
-      transform-style: preserve-3d;
+      transition: box-shadow 0.3s ease, border 0.3s ease;
     }
+
+    /* Efeito de LED estático ao passar o rato */
+    .login-card:hover {
+      border: 1px solid #00F5D4;
+      box-shadow: 0 0 25px rgba(0, 245, 212, 0.5), 0 0 10px rgba(0, 245, 212, 0.2) inset;
+    }
+
     .login-card img.logo-login {
       max-width: 260px;
       width: 100%;
       height: auto;
       margin-bottom: 25px;
-      filter: drop-shadow(0 2px 8px rgba(0, 245, 212, 0.2));
     }
     .login-card h2 {
       color: #FFFFFF;
@@ -68,7 +60,7 @@
     }
     .btn-google {
       width: 100%;
-      background-color: #0B132B;
+      background-color: #1C2541; /* Botão ligeiramente mais claro que o card */
       color: #FFFFFF;
       font-weight: bold;
       padding: 13px;
@@ -80,7 +72,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+      transition: background 0.2s, box-shadow 0.2s;
     }
     .btn-google:hover {
       background-color: rgba(0, 245, 212, 0.15);
@@ -131,38 +123,6 @@
   </div>
 
   <script>
-    // Efeito interativo responsivo ao rato e ao toque (Tilt 3D)
-    const card = document.querySelector('.login-card');
-
-    function handleMove(clientX, clientY) {
-      const rect = card.getBoundingClientRect();
-      const x = clientX - rect.left - rect.width / 2;
-      const y = clientY - rect.top - rect.height / 2;
-      
-      const rotateX = (-y / 15).toFixed(2);
-      const rotateY = (x / 15).toFixed(2);
-      
-      card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
-    }
-
-    document.addEventListener('mousemove', (e) => {
-      handleMove(e.clientX, e.clientY);
-    });
-
-    document.addEventListener('touchmove', (e) => {
-      if (e.touches.length > 0) {
-        handleMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
-
-    document.addEventListener('mouseleave', () => {
-      card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-    });
-
-    document.addEventListener('touchend', () => {
-      card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-    });
-
     function escapeHTML(str) {
       if (!str) return '';
       return String(str)
@@ -173,20 +133,26 @@
         .replace(/'/g, '&#039;');
     }
 
-    async function validarWhitelist(emailUser) {
+    // Nova função de validação conectada à coleção saas_users
+    async function validarAcessoSaaS(userEmail) {
       try {
-        const docRef = await db.collection('sistema_data').doc('rg_allowed_emails').get();
-        if (!docRef.exists) return false;
-        
-        const data = docRef.data();
-        const listaEmails = data.content || [];
-        return Array.isArray(listaEmails) && listaEmails.includes(emailUser.toLowerCase().trim());
+        const docRef = db.collection('saas_users').doc(userEmail);
+        const docSnap = await docRef.get();
+
+        if (docSnap.exists) {
+          const userData = docSnap.data();
+          if (userData.status === 'ativo') {
+            return userData;
+          }
+        }
+        return false;
       } catch (err) {
-        console.error("Erro ao verificar whitelist:", err);
+        console.error("Erro ao validar acesso SaaS:", err);
         return false;
       }
     }
 
+    // Fluxo de autenticação integrado com a trava do SaaS
     async function handleGoogleLogin() {
       const errorBox = document.getElementById('loginError');
       const btnGoogle = document.getElementById('btnGoogle');
@@ -200,17 +166,22 @@
 
         const provider = new firebase.auth.GoogleAuthProvider();
         const result = await firebase.auth().signInWithPopup(provider);
-        const userEmail = result.user.email;
+        const user = result.user;
 
-        const autorizado = await validarWhitelist(userEmail);
+        const acessoSaaS = await validarAcessoSaaS(user.email);
         
-        if (!autorizado) {
+        if (!acessoSaaS) {
           await firebase.auth().signOut();
-          throw new Error(`Acesso negado: O e-mail (${userEmail}) não possui autorização de acesso.`);
+          throw new Error(`Acesso negado: O e-mail (${user.email}) não está registado no sistema ou encontra-se inativo.`);
         }
 
+        // Grava as novas chaves estruturais no LocalStorage
         localStorage.setItem('rg_logged', 'true');
-        localStorage.setItem('rg_user_email', escapeHTML(userEmail));
+        localStorage.setItem('rg_user_email', escapeHTML(user.email));
+        localStorage.setItem('rg_user_uid', escapeHTML(user.uid));
+        localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
+        localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
+        
         window.location.href = 'index.html';
 
       } catch (error) {
