@@ -417,22 +417,32 @@
       }
     });
 
-    window.resetForm = async function() {
+        window.resetForm = async function() {
+      // 1. Limpa os campos do formulário
       document.getElementById('budgetForm').reset();
       document.getElementById('editIndex').value = '';
       document.getElementById('formTitle').textContent = 'Novo Orçamento';
       document.getElementById('orcDate').valueAsDate = new Date();
       
+      // 2. Restaura as condições comerciais padrão
       document.querySelectorAll('.term-check').forEach(cb => cb.checked = true);
       document.getElementById('checkNotIncluded').checked = true;
       document.getElementById('orcNotIncludedText').value = "";
       atualizarTermosCompletos();
 
+      // 3. Oculta o formulário (se estiver configurado com acordeão/oculto) e atualiza o número do orçamento
       try {
         let budgets = await DataSync.load('rg_orcamentos') || [];
         document.getElementById('orcNumber').value = `ORC-${String(budgets.length + 1).padStart(4, '0')}`;
       } catch (e) {}
+
+      // Se quiser que o botão também feche o formulário caso esteja num formato expansível, descomente a linha abaixo:
+      // document.getElementById('budgetFormSection').style.display = 'none';
+      
+      // Rola a página suavemente para o topo para focar no histórico
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
 
     window.editBudget = async function(index) {
       try {
