@@ -1,5 +1,0 @@
-<!-- Guardar como icon.svg (Ícone do NexOS) -->
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100" height="100" rx="22" fill="#0B132B"/>
-  <path d="M30 75 V25 L70 75 V25" stroke="#00F5D4" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-</svg>
