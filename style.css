@@ -208,3 +208,68 @@ footer {
     gap: 8px;
   }
 }
+/* ========================================================
+   ESTILOS DA BARRA DE NAVEGAÇÃO INFERIOR MOBILE 
+   ======================================================== */
+
+/* Esconde a barra inferior no computador por padrão */
+.bottom-nav {
+    display: none; 
+}
+
+/* Regras apenas para Telemóveis (ecrãs até 768px) */
+@media (max-width: 768px) {
+    /* 1. Esconde o menu de texto e links do cabeçalho no mobile */
+    header nav ul {
+        display: none !important;
+    }
+
+    /* 2. Mostra e formata a barra inferior igual à imagem de referência */
+    .bottom-nav {
+        display: flex !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #0B132B; /* Fundo escuro igual ao topo */
+        justify-content: space-around;
+        align-items: center;
+        padding: 8px 0;
+        z-index: 9999;
+        border-top: 1px solid #1e293b;
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
+    }
+
+    .bottom-nav a {
+        color: #94a3b8; /* Cor dos ícones inativos (cinza claro) */
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 0.65rem; /* Texto pequeno como na imagem */
+        gap: 4px;
+        flex: 1;
+        transition: color 0.2s;
+    }
+
+    .bottom-nav a i {
+        font-size: 1.3rem; /* Tamanho do ícone */
+    }
+
+    .bottom-nav a.active {
+        color: #00F5D4; /* Cor ativa (ciano destacado) */
+        font-weight: bold;
+    }
+
+    /* 3. Cria espaço no fundo do ecrã para o conteúdo não ficar escondido pela barra */
+    body {
+        padding-bottom: 70px !important;
+    }
+}
+
+/* Não imprime a barra inferior */
+@media print {
+    .bottom-nav {
+        display: none !important;
+    }
+}
