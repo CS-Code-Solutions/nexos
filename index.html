@@ -2,6 +2,8 @@
 <html lang="pt-BR">
 <head>
 <link rel="icon" href="1.png" type="image/png">
+<!-- FontAwesome para os ícones da barra inferior -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Firebase SDKs Compat -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -217,6 +219,30 @@
       }
     };
   </script>
+
+  <!-- Barra de Navegação Inferior (Visível apenas em Mobile) -->
+  <nav class="bottom-nav no-print">
+    <a href="index.html" class="active">
+      <i class="fa-solid fa-users"></i>
+      <span>Clientes</span>
+    </a>
+    <a href="maquinas.html">
+      <i class="fa-solid fa-gears"></i>
+      <span>Máquinas</span>
+    </a>
+    <a href="historico.html">
+      <i class="fa-solid fa-file-lines"></i>
+      <span>Relatórios</span>
+    </a>
+    <a href="orcamentos.html">
+      <i class="fa-solid fa-calculator"></i>
+      <span>Orçamentos</span>
+    </a>
+    <a href="configuracao.html">
+      <i class="fa-solid fa-gear"></i>
+      <span>Config</span>
+    </a>
+  </nav>
 
 </body>
 </html>
