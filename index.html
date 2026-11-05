@@ -137,7 +137,7 @@
       }
     }
 
-        async function renderClients() {
+            async function renderClients() {
       try {
         clients = await DataSync.load('rg_clients') || [];
         if (!Array.isArray(clients)) clients = [];
@@ -155,23 +155,30 @@
           const safeAddress = escapeHTML(c.address || 'Não informado');
 
           clientListContainer.innerHTML += `
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <h3 style="margin: 0 0 12px 0; color: #0B132B; font-size: 1.15rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">${safeName}</h3>
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 160px; overflow: hidden;">
               
-              <p style="margin: 6px 0; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-id-card" style="color: #94A3B8; width: 16px; text-align: center;"></i> ${safeDoc}
-              </p>
-              <p style="margin: 6px 0; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-envelope" style="color: #94A3B8; width: 16px; text-align: center;"></i> ${safeEmail}
-              </p>
-              <p style="margin: 6px 0; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-location-dot" style="color: #94A3B8; width: 16px; text-align: center;"></i> ${safeAddress}
-              </p>
-              
-              <div style="display: flex; gap: 8px; margin-top: 15px;">
-                <button class="btn" style="padding: 6px 12px; font-size: 0.85rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editClient(${index})">Editar</button>
-                <button class="btn" style="padding: 6px 12px; font-size: 0.85rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteClient(${index})">Excluir</button>
+              <div style="overflow: hidden;">
+                <h3 style="margin: 0 0 10px 0; color: #0B132B; font-size: 1.05rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeName}">${safeName}</h3>
+                
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                  <i class="fa-solid fa-id-card" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeDoc}">${safeDoc}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                  <i class="fa-solid fa-envelope" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeEmail}">${safeEmail}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                  <i class="fa-solid fa-location-dot" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeAddress}">${safeAddress}</span>
+                </div>
               </div>
+              
+              <div style="display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
+                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editClient(${index})">Editar</button>
+                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteClient(${index})">Excluir</button>
+              </div>
+
             </div>
           `;
         });
@@ -180,7 +187,6 @@
         clientListContainer.innerHTML = `<p style="grid-column: 1 / -1; text-align: center; color: red; font-weight: bold;">Erro: ${err.message || 'Falha ao processar os dados.'}</p>`;
       }
     }
-
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
