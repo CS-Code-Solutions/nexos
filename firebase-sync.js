@@ -81,3 +81,32 @@ const DataSync = {
     });
   }
 };
+
+    save: async function(collectionName, dataArray) {
+    const uid = this.getUid();
+    const tenantId = this.getTenantId();
+
+    if (!uid) {
+      console.error(`[NexOS] Impossível guardar ${collectionName}: utilizador não identificado.`);
+      return;
+    }
+
+    try {
+      // 1. Grava no cache local
+      localStorage.setItem(collectionName, JSON.stringify(dataArray));
+      
+      // 2. Grava na nuvem
+      await db.collection(collectionName).doc(uid).set({
+        tenant_id: tenantId,
+        user_uid: uid,
+        items: dataArray,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      console.log(`[NexOS] ${collectionName} sincronizado com a nuvem com sucesso!`);
+
+    } catch (error) {
+      console.error(`[NexOS] ERRO ao guardar no Firestore:`, error);
+      alert("Aviso: O relatório foi guardado apenas no telemóvel, mas falhou a sincronização com a nuvem. Verifique a ligação.");
+    }
+  },
