@@ -1,53 +1,57 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<link rel="icon" href="1.png" type="image/png">
-<!-- FontAwesome para os ícones da barra inferior -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- Firebase SDKs Compat -->
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="global-modal.js"></script>
-<!-- Inicialização do Firebase -->
-<script src="firebase-init.js"></script>
-<script src="firebase-sync.js"></script>
-  <script>
-    if (localStorage.getItem('rg_logged') !== 'true') {
-      window.location.href = 'login.html';
-    }
-  </script>
-
+  <link rel="icon" href="nexosico.png" type="image/png">
   <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sua marca aqui - Cadastro de Máquinas</title>
+  <title>NexOS - Gestão de Máquinas</title>
+  
   <link rel="stylesheet" href="style.css">
+  
+  <!-- FontAwesome para os ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase SDKs Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  
+  <script src="global-modal.js"></script>
+  
+  <!-- Inicialização do Firebase e Sincronização -->
+  <script src="firebase-init.js?v=2"></script>
+  <script src="firebase-sync.js?v=2"></script>
 </head>
 <body>
 
-  <header>
-    <div class="nav-container">
-      <a href="index.html" class="logo">
-        <img src="marca.png" alt="Logo">
-      </a>
-      <nav>
-        <ul>
-          <li><a href="index.html">Clientes</a></li>
-          <li><a href="maquinas.html" class="active">Máquinas</a></li>
-          <li><a href="novo-relatorio.html">Novo Relatório</a></li>
-          <li><a href="historico.html">Histórico RS</a></li>
-          <li><a href="orcamentos.html">Orçamentos</a></li>
-          <li><a href="configuracao.html">Configuração</a></li>
-          <li><a href="login.html" onclick="localStorage.removeItem('rg_logged')" style="color: var(--danger); font-weight: bold;">Sair</a></li>
-        </ul>
-      </nav>
-    </div>
+  <!-- NOVO CABEÇALHO (Altura Fixa, Logo à esquerda, Sair à direita) -->
+  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img src="marca.png" alt="Sua Marca" style="max-height: 35px; width: auto;">
+    </a>
+    
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
+      <i class="fa-solid fa-power-off"></i>
+    </button>
   </header>
 
-  <main>
-    <section class="card">
-      <h2 id="formTitle">Cadastro de Máquinas / Equipamentos</h2>
+  <main style="padding-top: 20px;">
+    <!-- CABEÇALHO COM BOTÃO NOVA MÁQUINA -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+      <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Gestão de Máquinas</h2>
+      <button type="button" class="btn" onclick="toggleMachineForm()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 18px;">
+        <i class="fa-solid fa-plus"></i> Nova Máquina
+      </button>
+    </div>
+
+    <!-- FORMULÁRIO OCULTO -->
+    <section class="card" id="machineFormSection" style="display: none; border-top: 4px solid var(--electric-cyan);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 id="formTitle" style="margin: 0; color: #0B132B;">Adicionar Máquina</h3>
+        <button type="button" onclick="toggleMachineForm()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748B;">&times;</button>
+      </div>
+
       <form id="machineForm">
         <input type="hidden" id="editIndex" value="">
 
@@ -80,27 +84,38 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-          <button type="submit" id="submitBtn" class="btn">Salvar Máquina</button>
-          <button type="button" class="btn" style="background-color: #64748B; color: #FFF;" onclick="resetForm()">Cancelar / Limpar</button>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="submit" id="submitBtn" class="btn" style="background-color: #10B981; font-weight: bold;">Salvar Máquina</button>
+          <button type="button" class="btn" style="background-color: #64748B;" onclick="resetForm()">Cancelar</button>
         </div>
       </form>
     </section>
 
-    <!-- Cartões Responsivos para Máquinas -->
-    <section class="card">
-      <h2>Máquinas Cadastradas</h2>
-      <div id="machineCardsContainer" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
-        <p style="text-align: center; color: #64748B;">A carregar máquinas da nuvem...</p>
+    <!-- LISTA DE MÁQUINAS EM CARDS -->
+    <section>
+      <div id="machineCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+        <p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar máquinas da nuvem...</p>
       </div>
     </section>
   </main>
 
-  <footer>
-    <p>&copy; 2026 — Todos os direitos reservados. | Powered by <strong>CS Code Solutions</strong></p>
+  <footer class="no-print">
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
- <script>
+  <script>
+    // Proteção de Sessão Baseada no Firebase
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+      } else {
+        await loadDropdownClients();
+        renderMachines();
+        DataSync.listen('rg_machines', () => { renderMachines(); });
+        DataSync.listen('rg_clients', () => { loadDropdownClients(); });
+      }
+    });
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
@@ -119,10 +134,21 @@
 
     const clientSelect = document.getElementById('machineClient');
     const machineForm = document.getElementById('machineForm');
+    const formSection = document.getElementById('machineFormSection');
     const machineCardsContainer = document.getElementById('machineCardsContainer');
     
     let machines = [];
     let clients = [];
+
+    window.toggleMachineForm = function(forceShow = false) {
+      if (forceShow || formSection.style.display === 'none') {
+        formSection.style.display = 'block';
+        window.scrollTo({ top: formSection.offsetTop - 80, behavior: 'smooth' });
+      } else {
+        formSection.style.display = 'none';
+        resetForm();
+      }
+    }
 
     async function loadDropdownClients() {
       try {
@@ -146,46 +172,52 @@
 
         machineCardsContainer.innerHTML = '';
         if (machines.length === 0) {
-          machineCardsContainer.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhuma máquina cadastrada.</p>';
+          machineCardsContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 30px; border-radius: 8px; border: 1px dashed #CBD5E1;"><p style="color: #64748B; margin-bottom: 10px;">Nenhuma máquina cadastrada.</p><button class="btn" style="background-color: #0B132B; color: #FFF; padding: 8px 16px;" onclick="toggleMachineForm(true)">+ Cadastrar primeira máquina</button></div>';
           return;
         }
 
         let htmlCards = '';
         machines.forEach((m, index) => {
-          const safeClient = escapeHTML(m.client);
+          const safeClient = escapeHTML(m.client || 'Sem cliente vinculado');
           const safeName = escapeHTML(m.name);
           const safeBrand = escapeHTML(m.brand || '-');
           const safeModel = escapeHTML(m.model || '-');
           const safeSerial = escapeHTML(m.serial || '-');
 
           htmlCards += `
-            <div style="border: 1px solid #CBD5E1; padding: 15px; border-radius: 6px; background: #F8FAFC; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
-              <div style="flex: 1; min-width: 220px;">
-                <strong style="font-size: 1.05rem; color: #0B132B;">${safeName}</strong> — <span style="color: #64748B; font-size: 0.9rem;">${safeClient}</span><br>
-                <span style="font-size: 0.9rem; color: #334155;"><strong>Marca / Modelo:</strong> ${safeBrand} / ${safeModel}</span><br>
-                <span style="font-size: 0.85rem; color: #334155;"><strong>Série / Tag:</strong> ${safeSerial}</span>
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 160px; overflow: hidden;">
+              
+              <div style="overflow: hidden;">
+                <h3 style="margin: 0 0 10px 0; color: #0B132B; font-size: 1.05rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeName}">${safeName}</h3>
+                
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                  <i class="fa-solid fa-building" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeClient}">${safeClient}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                  <i class="fa-solid fa-tag" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeBrand} / ${safeModel}">${safeBrand} / ${safeModel}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                  <i class="fa-solid fa-barcode" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeSerial}">${safeSerial}</span>
+                </div>
               </div>
-              <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                <button class="btn" style="padding: 6px 12px; font-size: 0.85rem; background-color: #F59E0B;" onclick="editMachine(${index})">Editar</button>
-                <button class="btn" style="padding: 6px 12px; font-size: 0.85rem; background-color: #EF4444;" onclick="deleteMachine(${index})">Excluir</button>
+              
+              <div style="display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
+                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editMachine(${index})">Editar</button>
+                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteMachine(${index})">Excluir</button>
               </div>
+
             </div>
           `;
         });
         machineCardsContainer.innerHTML = htmlCards;
       } catch (err) {
         console.error(err);
-        machineCardsContainer.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar máquinas.</p>';
+        machineCardsContainer.innerHTML = `<p style="grid-column: 1 / -1; text-align: center; color: red; font-weight: bold;">Erro: ${err.message || 'Falha ao processar os dados.'}</p>`;
       }
     }
-
-    document.addEventListener("DOMContentLoaded", async () => {
-      await loadDropdownClients();
-      await renderMachines();
-
-      DataSync.listen('rg_machines', () => { renderMachines(); });
-      DataSync.listen('rg_clients', () => { loadDropdownClients(); });
-    });
 
     machineForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -205,15 +237,15 @@
         
         if (editIndex !== '') {
           machines[editIndex] = machineData;
-          alert('Máquina atualizada e sincronizada com sucesso!');
         } else {
           machines.push(machineData);
-          alert('Máquina salva e sincronizada com sucesso!');
         }
 
         await DataSync.save('rg_machines', machines);
         resetForm();
+        formSection.style.display = 'none';
         renderMachines();
+        alert('Máquina salva e sincronizada com sucesso!');
       } catch (err) {
         alert('Erro ao salvar máquina: ' + err.message);
       }
@@ -226,7 +258,7 @@
         if (!m) return;
 
         document.getElementById('editIndex').value = index;
-        document.getElementById('formTitle').textContent = 'Editar Máquina / Equipamento';
+        document.getElementById('formTitle').textContent = 'Editar Máquina';
         document.getElementById('submitBtn').textContent = 'Atualizar Máquina';
         
         document.getElementById('machineClient').value = m.client || '';
@@ -235,7 +267,7 @@
         document.getElementById('machineModel').value = m.model || '';
         document.getElementById('machineSerial').value = m.serial || '';
 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toggleMachineForm(true);
       } catch (err) {
         alert('Erro ao carregar máquina para edição.');
       }
@@ -244,7 +276,7 @@
     window.resetForm = function() {
       machineForm.reset();
       document.getElementById('editIndex').value = '';
-      document.getElementById('formTitle').textContent = 'Cadastro de Máquinas / Equipamentos';
+      document.getElementById('formTitle').textContent = 'Adicionar Máquina';
       document.getElementById('submitBtn').textContent = 'Salvar Máquina';
     };
 
@@ -262,7 +294,7 @@
     };
   </script>
 
-  <!-- Barra de Navegação Inferior (Visível apenas em Mobile) -->
+  <!-- Barra de Navegação Inferior -->
   <nav class="bottom-nav no-print">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
