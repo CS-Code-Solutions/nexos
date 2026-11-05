@@ -1,4 +1,4 @@
-// Configuração unificada do Firebase para o projeto Laser Expert
+// Configuração unificada do Firebase para o projeto NexOS
 const firebaseConfig = {
   apiKey: "AIzaSyA_Br3Hp3Dz5ur7lKjUJ-pSCBQCZQNqPK0",
   authDomain: "sistema-ee7d0.firebaseapp.com",
