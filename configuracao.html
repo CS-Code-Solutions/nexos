@@ -5,31 +5,26 @@
   <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sua marca aqui - Configurações</title>
+  <title>NexOS - Configurações</title>
   <link rel="stylesheet" href="style.css">
   <script src="global-modal.js"></script>
-<!-- FontAwesome para os ícones da barra inferior -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- Firebase SDKs Compat -->
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- FontAwesome para os ícones da barra inferior -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Firebase SDKs Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-<!-- Inicialização do Firebase -->
-<script src="firebase-init.js"></script>
-<script src="firebase-sync.js"></script>
-  <script>
-    if (localStorage.getItem('rg_logged') !== 'true') {
-      window.location.href = 'login.html';
-    }
-  </script>
+  <!-- Inicialização do Firebase e Sincronização -->
+  <script src="firebase-init.js"></script>
+  <script src="firebase-sync.js"></script>
 </head>
 <body>
 
   <header class="no-print">
     <div class="nav-container">
       <a href="index.html" class="logo">
-        <img src="marca.png" alt="Logo">
+        <img src="icon.svg" alt="NexOS Logo">
       </a>
       <nav>
         <ul>
@@ -39,11 +34,11 @@
           <li><a href="historico.html">Histórico RS</a></li>
           <li><a href="orcamentos.html">Orçamentos</a></li>
           <li><a href="configuracao.html" class="active">Configuração</a></li>
-          <li><a href="login.html" onclick="localStorage.removeItem('rg_logged')" style="color: var(--danger); font-weight: bold;">Sair</a></li>
+          <!-- Botão Sair integrado à função global do firebase-init.js -->
+          <li><a href="#" onclick="fazerLogout(); return false;" style="color: var(--danger); font-weight: bold;">Sair</a></li>
         </ul>
       </nav>
     </div>
-<button type="button" class="btn-logout" onclick="fazerLogout()">Sair</button>
   </header>
 
   <main>
@@ -151,7 +146,7 @@
 
       <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 35px 0;">
 
-      <!-- Botão de Instalação PWA posicionado logo acima do Backup -->
+      <!-- Botão de Instalação PWA -->
       <div id="installContainer" style="margin-bottom: 25px;">
         <button id="btnInstall" type="button" class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 14px 20px; width: 100%; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0, 245, 212, 0.3); cursor: pointer;">
           📲 Instalar a Página Agora
@@ -177,12 +172,12 @@
     </section>
   </main>
 
-  <!-- Modal / Janela Flutuante de Consentimento LGPD -->
+  <!-- Modal LGPD atualizado -->
   <div id="lgpdModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;">
     <div style="background: #121824; border: 1px solid #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 450px; color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
       <h3 style="margin-top: 0; color: #38bdf8; font-size: 1.2rem;">Termo de Consentimento e Tratamento de Dados (LGPD)</h3>
       <p style="font-size: 0.9rem; color: #94a3b8; line-height: 1.5;">
-        Para prosseguir com o armazenamento das suas definições e dados no sistema <strong>Laser Expert</strong>, precisamos do seu consentimento explícito.
+        Para prosseguir com o armazenamento das suas definições e dados no sistema <strong>NexOS</strong>, precisamos do seu consentimento explícito.
       </p>
       <div style="background: #1e293b; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px; max-height: 140px; overflow-y: auto;">
         <strong>Dados a serem salvos:</strong> Razão social, dados de contacto, credenciais bancárias e assinaturas digitadas vinculadas à sua conta para fins de emissão de relatórios e gestão técnica.<br><br>
@@ -196,10 +191,24 @@
   </div>
 
   <footer class="no-print">
-    <p>&copy; 2026 — Todos os direitos reservados. | Powered by <strong>CS Code Solutions</strong></p>
+    <p>&copy; 2026 | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
   <script>
+    // Proteção de Sessão Baseada no Firebase
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      const statusText = document.getElementById('statusText');
+      statusText.innerHTML = "🟢 Conectado à Nuvem (Sessão Segura)";
+      statusText.style.color = "#10B981";
+
+      await carregarDadosIniciais();
+    });
+
     // Registo do Service Worker para PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -209,7 +218,7 @@
       });
     }
 
-    // Gestão do botão de instalação PWA com acionamento direto
+    // Gestão do botão de instalação PWA
     let deferredPrompt;
     const btnInstall = document.getElementById('btnInstall');
 
@@ -231,6 +240,7 @@
       });
     }
 
+    // Lógica do Canvas para a Assinatura
     const canvas = document.getElementById('techSignatureCanvas');
     const ctx = canvas.getContext('2d');
     let painting = false;
@@ -284,16 +294,8 @@
 
     let dadosPendentesSalvar = null;
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      const statusText = document.getElementById('statusText');
-      if (typeof db !== 'undefined') {
-        statusText.innerHTML = "🟢 Conectado à Nuvem (Firebase Firestore Ativo)";
-        statusText.style.color = "#10B981";
-      } else {
-        statusText.innerHTML = "🟡 Modo Local (Armazenamento Local Ativo)";
-        statusText.style.color = "#F59E0B";
-      }
-
+    // Função encapsulada de carregamento para esperar o Auth State
+    async function carregarDadosIniciais() {
       try {
         let config = await DataSync.load('rg_config') || {};
         document.getElementById('configName').value = config.name || '';
@@ -324,36 +326,34 @@
       } catch (err) {
         console.error("Erro ao carregar configurações:", err);
       }
+    }
 
-      // Intercepta o envio do formulário para exibir a janela flutuante de consentimento LGPD
-      document.getElementById('configForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        dadosPendentesSalvar = {
-          name: document.getElementById('configName').value,
-          tech: document.getElementById('configTech').value,
-          techSignature: currentTechSignature || (await DataSync.load('rg_config') || {}).techSignature || '',
-          doc: document.getElementById('configDoc').value,
-          email: document.getElementById('configEmail').value,
-          contact: document.getElementById('configContact').value,
-          location: document.getElementById('configLocation').value,
-          nomeConta1: document.getElementById('configNomeConta1').value,
-          bank1: document.getElementById('configBank1').value,
-          agency1: document.getElementById('configAgency1').value,
-          account1: document.getElementById('configAccount1').value,
-          nomeConta2: document.getElementById('configNomeConta2').value,
-          bank2: document.getElementById('configBank2').value,
-          agency2: document.getElementById('configAgency2').value,
-          account2: document.getElementById('configAccount2').value,
-          nextRsNumber: document.getElementById('configNextRs').value
-        };
+    // Intercepta o envio do formulário para exibir o modal LGPD
+    document.getElementById('configForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      dadosPendentesSalvar = {
+        name: document.getElementById('configName').value,
+        tech: document.getElementById('configTech').value,
+        techSignature: currentTechSignature || (await DataSync.load('rg_config') || {}).techSignature || '',
+        doc: document.getElementById('configDoc').value,
+        email: document.getElementById('configEmail').value,
+        contact: document.getElementById('configContact').value,
+        location: document.getElementById('configLocation').value,
+        nomeConta1: document.getElementById('configNomeConta1').value,
+        bank1: document.getElementById('configBank1').value,
+        agency1: document.getElementById('configAgency1').value,
+        account1: document.getElementById('configAccount1').value,
+        nomeConta2: document.getElementById('configNomeConta2').value,
+        bank2: document.getElementById('configBank2').value,
+        agency2: document.getElementById('configAgency2').value,
+        account2: document.getElementById('configAccount2').value,
+        nextRsNumber: document.getElementById('configNextRs').value
+      };
 
-        // Exibe o modal LGPD
-        document.getElementById('lgpdModal').style.display = 'flex';
-      });
+      document.getElementById('lgpdModal').style.display = 'flex';
     });
 
-    // Funções de controlo do Modal LGPD
     window.aceitarLgpd = async function() {
       document.getElementById('lgpdModal').style.display = 'none';
       if (!dadosPendentesSalvar) return;
@@ -384,7 +384,8 @@
         const downloadAnchor = document.createElement('a');
         const dataAtual = new Date().toISOString().split('T')[0];
         downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `laser_expert_backup_${dataAtual}.json`);
+        // Ajuste do nome para nexos_backup
+        downloadAnchor.setAttribute("download", `nexos_backup_${dataAtual}.json`);
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
@@ -447,7 +448,7 @@
     };
   </script>
 
-  <!-- Barra de Navegação Inferior (Visível apenas em Mobile) -->
+  <!-- Barra de Navegação Inferior -->
   <nav class="bottom-nav no-print">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
