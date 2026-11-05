@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="icon" href="nexosico.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexOS - Painel Super Admin (CS Code Solutions)</title>
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- FontAwesome para os ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="global-modal.js"></script>
+  
+  <!-- Firebase SDKs Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Inicialização do Firebase e Sincronização -->
+  <script src="firebase-init.js?v=2"></script>
+  <script src="firebase-sync.js?v=2"></script>
+</head>
+<body>
+
+  <!-- CABEÇALHO DO SUPER ADMIN -->
+  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="marca.png" alt="NexOS" style="max-height: 35px; width: auto;">
+      <span style="background: #EF4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Super Admin</span>
+    </div>
+    
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
+      <i class="fa-solid fa-power-off"></i>
+    </button>
+  </header>
+
+  <main style="max-width: 1000px; margin: 20px auto; padding: 0 15px;">
+    
+    <!-- CARD DE BOAS-VINDAS E STATUS -->
+    <section class="card" style="border-top: 4px solid #EF4444; margin-bottom: 20px;">
+      <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 10px;">Painel de Controlo Global</h2>
+      <p style="color: #475569; font-size: 0.95rem; margin-bottom: 15px;">Área restrita de gestão de infraestrutura multi-tenant operada por <strong>CS Code Solutions</strong>.</p>
+      
+      <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <strong style="color: #0B132B;">Administrador Conectado:</strong><br>
+          <span id="adminEmailLogado" style="color: #0D9488; font-weight: bold;">A carregar credenciais...</span>
+        </div>
+        <div>
+          <a href="index.html" class="btn" style="background-color: #0B132B; color: #FFF; padding: 8px 16px; text-decoration: none; font-size: 0.85rem;">
+            <i class="fa-solid fa-arrow-left"></i> Voltar ao NexOS (App)
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD DE GESTÃO DE TENANTS / UTILIZADORES -->
+    <section class="card" style="border-top: 4px solid var(--electric-cyan);">
+      <h3 style="color: #0B132B; font-size: 1.25rem; margin-bottom: 15px;"><i class="fa-solid fa-users-gear"></i> Inquilinos e Licenças Ativas</h3>
+      
+      <div id="adminTenantList" style="display: flex; flex-direction: column; gap: 10px;">
+        <p style="text-align: center; color: #64748B; padding: 20px;">A carregar registos globais do Firestore...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="no-print">
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+
+  <script>
+    // LISTA DE EMAILS AUTORIZADOS COMO SUPER ADMIN
+    const EMAILS_ADMIN = [
+      'contato@cscodesolutions.com', // Altere ou adicione o seu e-mail principal aqui se necessário
+      // Pode adicionar outros e-mails de administração se pretender
+    ];
+
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+      } else {
+        document.getElementById('adminEmailLogado').textContent = user.email;
+
+        // Validação opcional de segurança por e-mail (caso queira restringir rigorosamente)
+        // Se o utilizador atual não for admin, podemos emitir um aviso ou permitir acesso administrativo geral:
+        /*
+        if (!EMAILS_ADMIN.includes(user.email) && user.email !== 'o_seu_email_aqui@gmail.com') {
+          alert('Acesso negado: Área restrita ao Super Admin.');
+          window.location.href = 'index.html';
+          return;
+        }
+        */
+
+        await carregarPainelAdmin();
+      }
+    });
+
+    async function carregarPainelAdmin() {
+      const container = document.getElementById('adminTenantList');
+      try {
+        // Exemplo: Listar documentos de configuração ou relatórios existentes na base para auditoria
+        const configDoc = await db.collection('rg_config').get();
+        
+        container.innerHTML = '';
+        if (configDoc.empty) {
+          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na coleção de configurações.</p>';
+          return;
+        }
+
+        let html = '';
+        configDoc.forEach(doc => {
+          const data = doc.data();
+          const uid = doc.id;
+          const nomeEmpresa = data.name || 'Empresa Sem Nome';
+          const emailEmpresa = data.email || 'E-mail não informado';
+          const rsAtual = data.nextRsNumber || '1000';
+
+          html += `
+            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <strong style="font-size: 1.05rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
+                <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(emailEmpresa)}</span><br>
+                <span style="font-size: 0.85rem; color: #0D9488;"><strong>Próximo RS:</strong> ${rsAtual}</span>
+              </div>
+              <div>
+                <span style="background: #10B981; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">Ativo</span>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar dados do painel administrativo.</p>';
+      }
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+
+</body>
+</html>
