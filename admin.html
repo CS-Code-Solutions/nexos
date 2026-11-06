@@ -65,7 +65,7 @@
 
   <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
   <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; height: 82vh; max-height: 82vh; overflow: hidden; margin: auto;">
+    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; height: 85vh; max-height: 85vh; overflow: hidden; margin: auto;">
       
       <!-- Cabeçalho Fixo do Modal -->
       <div style="background: var(--deep-navy); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan); flex-shrink: 0;">
@@ -74,7 +74,7 @@
       </div>
 
       <!-- Corpo com Rolagem Interna -->
-      <div style="padding: 15px; overflow-y: auto; flex-grow: 1; box-sizing: border-box;">
+      <div style="padding: 15px; padding-bottom: 40px; overflow-y: auto; flex-grow: 1; box-sizing: border-box;">
         <form id="tenantForm">
           
           <div class="form-group" style="margin-bottom: 12px;">
@@ -333,6 +333,7 @@
       document.getElementById('tenantEmail').value = t.email || '';
       document.getElementById('tenantWatermark').value = t.watermark || '';
       
+      // Carrega corretamente o logótipo existente se houver
       document.getElementById('tenantLogoBase64').value = t.logoBase64 || '';
       if (t.logoBase64) {
         document.getElementById('logoPreviewImg').src = t.logoBase64;
@@ -341,7 +342,7 @@
         document.getElementById('logoPreviewContainer').style.display = 'none';
       }
 
-      // Feature flags lidas explicitamente do registo do tenant
+      // Feature flags corrigidas e rigorosamente mapeadas
       document.getElementById('pageClientes').checked = t.pageClientes !== false;
       document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
       document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
@@ -406,7 +407,7 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        alert('Cliente criado e configurações salvas com sucesso!');
+        alert('Configurações e logótipo salvos com sucesso!');
         fecharModalCliente();
         carregarPainelAdmin();
       } catch (err) {
