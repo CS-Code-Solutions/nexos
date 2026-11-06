@@ -73,6 +73,15 @@
           <div style="border: 1px solid #CBD5E1; background: #FFF; width: 100%; max-width: 400px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
             <canvas id="techSignatureCanvas" width="400" height="150" style="width: 100%; height: 150px; cursor: crosshair; touch-action: none; background: #fff;"></canvas>
           </div>
+          
+          <!-- PRÉ-VISUALIZAÇÃO FIXA DA ASSINATURA SALVA -->
+          <div id="containerPreviewAssinatura" style="margin-bottom: 10px; display: none;">
+            <span style="font-size: 0.8rem; color: #10B981; font-weight: bold; display: block; margin-bottom: 4px;">✅ Assinatura Ativa na Nuvem:</span>
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 6px; border-radius: 4px; display: inline-block;">
+              <img id="imgPreviewAssinatura" src="" alt="Assinatura Salva" style="max-height: 60px; display: block;">
+            </div>
+          </div>
+
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button type="button" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="salvarAssinaturaTech()">💾 Guardar Assinatura</button>
             <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 6px 12px; font-size: 0.85rem;" onclick="limparAssinaturaTech()">✖ Limpar Assinatura</button>
@@ -186,7 +195,7 @@
       </p>
       <div style="background: #1e293b; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px; max-height: 140px; overflow-y: auto;">
         <strong>Dados a serem salvos:</strong> Razão social, dados de contacto, credenciais bancárias e assinaturas digitadas vinculadas à sua conta para fins de emissão de relatórios e gestão técnica.<br><br>
-        <span style="color: #38bdf8;">ℹ️ <strong>Direitos do Titular:</strong> Os dados armazenados podem ser consultados, alterados ou totalmente excluídos pelo utilizador a qualquer momento através das ferramentas do sistema ou solicitação direta.</span>
+        <span style="color: #38bdf8;">ℹ️ <strong>Direitos del Titular:</strong> Os dados armazenados podem ser consultados, alterados ou totalmente excluídos pelo utilizador a qualquer momento através das ferramentas do sistema ou solicitação direta.</span>
       </div>
       <div style="display: flex; gap: 12px; justify-content: flex-end;">
         <button type="button" onclick="recusarLgpd()" style="background: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">Não Aceito</button>
@@ -264,7 +273,9 @@
       painting = false; 
       ctx.beginPath(); 
       currentTechSignature = canvas.toDataURL();
+      atualizarPreviewAssinatura(currentTechSignature);
     }
+    
     function draw(e) {
       if (!painting) return;
       ctx.lineWidth = 2;
@@ -280,7 +291,6 @@
       ctx.beginPath();
       ctx.moveTo(x, y);
       
-      // Atualiza em tempo real a string da assinatura enquanto desenha
       currentTechSignature = canvas.toDataURL();
     }
 
@@ -291,9 +301,21 @@
     canvas.addEventListener('touchend', finishedPosition);
     canvas.addEventListener('touchmove', draw);
 
+    function atualizarPreviewAssinatura(dataUrl) {
+      const boxPreview = document.getElementById('containerPreviewAssinatura');
+      const imgPreview = document.getElementById('imgPreviewAssinatura');
+      if (dataUrl && dataUrl.length > 50) {
+        imgPreview.src = dataUrl;
+        boxPreview.style.display = 'block';
+      } else {
+        boxPreview.style.display = 'none';
+      }
+    }
+
     window.limparAssinaturaTech = function() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       currentTechSignature = '';
+      atualizarPreviewAssinatura('');
     };
 
     window.salvarAssinaturaTech = async function() {
@@ -302,6 +324,7 @@
         let config = await DataSync.load('rg_config') || {};
         config.techSignature = currentTechSignature;
         await DataSync.save('rg_config', config);
+        atualizarPreviewAssinatura(currentTechSignature);
         alert('Assinatura do técnico guardada com sucesso!');
       } catch (err) {
         alert('Erro ao guardar assinatura: ' + err.message);
@@ -338,6 +361,7 @@
           img.onload = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            atualizarPreviewAssinatura(config.techSignature);
           };
           img.src = config.techSignature;
         }
@@ -349,13 +373,12 @@
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // Assegura que captura a assinatura atual do canvas antes de submeter
       currentTechSignature = canvas.toDataURL();
 
       dadosPendentesSalvar = {
         name: document.getElementById('configName').value,
         tech: document.getElementById('configTech').value,
-        techSignature: currentTechSignature,
+        techSignature: currentTechSignature || (await DataSync.load('rg_config') || {}).techSignature || '',
         doc: document.getElementById('configDoc').value,
         email: document.getElementById('configEmail').value,
         contact: document.getElementById('configContact').value,
