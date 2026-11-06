@@ -194,8 +194,20 @@
           const rep = reports[i];
           if (!rep) continue;
 
-          const safeNumber = escapeHTML(rep.number || 'RS-1000');
-          const safeDate = escapeHTML(rep.date || '-');
+          const rawNum = rep.number || 'RS-1000';
+          const numeroLimpoCard = String(rawNum).replace(/^RS-?/i, '');
+          const safeNumber = `RS-${numeroLimpoCard}`;
+
+          // Formata a data do card para padrão brasileiro
+          let dataCardFormatada = rep.date || '-';
+          if (rep.date && rep.date.includes('-')) {
+            const partesD = rep.date.split('-');
+            if (partesD.length === 3) {
+              dataCardFormatada = `${partesD[2]}/${partesD[1]}/${partesD[0]}`;
+            }
+          }
+
+          const safeDate = escapeHTML(dataCardFormatada);
           const safeClient = escapeHTML(rep.client || '-');
           const safeEquipment = escapeHTML(rep.equipment || '-');
           const safeNature = escapeHTML(rep.serviceNature || rep.type || '-');
@@ -346,8 +358,8 @@
           }
         }
 
-        // Limpa o número do RS para evitar duplicidade
-        const numeroLimpo = escapeHTML(rep.number || 'RS-1000').replace(/^RS-?/i, '');
+        // Limpa perfeitamente o número do RS para evitar duplicidades
+        const numeroLimpo = escapeHTML(String(rep.number || 'RS-1000')).replace(/^RS-?/i, '');
 
         const deslocamentoHtml = rep.temDeslocamento === 'sim' ? `<p>• <strong>Hora de Deslocamento:</strong> ${rep.tempoDeslocamentoHoras || 0}h a R$ ${Number(rep.valorHoraDeslocamento || 0).toFixed(2)}/h (Total: R$ ${(Number(rep.valorHoraDeslocamento || 0) * Number(rep.tempoDeslocamentoHoras || 0)).toFixed(2)})</p>` : '';
         const hospedagemHtml = rep.temHospedagem === 'sim' ? `<p>• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : '';
