@@ -393,8 +393,7 @@
             <div class="watermark">${escapeHTML(config.name)}</div>
 
             <div class="print-header">
-              <img src="marca.png" alt="Logo">
-              <div class="print-header-info">
+              <img src="${(config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png'}" alt="Logo" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
                 <h1>RELATÓRIO DE SERVIÇO (RS)</h1>
                 <p><strong>Nº do RS:</strong> ${escapeHTML(rep.number)} | <strong>Data:</strong> ${escapeHTML(rep.date)}</p>
               </div>
