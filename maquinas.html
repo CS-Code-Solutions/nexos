@@ -232,7 +232,6 @@
         }
         await DataSync.save('rg_machines', machines);
         resetForm();
-        formSection.style.display = 'none';
         renderMachines();
         alert('Máquina salva e sincronizada com sucesso!');
       } catch (err) {
@@ -264,6 +263,8 @@
       document.getElementById('editIndex').value = '';
       document.getElementById('formTitle').textContent = 'Adicionar Máquina';
       document.getElementById('submitBtn').textContent = 'Salvar Máquina';
+      formSection.style.display = 'none'; // <-- Fecha o formulário ao cancelar ou limpar
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // <-- Retorna o scroll suavemente para o topo/cards
     };
 
     window.deleteMachine = async function(index) {
@@ -362,7 +363,7 @@
         if (bottomNav) {
           // Orçamentos: Esconde apenas se FOR CLIENTE NORMAL e a flag for false
           if (!isSuperAdmin && config.pageOrcamentos === false) {
-            const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+            const btnOrcamentos = document.querySelector('a[href="orcamentos.html"]');
             if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
           }
           
