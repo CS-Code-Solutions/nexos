@@ -44,7 +44,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <div>
           <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 5px;">Painel de Controlo Global</h2>
-          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Inquilinos, White-Label e Feature Flags | <strong>CS Code Solutions</strong></p>
+          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Inquilinos, White-Label e Feature Flags | <strong>CS Code Solutions</strong>[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span)</p>
         </div>
         <button type="button" class="btn" onclick="abrirModalCliente()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 18px;">
           <i class="fa-solid fa-user-plus"></i> Novo Cliente / Tenant
@@ -63,9 +63,9 @@
 
   </main>
 
-  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
+  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT (Com altura contida e rodapé fixo visível) -->
   <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; height: 85vh; max-height: 85vh; overflow: hidden; margin: auto;">
+    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 78vh; overflow: hidden; margin: auto;">
       
       <!-- Cabeçalho Fixo do Modal -->
       <div style="background: var(--deep-navy); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan); flex-shrink: 0;">
@@ -74,7 +74,7 @@
       </div>
 
       <!-- Corpo com Rolagem Interna -->
-      <div style="padding: 15px; padding-bottom: 40px; overflow-y: auto; flex-grow: 1; box-sizing: border-box;">
+      <div style="padding: 15px; overflow-y: auto; flex-grow: 1; box-sizing: border-box;">
         <form id="tenantForm">
           
           <div class="form-group" style="margin-bottom: 12px;">
@@ -95,7 +95,7 @@
 
           <!-- WHITE-LABEL: LOGO E MARCA D'ÁGUA -->
           <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">🎨 Identidade Visual (White-Label)</h4>
+            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">🎨 Identidade Visual (White-Label)[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span)</h4>
             
             <div class="form-group" style="margin-bottom: 10px;">
               <label><strong>Logótipo da Empresa (Upload com Compressão Automática):</strong></label>
@@ -157,8 +157,8 @@
         </form>
       </div>
 
-      <!-- Rodapé Fixo com Botões Visíveis -->
-      <div style="background: #F1F5F9; padding: 12px 15px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #CBD5E1; flex-shrink: 0;">
+      <!-- Rodapé do Modal com Botões Sempre Visíveis -->
+      <div style="background: #F1F5F9; padding: 10px 15px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #CBD5E1; flex-shrink: 0;">
         <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 8px 16px;" onclick="fecharModalCliente()">Cancelar</button>
         <button type="submit" form="tenantForm" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px;">Guardar Configurações</button>
       </div>
@@ -208,7 +208,7 @@
         
         container.innerHTML = '';
         if (configSnapshot.empty) {
-          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na base de dados.</p>';
+          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na base de dados[span_8](start_span)[span_8](end_span)[span_9](start_span)[span_9](end_span).</p>';
           return;
         }
 
@@ -245,8 +245,13 @@
                 <span style="font-size: 0.85rem; color: #0D9488;"><strong>Logótipo:</strong> ${temLogo} | <strong>Horas Extras:</strong> ${statusHE}</span><br>
                 <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
               </div>
-              <div style="display: flex; gap: 8px;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
+                
+                <!-- BOTÕES DE BACKUP -->
+                <button class="btn" style="background-color: #3B82F6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupJSON('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-code"></i> JSON</button>
+                <button class="btn" style="background-color: #8B5CF6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupCSV('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-csv"></i> CSV</button>
+
                 <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
               </div>
             </div>
@@ -259,6 +264,79 @@
         container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar dados do painel administrativo.</p>';
       }
     }
+
+    // Ferramenta de Backup: Exportar em JSON
+    window.exportarBackupJSON = async function(uid, nomeEmpresa) {
+      try {
+        const docRef = await db.collection('rg_reports').doc(uid).get();
+        if (!docRef.exists) {
+          alert(`Nenhum histórico de relatórios encontrado para o cliente: ${nomeEmpresa}`);
+          return;
+        }
+
+        const dados = docRef.data();
+        const jsonStr = JSON.stringify(dados, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_relatorios_${uid}_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Erro ao exportar JSON:", err);
+        alert("Erro ao descarregar backup em JSON.");
+      }
+    };
+
+    // Ferramenta de Backup: Exportar em CSV
+    window.exportarBackupCSV = async function(uid, nomeEmpresa) {
+      try {
+        const docRef = await db.collection('rg_reports').doc(uid).get();
+        if (!docRef.exists) {
+          alert(`Nenhum histórico de relatórios encontrado para o cliente: ${nomeEmpresa}`);
+          return;
+        }
+
+        const dados = docRef.data();
+        const listaRelatorios = dados.items || dados.reports || (Array.isArray(dados) ? dados : [dados]);
+
+        if (!listaRelatorios.length) {
+          alert("O documento existe, mas a lista de relatórios está vazia.");
+          return;
+        }
+
+        const chaves = Object.keys(listaRelatorios[0]);
+        let csvContent = chaves.join(';') + '\n';
+
+        listaRelatorios.forEach(row => {
+          const valores = chaves.map(key => {
+            let val = row[key];
+            if (val === null || val === undefined) val = '';
+            val = String(val).replace(/;/g, ',').replace(/\n/g, ' ');
+            return `"${val}"`;
+          });
+          csvContent += valores.join(';') + '\n';
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_relatorios_${uid}_${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Erro ao exportar CSV:", err);
+        alert("Erro ao descarregar backup em CSV.");
+      }
+    };
 
     window.processarUploadLogo = function(event) {
       const file = event.target.files[0];
@@ -333,7 +411,6 @@
       document.getElementById('tenantEmail').value = t.email || '';
       document.getElementById('tenantWatermark').value = t.watermark || '';
       
-      // Carrega corretamente o logótipo existente se houver
       document.getElementById('tenantLogoBase64').value = t.logoBase64 || '';
       if (t.logoBase64) {
         document.getElementById('logoPreviewImg').src = t.logoBase64;
@@ -342,7 +419,6 @@
         document.getElementById('logoPreviewContainer').style.display = 'none';
       }
 
-      // Feature flags corrigidas e rigorosamente mapeadas
       document.getElementById('pageClientes').checked = t.pageClientes !== false;
       document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
       document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
@@ -395,10 +471,8 @@
       };
 
       try {
-        // 1. Salva as configurações do tenant em rg_config
         await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
 
-        // 2. Concede permissão de login automática em saas_users
         await db.collection('saas_users').doc(emailCliente).set({
           role: "client",
           status: "ativo",
@@ -407,7 +481,7 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        alert('Configurações e logótipo salvos com sucesso!');
+        alert('Configurações salvas com sucesso!');
         fecharModalCliente();
         carregarPainelAdmin();
       } catch (err) {
@@ -436,40 +510,6 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
-
-    async function verificarEInjetarModulosDinamicos() {
-      firebase.auth().onAuthStateChanged(async (user) => {
-        if (!user) return;
-        try {
-          const configDoc = await db.collection('rg_config').doc(user.uid).get();
-          if (configDoc.exists) {
-            const data = configDoc.data();
-            if (data.modHorasExtras === true) {
-              const bottomNav = document.querySelector('.bottom-nav');
-              if (bottomNav) {
-                if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
-                  const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-                  const btnHoras = document.createElement('a');
-                  btnHoras.href = 'horas-extras.html';
-                  btnHoras.className = isActive;
-                  btnHoras.innerHTML = `
-                    <i class="fa-solid fa-clock"></i>
-                    <span>Horas</span>
-                  `;
-                  bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Erro ao carregar módulos dinâmicos do menu:", err);
-        }
-      });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      verificarEInjetarModulosDinamicos();
-    });
   </script>
 </body>
 </html>
