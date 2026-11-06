@@ -64,8 +64,8 @@
   </main>
 
   <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
-  <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px;">
-    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 85vh; overflow: hidden;">
+  <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
+    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; height: 82vh; max-height: 82vh; overflow: hidden; margin: auto;">
       
       <!-- Cabeçalho Fixo do Modal -->
       <div style="background: var(--deep-navy); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan); flex-shrink: 0;">
@@ -74,7 +74,7 @@
       </div>
 
       <!-- Corpo com Rolagem Interna -->
-      <div style="padding: 15px; overflow-y: auto; flex-grow: 1;">
+      <div style="padding: 15px; overflow-y: auto; flex-grow: 1; box-sizing: border-box;">
         <form id="tenantForm">
           
           <div class="form-group" style="margin-bottom: 12px;">
@@ -396,11 +396,12 @@
         // 1. Salva as configurações do tenant em rg_config
         await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
 
-        // 2. Concede permissão de login automática criando o registo em saas_users com o e-mail como ID
+        // 2. Concede permissão de login automática em saas_users com os campos idênticos ao padrão do sistema
         await db.collection('saas_users').doc(emailCliente).set({
+          role: "client",
+          status: "ativo",
+          tenant_id: uid,
           email: emailCliente,
-          uid: uid,
-          ativo: true,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
