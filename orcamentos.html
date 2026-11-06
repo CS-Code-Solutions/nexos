@@ -67,33 +67,16 @@
       border-bottom: 2px solid var(--electric-cyan, #00F5D4);
       flex-shrink: 0;
     }
-    .toolbar-buttons {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .report-scroll-container {
-      padding: 20px;
-      overflow-y: auto;
-      background: #FFF;
-      flex-grow: 1;
-      position: relative;
-    }
+    .toolbar-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .report-scroll-container { padding: 20px; overflow-y: auto; background: #FFF; flex-grow: 1; position: relative; }
 
     .watermark {
-      position: absolute;
-      top: 50%;
-      left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%) rotate(-30deg);
-      font-size: 85px;
-      font-weight: bold;
+      font-size: 85px; font-weight: bold;
       color: rgba(0, 245, 212, 0.035);
-      z-index: 0;
-      pointer-events: none;
-      text-align: center;
-      white-space: nowrap;
-      text-transform: uppercase;
-      width: 100%;
+      z-index: 0; pointer-events: none;
+      text-align: center; white-space: nowrap; text-transform: uppercase; width: 100%;
     }
 
     .print-body { font-family: Arial, sans-serif; color: #0B132B; line-height: 1.15; font-size: 9px; position: relative; z-index: 1; box-sizing: border-box; width: 100%; max-width: 190mm; margin: 0 auto; }
@@ -112,13 +95,12 @@
     @media (max-width: 768px) {
       .grid-2 { grid-template-columns: 1fr; }
     }
-
     .print-body p { margin: 1px 0; }
   </style>
 </head>
 <body>
 
-  <!-- NOVO CABEÇALHO (Altura Fixa, Logo à esquerda, Sair à direita) -->
+  <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
       <img src="marca.png" alt="NexOS" style="max-height: 35px; width: auto;">
@@ -131,7 +113,6 @@
 
   <main style="max-width: 900px; margin: 20px auto; padding: 0 15px; padding-top: 20px;">
     
-    <!-- CABEÇALHO DA PÁGINA COM BOTÃO NOVO ORÇAMENTO -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;" class="no-print">
       <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Gestão de Orçamentos</h2>
       <button type="button" class="btn" onclick="toggleBudgetForm()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 18px;">
@@ -139,7 +120,7 @@
       </button>
     </div>
 
-    <!-- FORMULÁRIO OCULTO (ACORDEÃO) -->
+    <!-- FORMULÁRIO OCULTO -->
     <section class="card no-print" id="budgetFormSection" style="display: none; border-top: 4px solid var(--electric-cyan); margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h3 id="formTitle" style="color: #0B132B; font-size: 1.2rem; margin: 0;">Novo Orçamento</h3>
@@ -226,7 +207,6 @@
       </form>
     </section>
 
-    <!-- HISTÓRICO EM CARDS -->
     <section class="card">
       <h2 style="color: #0B132B; font-size: 1.3rem; margin-bottom: 15px;">Orçamentos Cadastrados</h2>
       <div id="budgetCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
@@ -259,7 +239,6 @@
   </footer>
 
   <script>
-    // Proteção de Sessão Baseada no Firebase
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         window.location.href = 'login.html';
@@ -291,7 +270,6 @@
 
     let activeBudgetData = {};
     document.getElementById('orcDate').valueAsDate = new Date();
-
     const formSection = document.getElementById('budgetFormSection');
 
     window.toggleBudgetForm = function(forceShow = false) {
@@ -311,17 +289,13 @@
         const opt2 = document.getElementById('optionBank2Label');
         if (opt1) opt1.textContent = config.nomeConta1 ? `Conta Bancária: ${config.nomeConta1}` : 'Conta Bancária 1';
         if (opt2) opt2.textContent = config.nomeConta2 ? `Conta Bancária: ${config.nomeConta2}` : 'Conta Bancária 2';
-      } catch (e) {
-        console.error("Erro ao carregar apelidos dos bancos", e);
-      }
+      } catch (e) {}
     }
 
     function atualizarTermosCompletos() {
       const checkboxes = document.querySelectorAll('.term-check');
       let selecionados = [];
-      checkboxes.forEach(cb => {
-        if (cb.checked) selecionados.push(cb.value);
-      });
+      checkboxes.forEach(cb => { if (cb.checked) selecionados.push(cb.value); });
 
       const checkNotInc = document.getElementById('checkNotIncluded');
       const textNotInc = document.getElementById('orcNotIncludedText');
@@ -342,9 +316,7 @@
         clients.forEach(c => {
           select.innerHTML += `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`;
         });
-      } catch (e) {
-        console.error("Erro ao carregar clientes", e);
-      }
+      } catch (e) {}
     }
 
     async function renderBudgets() {
@@ -374,12 +346,10 @@
 
           htmlCards += `
             <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 160px; overflow: hidden;">
-              
               <div style="overflow: hidden;">
                 <h3 style="margin: 0 0 10px 0; color: #0B132B; font-size: 1.1rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNum} - ${safeDate}">
                   ${safeNum} <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">| ${safeDate}</span>
                 </h3>
-                
                 <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
                   <i class="fa-solid fa-building" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeClient}">${safeClient}</span>
@@ -393,13 +363,11 @@
                   <span>R$ ${safeTotal}</span>
                 </div>
               </div>
-              
               <div class="no-print" style="display: flex; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
                 <button class="btn" style="flex: 1.5; padding: 6px 0; font-size: 0.8rem; background-color: #1D4ED8; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="openBudgetPreview(${i})">Gerar PDF</button>
                 <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editBudget(${i})">Editar</button>
                 <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteBudget(${i})">Excluir</button>
               </div>
-
             </div>
           `;
         }
@@ -413,7 +381,6 @@
     document.getElementById('budgetForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const editIndex = document.getElementById('editIndex').value;
-      
       const newBudget = {
         number: document.getElementById('orcNumber').value,
         date: document.getElementById('orcDate').value,
@@ -428,13 +395,11 @@
       try {
         let budgets = await DataSync.load('rg_orcamentos') || [];
         if (!Array.isArray(budgets)) budgets = [];
-
         if (editIndex !== '') {
           budgets[editIndex] = newBudget;
         } else {
           budgets.push(newBudget);
         }
-
         await DataSync.save('rg_orcamentos', budgets);
         resetForm();
         formSection.style.display = 'none';
@@ -450,7 +415,6 @@
       document.getElementById('editIndex').value = '';
       document.getElementById('formTitle').textContent = 'Novo Orçamento';
       document.getElementById('orcDate').valueAsDate = new Date();
-      
       document.querySelectorAll('.term-check').forEach(cb => cb.checked = true);
       document.getElementById('checkNotIncluded').checked = true;
       document.getElementById('orcNotIncludedText').value = "";
@@ -490,14 +454,11 @@
         if (currentTerms.includes("Não estão inclusos:")) {
           document.getElementById('checkNotIncluded').checked = true;
           const parts = currentTerms.split("Não estão inclusos:");
-          if (parts[1]) {
-            document.getElementById('orcNotIncludedText').value = parts[1].trim();
-          }
+          if (parts[1]) document.getElementById('orcNotIncludedText').value = parts[1].trim();
         } else {
           document.getElementById('checkNotIncluded').checked = false;
           document.getElementById('orcNotIncludedText').value = "";
         }
-        
         toggleBudgetForm(true);
       } catch (e) {
         alert('Erro ao carregar orçamento para edição.');
@@ -523,17 +484,9 @@
       if (!b) { alert("Orçamento não encontrado."); return; }
 
       const defaultConfig = { 
-        name: 'NexOS', 
-        tech: 'Técnico Responsável',
-        doc: '00.000.000/0000-00',
-        email: '-',
-        contact: '-',
-        location: '-',
-        nomeConta1: 'Conta Principal',
-        bank1: '', agency1: '', account1: '',
-        nomeConta2: 'Conta Secundária',
-        bank2: '', agency2: '', account2: '',
-        techSignature: ''
+        name: 'NexOS', tech: 'Técnico Responsável', doc: '00.000.000/0000-00', email: '-', contact: '-', location: '-',
+        nomeConta1: 'Conta Principal', bank1: '', agency1: '', account1: '',
+        nomeConta2: 'Conta Secundária', bank2: '', agency2: '', account2: '', techSignature: ''
       };
 
       let config = { ...defaultConfig };
@@ -555,22 +508,11 @@
       let nomeConta2 = config.nomeConta2 || 'Conta Bancária 2';
 
       if (opt === 'banco1') {
-        bancoInfoHtml = `
-          <p><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta1)})</p>
-          <p><strong>Banco:</strong> ${escapeHTML(config.bank1 || '-')}</p>
-          <p><strong>Agência:</strong> ${escapeHTML(config.agency1 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account1 || '-')}</p>
-        `;
+        bancoInfoHtml = `<p><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta1)})</p><p><strong>Banco:</strong> ${escapeHTML(config.bank1 || '-')}</p><p><strong>Agência:</strong> ${escapeHTML(config.agency1 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account1 || '-')}</p>`;
       } else if (opt === 'banco2') {
-        bancoInfoHtml = `
-          <p><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta2)})</p>
-          <p><strong>Banco:</strong> ${escapeHTML(config.bank2 || '-')}</p>
-          <p><strong>Agência:</strong> ${escapeHTML(config.agency2 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account2 || '-')}</p>
-        `;
+        bancoInfoHtml = `<p><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta2)})</p><p><strong>Banco:</strong> ${escapeHTML(config.bank2 || '-')}</p><p><strong>Agência:</strong> ${escapeHTML(config.agency2 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account2 || '-')}</p>`;
       } else {
-        bancoInfoHtml = `
-          <p><strong>Forma de Recebimento:</strong> Boleto Bancário</p>
-          <p><em>Instruções: O boleto será emitido e enviado conforme prazo comercial acordado.</em></p>
-        `;
+        bancoInfoHtml = `<p><strong>Forma de Recebimento:</strong> Boleto Bancário</p><p><em>Instruções: O boleto será emitido e enviado conforme prazo comercial acordado.</em></p>`;
       }
 
       const termsList = (b.terms || '').split('\n').map(t => `<p>• ${escapeHTML(t)}</p>`).join('');
@@ -580,18 +522,11 @@
       renderArea.innerHTML = `
         <div class="print-body">
           <div class="watermark">${escapeHTML(config.name)}</div>
-          
           <div class="print-header">
             <img src="marca.png" alt="Logo">
-            <div class="print-header-center">
-              <h1>ORÇAMENTO DE SERVIÇO</h1>
-            </div>
-            <div class="print-header-info">
-              <h2>Nº: ${escapeHTML(b.number || 'ORC-0001')}</h2>
-              <p>Data: ${escapeHTML(b.date || '-')}</p>
-            </div>
+            <div class="print-header-center"><h1>ORÇAMENTO DE SERVIÇO</h1></div>
+            <div class="print-header-info"><h2>Nº: ${escapeHTML(b.number || 'ORC-0001')}</h2><p>Data: ${escapeHTML(b.date || '-')}</p></div>
           </div>
-
           <div class="section-box">
             <div class="section-title">DADOS DA EMPRESA</div>
             <p><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
@@ -599,7 +534,6 @@
             <p><strong>Contato:</strong> ${escapeHTML(config.contact)} | <strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
             <p><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
           </div>
-
           <div class="section-box">
             <div class="section-title">CLIENTE & EQUIPAMENTO</div>
             <div class="grid-2">
@@ -615,23 +549,19 @@
               </div>
             </div>
           </div>
-
           <div class="section-box">
             <div class="section-title">ESCOPO DOS SERVIÇOS</div>
             <p style="white-space: pre-wrap; margin-top: 1px;">${escapeHTML(b.desc || '-')}</p>
           </div>
-
           <div class="section-box">
             <div class="section-title">CONDIÇÕES COMERCIAIS & PAGAMENTO</div>
             ${termsList}
             <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 2px 0;">
             ${bancoInfoHtml}
           </div>
-
           <div class="section-box" style="text-align: right; background: #F1F5F9; border-color: #00F5D4;">
             <p style="font-size: 11px; font-weight: bold; color: var(--deep-navy, #0B132B);">VALOR TOTAL DO ORÇAMENTO: R$ ${Number(b.total || 0).toFixed(2)}</p>
           </div>
-
           <div style="margin-top: 6px; display: flex; justify-content: center; page-break-inside: avoid;">
             <div style="text-align: center; width: 60%;">
               ${techSignature ? `<img src="${techSignature}" alt="Assinatura" style="max-width: 110px; height: 30px; object-fit: contain; display: block; margin: 0 auto;">` : '<div style="height: 30px;"></div>'}
@@ -652,11 +582,11 @@
       statusSpan.textContent = '⏳ A gerar PDF...';
 
       const opt = {
-        margin:       [6, 6, 6, 6],
-        filename:     `Orcamento_${activeBudgetData.number || '0001'}_${activeBudgetData.client || 'Cliente'}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin: [6, 6, 6, 6],
+        filename: `Orcamento_${activeBudgetData.number || '0001'}_${activeBudgetData.client || 'Cliente'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
       try {
@@ -681,7 +611,6 @@
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
-          console.error("Erro ao partilhar PDF:", err);
           statusSpan.textContent = '❌ Erro';
         } else {
           statusSpan.textContent = '✅ Cancelado';
@@ -696,11 +625,10 @@
       statusSpan.textContent = '⏳ A descarregar...';
 
       const opt = {
-        margin:       [6, 6, 6, 6],
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin: [6, 6, 6, 6], filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
       html2pdf().from(element).set(opt).save().then(() => {
@@ -721,9 +649,39 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+
+    async function verificarEInjetarModulosDinamicos() {
+      firebase.auth().onAuthStateChanged(async (user) => {
+        if (!user) return;
+        try {
+          const configDoc = await db.collection('rg_config').doc(user.uid).get();
+          if (configDoc.exists) {
+            const data = configDoc.data();
+            if (data.modHorasExtras === true) {
+              const bottomNav = document.querySelector('.bottom-nav');
+              if (bottomNav) {
+                if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
+                  const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+                  const btnHoras = document.createElement('a');
+                  btnHoras.href = 'horas-extras.html';
+                  btnHoras.className = isActive;
+                  btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
+                  bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Erro ao carregar módulos dinâmicos do menu:", err);
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      verificarEInjetarModulosDinamicos();
+    });
   </script>
 
-  <!-- Barra de Navegação Inferior -->
   <nav class="bottom-nav no-print">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
@@ -746,50 +704,5 @@
       <span>Config</span>
     </a>
   </nav>
-// Script de Controlo Dinâmico da Barra de Navegação Inferior (Bottom Nav)
-async function verificarEInjetarModulosDinamicos() {
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (!user) return;
-
-    try {
-      // Lê as configurações do tenant atual na nuvem
-      const configDoc = await db.collection('rg_config').doc(user.uid).get();
-      if (configDoc.exists) {
-        const data = configDoc.data();
-        
-        // Verifica se o módulo de Horas Extras está ativo para este cliente
-        if (data.modHorasExtras === true) {
-          const bottomNav = document.querySelector('.bottom-nav');
-          if (bottomNav) {
-            // Verifica se o botão já foi injetado para evitar duplicados
-            if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
-              const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-              
-              // Cria o elemento do link e injeta na barra inferior
-              const btnHoras = document.createElement('a');
-              btnHoras.href = 'horas-extras.html';
-              btnHoras.className = isActive;
-              btnHoras.innerHTML = `
-                <i class="fa-solid fa-clock"></i>
-                <span>Horas</span>
-              `;
-              
-              // Insere o botão logo antes da penúltima opção (por exemplo, antes de Configurações)
-              bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao carregar módulos dinâmicos do menu:", err);
-    }
-  });
-}
-
-// Executa assim que a página carrega
-document.addEventListener('DOMContentLoaded', () => {
-  verificarEInjetarModulosDinamicos();
-});
-
 </body>
 </html>
