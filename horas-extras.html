@@ -28,10 +28,10 @@
 </head>
 <body>
 
-  <!-- CABEÇALHO PADRÃO NEXOS (Altura Fixa, Logo à esquerda, Sair à direita) -->
+  <!-- CABEÇALHO PADRÃO NEXOS (Com ID para logótipo dinâmico) -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img src="marca.png" alt="NexOS" style="max-height: 35px; width: auto;">
+      <img id="logo-cliente" alt="Sua Marca" style="max-height: 35px; width: auto; display: none;">
     </a>
     
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
@@ -242,7 +242,6 @@
       const listDiv = document.getElementById('he-list');
       try {
         allHE = await DataSync.load('rg_horas_extras') || [];
-        // Ordenar por data decrescente
         allHE.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         listDiv.innerHTML = "";
@@ -330,7 +329,6 @@
       heFormSection.style.display = 'none';
     };
 
-    // Exportar Relatório Excel
     document.getElementById('btn-gerar-excel').addEventListener('click', () => {
       const mesAnoValor = document.getElementById('rel-mes-ano').value;
       if (!mesAnoValor) {
@@ -410,7 +408,6 @@
       }
     };
 
-    // Submeter formulário
     heForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const date = document.getElementById('he-date').value;
@@ -480,6 +477,79 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+  </script>
+
+  <!-- Script Universal de Identidade Visual (White-Label) e Feature Flags -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tenantId = localStorage.getItem('rg_tenant_id');
+      const userRole = localStorage.getItem('rg_user_role'); 
+      const isSuperAdmin = (userRole === 'super_admin');
+      
+      const imgLogo = document.getElementById('logo-cliente');
+      const bottomNav = document.querySelector('.bottom-nav');
+
+      const setFallbackLogo = () => {
+        if (imgLogo) {
+          imgLogo.src = 'marca.png';
+          imgLogo.style.objectFit = 'contain';
+          imgLogo.style.display = 'block';
+        }
+      };
+
+      const injectHorasExtras = () => {
+        if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
+          const btnHoras = document.createElement('a');
+          btnHoras.href = 'horas-extras.html';
+          const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+          btnHoras.className = isActive;
+          btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
+          bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+        }
+      };
+
+      if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
+        setFallbackLogo();
+        if (isSuperAdmin) injectHorasExtras();
+        return;
+      }
+
+      db.collection('rg_config').doc(tenantId).get().then((doc) => {
+        if (doc.exists) {
+          const config = doc.data();
+          
+          // Carregar Logótipo Dinâmico
+          if (imgLogo) {
+            if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
+              imgLogo.src = config.logoBase64;
+            } else {
+              setFallbackLogo();
+            }
+            imgLogo.style.objectFit = 'contain';
+            imgLogo.style.display = 'block';
+          }
+
+          // Controlar Menus e Módulos (Feature Flags)
+          if (bottomNav) {
+            if (!isSuperAdmin && config.pageOrcamentos === false) {
+              const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+              if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
+            }
+            
+            if (isSuperAdmin || config.modHorasExtras === true) {
+              injectHorasExtras();
+            }
+          }
+        } else {
+          setFallbackLogo();
+          if (isSuperAdmin) injectHorasExtras();
+        }
+      }).catch(err => {
+        console.error("[NexOS] Erro ao carregar interface visual:", err);
+        setFallbackLogo();
+        if (isSuperAdmin) injectHorasExtras();
+      });
+    });
   </script>
 </body>
 </html>
