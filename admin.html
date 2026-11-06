@@ -28,7 +28,6 @@
   <!-- CABEÇALHO DO SUPER ADMIN -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
     <div style="display: flex; align-items: center; gap: 10px;">
-      <!-- Ajustado com o ID id="logo-cliente" para assumir o comportamento dinâmico do index.html -->
       <img id="logo-cliente" alt="NexOS" style="max-height: 35px; width: auto; display: none;">
       <span style="background: #EF4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Super Admin</span>
     </div>
@@ -99,7 +98,7 @@
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">🎨 Identidade Visual (White-Label)</h4>
             
             <div class="form-group" style="margin-bottom: 10px;">
-              <label><strong>Logótipo da Empresa:</strong></label>
+              <label><strong>Logótipo da Empresa (Mantém PNG original):</strong></label>
               <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
                 <input type="file" id="tenantLogoFile" accept="image/*" onchange="processarUploadLogo(event)" style="font-size: 0.85rem;">
               </div>
@@ -315,45 +314,19 @@
       }
     };
 
+    // PROCESSAMENTO DO LOGÓTIPO SEM COMPACTAÇÃO (Preserva o PNG original integralmente)
     window.processarUploadLogo = function(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 250;
-          const MAX_HEIGHT = 80;
-          let width = img.width;
-          let height = img.height;
+        const originalBase64 = e.target.result; // Lê exatamente o ficheiro original em Base64 sem reamostragem
+        document.getElementById('tenantLogoBase64').value = originalBase64;
 
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-          document.getElementById('tenantLogoBase64').value = dataUrl;
-
-          const preview = document.getElementById('logoPreviewImg');
-          preview.src = dataUrl;
-          document.getElementById('logoPreviewContainer').style.display = 'block';
-        };
-        img.src = e.target.result;
+        const preview = document.getElementById('logoPreviewImg');
+        preview.src = originalBase64;
+        document.getElementById('logoPreviewContainer').style.display = 'block';
       };
       reader.readAsDataURL(file);
     };
@@ -489,84 +462,75 @@
     }
   </script>
 
-  <!-- Script de Comportamento Dinâmico (Logótipo e Injeção idêntica ao Index) -->
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const tenantId = localStorage.getItem('rg_tenant_id');
-    const userRole = localStorage.getItem('rg_user_role'); // Lê se é cliente normal ou super_admin
-    const isSuperAdmin = (userRole === 'super_admin');
-    
-    const imgLogo = document.getElementById('logo-cliente');
-    const bottomNav = document.querySelector('.bottom-nav');
+  <!-- Script Universal Corrigido com salvaguarda no UID -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tenantId = localStorage.getItem('rg_tenant_id') || (firebase.auth().currentUser ? firebase.auth().currentUser.uid : null);
+      const userRole = localStorage.getItem('rg_user_role'); 
+      const isSuperAdmin = (userRole === 'super_admin');
+      
+      const imgLogo = document.getElementById('logo-cliente');
+      const bottomNav = document.querySelector('.bottom-nav');
 
-    // Função para mostrar a imagem padrão caso falhe ou não tenha logo personalizado
-    const setFallbackLogo = () => {
-      if (imgLogo) {
-        imgLogo.src = 'marca.png';
-        imgLogo.style.objectFit = 'contain';
-        imgLogo.style.display = 'block';
-      }
-    };
-
-    // Função para injetar as Horas Extras no menu (Super Admin ou clientes autorizados)
-    const injectHorasExtras = () => {
-      if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
-        const btnHoras = document.createElement('a');
-        btnHoras.href = 'horas-extras.html';
-        const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-        btnHoras.className = isActive;
-        btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-        bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
-      }
-    };
-
-    // Se não houver sessão ativa
-    if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
-      setFallbackLogo();
-      if (isSuperAdmin) injectHorasExtras();
-      return;
-    }
-
-    // Lê a configuração da empresa no Firestore
-    db.collection('rg_config').doc(tenantId).get().then((doc) => {
-      if (doc.exists) {
-        const config = doc.data();
-        
-        // --- 1. CARREGAR LOGÓTIPO ---
+      const setFallbackLogo = () => {
         if (imgLogo) {
-          if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
-            imgLogo.src = config.logoBase64;
-          } else {
-            setFallbackLogo();
-          }
+          imgLogo.src = 'marca.png';
           imgLogo.style.objectFit = 'contain';
           imgLogo.style.display = 'block';
         }
+      };
 
-        // --- 2. CONTROLAR MENUS ---
-        if (bottomNav) {
-          // Orçamentos: Esconde apenas se FOR CLIENTE NORMAL e a flag for false
-          if (!isSuperAdmin && config.pageOrcamentos === false) {
-            const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
-            if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
-          }
-          
-          // Horas Extras: Mostra se FOR SUPER ADMIN ou se a flag for true
-          if (isSuperAdmin || config.modHorasExtras === true) {
-            injectHorasExtras();
-          }
+      const injectHorasExtras = () => {
+        if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
+          const btnHoras = document.createElement('a');
+          btnHoras.href = 'horas-extras.html';
+          const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+          btnHoras.className = isActive;
+          btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
+          bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
         }
-      } else {
-        // Se o documento rg_config não existir (ex: cs_master sem config salva no painel)
+      };
+
+      if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
         setFallbackLogo();
         if (isSuperAdmin) injectHorasExtras();
+        return;
       }
-    }).catch(err => {
-      console.error("[NexOS] Erro ao carregar interface visual:", err);
-      setFallbackLogo();
-      if (isSuperAdmin) injectHorasExtras();
+
+      db.collection('rg_config').doc(tenantId).get().then((doc) => {
+        if (doc.exists) {
+          const config = doc.data();
+          
+          if (imgLogo) {
+            if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
+              imgLogo.src = config.logoBase64;
+            } else {
+              setFallbackLogo();
+            }
+            imgLogo.style.objectFit = 'contain';
+            imgLogo.style.display = 'block';
+          }
+
+          if (bottomNav) {
+            if (!isSuperAdmin && config.pageOrcamentos === false) {
+              const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+              if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
+            }
+            
+            if (isSuperAdmin || config.modHorasExtras === true) {
+              injectHorasExtras();
+            }
+          }
+        } else {
+          setFallbackLogo();
+          if (isSuperAdmin) injectHorasExtras();
+        }
+      }).catch(err => {
+        console.error("[NexOS] Erro ao carregar interface visual:", err);
+        setFallbackLogo();
+        if (isSuperAdmin) injectHorasExtras();
+      });
     });
-  });
-</script>
+  </script>
 </body>
 </html>
