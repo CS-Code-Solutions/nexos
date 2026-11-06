@@ -260,22 +260,18 @@
     }
 
     // ==========================================
-    // LÓGICA BLINDADA DA ASSINATURA (CANVAS)
+    // LÓGICA DA ASSINATURA (CANVAS)
     // ==========================================
     const canvas = document.getElementById('techSignatureCanvas');
     const ctx = canvas.getContext('2d');
     let painting = false;
-    let hasDrawn = false; // FLAG CRÍTICA: Só atualiza imagem se desenhar algo.
+    let hasDrawn = false;
     let currentTechSignature = '';
 
-    // Preenche o fundo de branco logo no início (evita fundo transparente gigante)
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    function startPosition(e) { 
-      painting = true; 
-      draw(e); 
-    }
+    function startPosition(e) { painting = true; draw(e); }
     
     function finishedPosition() { 
       if (painting) {
@@ -290,7 +286,7 @@
     
     function draw(e) {
       if (!painting) return;
-      hasDrawn = true; // Avisa que o rato/dedo foi arrastado no ecrã.
+      hasDrawn = true;
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.strokeStyle = '#0B132B';
@@ -326,44 +322,46 @@
     }
 
     window.limparAssinaturaTech = async function() {
-      // Pinta tudo de branco
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
       hasDrawn = false;
       currentTechSignature = '';
       atualizarPreviewAssinatura('');
       
       try {
-        let config = await DataSync.load('rg_config') || {};
-        config.techSignature = '';
-        await DataSync.save('rg_config', config);
+        let configAtual = await DataSync.load('rg_config') || {};
+        configAtual.techSignature = '';
+        await DataSync.save('rg_config', configAtual);
       } catch (err) {
-        console.error("Erro ao limpar assinatura na nuvem:", err);
+        console.error("Erro ao limpar assinatura:", err);
       }
     };
 
     window.salvarAssinaturaTech = async function() {
       try {
-        if (hasDrawn) {
-          currentTechSignature = canvas.toDataURL('image/png');
-        }
-        let config = await DataSync.load('rg_config') || {};
-        config.techSignature = currentTechSignature;
-        await DataSync.save('rg_config', config);
+        if (hasDrawn) { currentTechSignature = canvas.toDataURL('image/png'); }
+        
+        let configAtual = await DataSync.load('rg_config') || {};
+        configAtual.techSignature = currentTechSignature;
+        
+        await DataSync.save('rg_config', configAtual);
         atualizarPreviewAssinatura(currentTechSignature);
-        alert('Assinatura do técnico guardada isoladamente na nuvem!');
-        hasDrawn = false; // Reset da flag
+        alert('Assinatura salva com sucesso!');
+        hasDrawn = false;
       } catch (err) {
         alert('Erro ao guardar assinatura: ' + err.message);
       }
     };
 
+    // ==========================================
+    // LÓGICA DE CARREGAR E SALVAR DADOS
+    // ==========================================
     let dadosPendentesSalvar = null;
 
     async function carregarConfiguracoesIniciais() {
       try {
         let config = await DataSync.load('rg_config') || {};
+        
         document.getElementById('configName').value = config.name || '';
         document.getElementById('configTech').value = config.tech || '';
         document.getElementById('configDoc').value = config.doc || '';
@@ -391,7 +389,7 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             atualizarPreviewAssinatura(config.techSignature);
-            hasDrawn = false; // Foi apenas carregada do banco, não desenhada manualmente agora.
+            hasDrawn = false;
           };
           img.src = config.techSignature;
         }
@@ -402,40 +400,59 @@
 
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      // Só captura nova assinatura do canvas SE ALGO NOVO FOI DESENHADO!
-      if (hasDrawn) {
-        currentTechSignature = canvas.toDataURL('image/png');
-      }
+      const btn = e.target.querySelector('button[type="submit"]');
+      const txtAntigo = btn.innerHTML;
+      btn.innerHTML = 'A GUARDAR DADOS...';
+      btn.disabled = true;
 
-      dadosPendentesSalvar = {
-        name: document.getElementById('configName').value,
-        tech: document.getElementById('configTech').value,
-        techSignature: currentTechSignature, // Mantém a imagem que estava ou a nova que foi desenhada.
-        doc: document.getElementById('configDoc').value,
-        email: document.getElementById('configEmail').value,
-        contact: document.getElementById('configContact').value,
-        location: document.getElementById('configLocation').value,
-        nomeConta1: document.getElementById('configNomeConta1').value,
-        bank1: document.getElementById('configBank1').value,
-        agency1: document.getElementById('configAgency1').value,
-        account1: document.getElementById('configAccount1').value,
-        nomeConta2: document.getElementById('configNomeConta2').value,
-        bank2: document.getElementById('configBank2').value,
-        agency2: document.getElementById('configAgency2').value,
-        account2: document.getElementById('configAccount2').value,
-        nextRsNumber: document.getElementById('configNextRs').value,
-        lgpdConsent: true
-      };
+      try {
+        // Tenta carregar o objeto de configurações preexistente (para não apagar itens invisíveis como logótipo)
+        let configAtual = {};
+        try { configAtual = await DataSync.load('rg_config') || {}; } 
+        catch (loadErr) { console.warn("Aviso (Normal em contas novas): Sem configuração prévia.", loadErr); }
 
-      const lgpdAceitoLocal = localStorage.getItem('rg_lgpd_consent');
-      
-      // Checa diretamente no pendente se ele já existe na nuvem ou localmente
-      if (lgpdAceitoLocal === 'true') {
-        await executarSalvamentoConfiguracoes();
-      } else {
-        // Exibe modal apenas se nunca foi aceite localmente
-        document.getElementById('lgpdModal').style.display = 'flex';
+        if (hasDrawn) {
+          currentTechSignature = canvas.toDataURL('image/png');
+        } else {
+          // Se não desenhou nada novo agora, mantém o que veio da base de dados
+          currentTechSignature = currentTechSignature || configAtual.techSignature || '';
+        }
+
+        // Prepara o objeto com blindagem estrutural
+        dadosPendentesSalvar = {
+          ...configAtual, // Funde os dados existentes
+          name: document.getElementById('configName').value || '',
+          tech: document.getElementById('configTech').value || '',
+          techSignature: currentTechSignature,
+          doc: document.getElementById('configDoc').value || '',
+          email: document.getElementById('configEmail').value || '',
+          contact: document.getElementById('configContact').value || '',
+          location: document.getElementById('configLocation').value || '',
+          nomeConta1: document.getElementById('configNomeConta1').value || '',
+          bank1: document.getElementById('configBank1').value || '',
+          agency1: document.getElementById('configAgency1').value || '',
+          account1: document.getElementById('configAccount1').value || '',
+          nomeConta2: document.getElementById('configNomeConta2').value || '',
+          bank2: document.getElementById('configBank2').value || '',
+          agency2: document.getElementById('configAgency2').value || '',
+          account2: document.getElementById('configAccount2').value || '',
+          nextRsNumber: document.getElementById('configNextRs').value || '1000',
+          lgpdConsent: true
+        };
+
+        const lgpdAceitoLocal = localStorage.getItem('rg_lgpd_consent');
+        
+        if (lgpdAceitoLocal === 'true' || configAtual.lgpdConsent === true) {
+          await executarSalvamentoConfiguracoes();
+        } else {
+          document.getElementById('lgpdModal').style.display = 'flex';
+        }
+      } catch (err) {
+        console.error("Erro geral no submit:", err);
+        alert("Ocorreu um erro ao preparar os dados: " + err.message);
+      } finally {
+        btn.innerHTML = txtAntigo;
+        btn.disabled = false;
       }
     });
 
@@ -443,12 +460,20 @@
       if (!dadosPendentesSalvar) return;
       try {
         await DataSync.save('rg_config', dadosPendentesSalvar);
+        
+        // Dupla garantia - também injeta direto no Firestore se aplicável
+        const tenantId = localStorage.getItem('rg_tenant_id');
+        if (tenantId) {
+           await db.collection('rg_config').doc(tenantId).set(dadosPendentesSalvar, { merge: true });
+        }
+
         localStorage.setItem('rg_lgpd_consent', 'true');
-        alert('Configurações salvas com sucesso!');
-        hasDrawn = false; // Reseta a flag de desenho após salvar
+        alert('Todas as configurações da empresa foram salvas com sucesso!');
+        hasDrawn = false;
         dadosPendentesSalvar = null;
       } catch (err) {
-        alert('Erro ao guardar configurações: ' + err.message);
+        console.error("Erro no DataSync.save:", err);
+        alert('Erro ao guardar na nuvem: ' + err.message);
       }
     }
 
@@ -461,7 +486,7 @@
     window.recusarLgpd = function() {
       document.getElementById('lgpdModal').style.display = 'none';
       dadosPendentesSalvar = null;
-      alert('Erro: Consentimento negado. Não é possível concluir o salvamento das configurações sem a aceitação dos termos de proteção de dados (LGPD).');
+      alert('Erro: Consentimento negado. Operação cancelada.');
     };
 
     window.fazerBackup = async function() {
@@ -493,7 +518,7 @@
         event.target.value = '';
         return;
       }
-      if (!confirm('Atenção: A restauração irá substituir os dados atuais pelos do backup. Deseja continuar?')) {
+      if (!confirm('Atenção: A restauração irá substituir os dados atuais. Deseja continuar?')) {
         event.target.value = '';
         return;
       }
@@ -506,9 +531,7 @@
             'rg_config': 'rg_config',
             'rg_clients': 'rg_clients',
             'rg_machines': 'rg_machines',
-            'rg_maquinas': 'rg_machines',
             'rg_reports': 'rg_reports',
-            'rg_relatorios': 'rg_reports',
             'rg_orcamentos': 'rg_orcamentos'
           };
           let restoredAny = false;
@@ -522,7 +545,7 @@
             }
           }
           if (!restoredAny) {
-            alert('Aviso: O ficheiro não contém dados compatíveis com o sistema.');
+            alert('Aviso: O ficheiro não contém dados compatíveis.');
             return;
           }
           alert('Dados restaurados com sucesso!');
