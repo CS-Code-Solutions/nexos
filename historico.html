@@ -98,7 +98,7 @@
 </head>
 <body>
 
-  <!-- NOVO CABEÇALHO (Altura Fixa, Logo à esquerda, Sair à direita) -->
+  <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
       <img src="marca.png" alt="NexOS" style="max-height: 35px; width: auto;">
@@ -111,7 +111,6 @@
 
   <main style="padding-top: 20px;">
     <section>
-      <!-- CABEÇALHO COM BOTÃO NOVO RELATÓRIO -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
         <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Histórico de Relatórios</h2>
         <a href="novo-relatorio.html" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; text-decoration: none; padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px;">
@@ -119,7 +118,6 @@
         </a>
       </div>
 
-      <!-- LISTA DE RELATÓRIOS EM CARDS (GRID) -->
       <div id="reportCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
         <p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>
       </div>
@@ -150,7 +148,6 @@
   </footer>
 
   <script>
-    // Proteção de Sessão Baseada no Firebase
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         window.location.href = 'login.html';
@@ -193,7 +190,6 @@
         }
 
         let htmlCards = '';
-        // Mostra do mais recente para o mais antigo
         for (let i = reports.length - 1; i >= 0; i--) {
           const rep = reports[i];
           if (!rep) continue;
@@ -205,33 +201,29 @@
           const safeNature = escapeHTML(rep.serviceNature || rep.type || '-');
 
           htmlCards += `
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 120px; overflow: hidden;">
-              
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 160px; overflow: hidden;">
               <div style="overflow: hidden;">
-                <h3 style="margin: 0 0 8px 0; color: #0B132B; font-size: 1rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNumber} - ${safeDate}">
+                <h3 style="margin: 0 0 10px 0; color: #0B132B; font-size: 1.1rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNumber} - ${safeDate}">
                   ${safeNumber} <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">| ${safeDate}</span>
                 </h3>
-                
-                <div style="display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.85rem; color: #475569;">
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
                   <i class="fa-solid fa-building" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeClient}">${safeClient}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.85rem; color: #475569;">
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
                   <i class="fa-solid fa-gear" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeEquipment}">${safeEquipment}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.85rem; color: #475569;">
+                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
                   <i class="fa-solid fa-wrench" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNature}">${safeNature}</span>
                 </div>
               </div>
-              
-              <div class="no-print" style="display: flex; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #F1F5F9;">
-                <button class="btn" style="flex: 1.5; padding: 5px 0; font-size: 0.75rem; background-color: #1D4ED8; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="openReportPreview(${i})">Gerar PDF</button>
-                <button class="btn" style="flex: 1; padding: 5px 0; font-size: 0.75rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editReport(${i})">Editar</button>
-                <button class="btn" style="flex: 1; padding: 5px 0; font-size: 0.75rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteReport(${i})">Excluir</button>
+              <div class="no-print" style="display: flex; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
+                <button class="btn" style="flex: 1.5; padding: 6px 0; font-size: 0.8rem; background-color: #1D4ED8; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="openReportPreview(${i})">Gerar PDF</button>
+                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editReport(${i})">Editar</button>
+                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteReport(${i})">Excluir</button>
               </div>
-
             </div>
           `;
         }
@@ -295,13 +287,7 @@
         if (!rep) { alert("Relatório não encontrado."); return; }
         
         const defaultConfig = { 
-          name: 'NexOS', 
-          tech: 'Técnico Responsável',
-          doc: '00.000.000/0000-00',
-          email: '-',
-          contact: '-',
-          location: '-',
-          techSignature: ''
+          name: 'NexOS', tech: 'Técnico Responsável', doc: '00.000.000/0000-00', email: '-', contact: '-', location: '-', techSignature: ''
         };
 
         let config = { ...defaultConfig };
@@ -336,20 +322,11 @@
             
             let valorDeslocamentoTotal = 0;
             if (rep.temDeslocamento === 'sim') {
-                const valorHDesloc = Number(rep.valorHoraDeslocamento) || 260.00;
-                const horasDesloc = Number(rep.tempoDeslocamentoHoras) || 0;
-                valorDeslocamentoTotal = valorHDesloc * horasDesloc;
+                valorDeslocamentoTotal = (Number(rep.valorHoraDeslocamento) || 260.00) * (Number(rep.tempoDeslocamentoHoras) || 0);
             }
 
-            let valorHospedagemTotal = 0;
-            if (rep.temHospedagem === 'sim') {
-                valorHospedagemTotal = Number(rep.valorHospedagem) || 0;
-            }
-
-            let valorOutrasTotal = 0;
-            if (rep.temOutras === 'sim') {
-                valorOutrasTotal = Number(rep.valorOutras) || 0;
-            }
+            let valorHospedagemTotal = rep.temHospedagem === 'sim' ? (Number(rep.valorHospedagem) || 0) : 0;
+            let valorOutrasTotal = rep.temOutras === 'sim' ? (Number(rep.valorOutras) || 0) : 0;
 
             valorTotal = valorHorasTotal + valorDeslocamentoTotal + valorHospedagemTotal + valorOutrasTotal;
         }
@@ -361,7 +338,7 @@
         const hospedagemHtml = rep.temHospedagem === 'sim' ? `<p>• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : '';
         const outrasHtml = rep.temOutras === 'sim' ? `<p>• <strong>Outras Despesas / Alimentação:</strong> R$ ${Number(rep.valorOutras || 0).toFixed(2)}</p>` : '';
 
-        const clientSignature = rep.signature || rep.assinatura || rep.clientSignature || rep.assinaturaCliente || '';
+        const clientSignature = rep.signature || rep.assinatura || rep.clientSignature || '';
         const techSignature = config.techSignature || '';
 
         const signatureAreaHtml = `
@@ -406,76 +383,57 @@
           `;
         }
 
-        const safeRepNum = escapeHTML(rep.number);
-        const safeRepDate = escapeHTML(rep.date);
-        const safeCfgName = escapeHTML(config.name);
-        const safeCfgDoc = escapeHTML(config.doc);
-        const safeCfgEmail = escapeHTML(config.email || '-');
-        const safeCfgContact = escapeHTML(config.contact);
-        const safeCfgLocation = escapeHTML(config.location);
-        const safeRepClient = escapeHTML(rep.client);
-        const safeClientDoc = escapeHTML(clientObj.doc || clientObj.cnpj || '-');
-        const safeClientEmail = escapeHTML(clientObj.email || '-');
-        const safeClientAddress = escapeHTML(clientObj.address || '-');
-        const safeRepEq = escapeHTML(rep.equipment || '-');
-        const safeRepBrand = escapeHTML(rep.brand || '-');
-        const safeRepModel = escapeHTML(rep.model || '-');
-        const safeRepSerial = escapeHTML(rep.serialNumber || '-');
-        const safeServiceNature = escapeHTML(rep.serviceNature || '-');
-        const safeServiceArea = escapeHTML(rep.serviceArea || '-');
-        const safeDesc = escapeHTML(rep.desc || '-');
-
         const fullReportHtml = `
           <div class="print-body" id="pdfContentToPrint">
-            <div class="watermark">${safeCfgName}</div>
+            <div class="watermark">${escapeHTML(config.name)}</div>
 
             <div class="print-header">
               <img src="marca.png" alt="Logo">
               <div class="print-header-info">
                 <h1>RELATÓRIO DE SERVIÇO (RS)</h1>
-                <p><strong>Nº do RS:</strong> ${safeRepNum} | <strong>Data:</strong> ${safeRepDate}</p>
+                <p><strong>Nº do RS:</strong> ${escapeHTML(rep.number)} | <strong>Data:</strong> ${escapeHTML(rep.date)}</p>
               </div>
             </div>
 
             <div class="section-box">
               <div class="section-title">Dados da Empresa / Prestador de Serviço</div>
               <div class="grid-2">
-                <p><strong>Razão Social:</strong> ${safeCfgName}</p>
-                <p><strong>CNPJ:</strong> ${safeCfgDoc}</p>
-                <p><strong>E-mail:</strong> ${safeCfgEmail}</p>
-                <p><strong>Telefone / WhatsApp:</strong> ${safeCfgContact}</p>
-                <p style="grid-column: span 2;"><strong>Endereço:</strong> ${safeCfgLocation}</p>
+                <p><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
+                <p><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
+                <p><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
+                <p><strong>Telefone / WhatsApp:</strong> ${escapeHTML(config.contact)}</p>
+                <p style="grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
               </div>
             </div>
 
             <div class="section-box">
               <div class="section-title">Dados do Cliente</div>
               <div class="grid-2">
-                <p><strong>Nome / Razão Social:</strong> ${safeRepClient}</p>
-                <p><strong>CPF / CNPJ:</strong> ${safeClientDoc}</p>
-                <p><strong>E-mail:</strong> ${safeClientEmail}</p>
-                <p><strong>Endereço:</strong> ${safeClientAddress}</p>
+                <p><strong>Nome / Razão Social:</strong> ${escapeHTML(rep.client)}</p>
+                <p><strong>CPF / CNPJ:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
+                <p><strong>E-mail:</strong> ${escapeHTML(clientObj.email || '-')}</p>
+                <p><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
               </div>
             </div>
 
             <div class="section-box">
               <div class="section-title">Dados do Equipamento / Máquina</div>
               <div class="grid-2">
-                <p><strong>Equipamento:</strong> ${safeRepEq}</p>
-                <p><strong>Marca:</strong> ${safeRepBrand}</p>
-                <p><strong>Modelo:</strong> ${safeRepModel}</p>
-                <p><strong>Matrícula / N° de Série:</strong> ${safeRepSerial}</p>
+                <p><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
+                <p><strong>Marca:</strong> ${escapeHTML(rep.brand || '-')}</p>
+                <p><strong>Modelo:</strong> ${escapeHTML(rep.model || '-')}</p>
+                <p><strong>Matrícula / N° de Série:</strong> ${escapeHTML(rep.serialNumber || '-')}</p>
               </div>
             </div>
 
             <div class="section-box">
               <div class="section-title">Registro do Serviço Realizado</div>
               <div class="grid-2" style="margin-bottom: 2px;">
-                <p><strong>Tipo de Manutenção:</strong> ${safeServiceNature}</p>
-                <p><strong>Área de Serviço:</strong> ${safeServiceArea}</p>
+                <p><strong>Tipo de Manutenção:</strong> ${escapeHTML(rep.serviceNature || '-')}</p>
+                <p><strong>Área de Serviço:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
               </div>
               <p><strong>Descrição Detalhada:</strong></p>
-              <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px;">${safeDesc}</p>
+              <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(rep.desc || '-')}</p>
             </div>
 
             <div class="section-box">
@@ -513,8 +471,7 @@
       const element = document.getElementById('reportRenderArea');
       const filename = `Relatorio_RS_${activeReportData.number || 'RS-1000'}.pdf`;
       const opt = {
-        margin: [6, 6, 6, 6],
-        filename: filename,
+        margin: [6, 6, 6, 6], filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, allowTaint: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -539,9 +496,8 @@
           document.getElementById('loadingStatusRs').textContent = 'Guardado (Download)!';
         }
       } catch (err) {
-        console.error("Erro ou cancelamento na partilha:", err);
         if (err.name !== 'AbortError') {
-          html2pdf().from(element).set(opt).set(opt).save();
+          html2pdf().from(element).set(opt).save();
           document.getElementById('loadingStatusRs').textContent = 'Guardado (Download)!';
         } else {
           document.getElementById('loadingStatusRs').textContent = 'Partilha cancelada.';
@@ -553,8 +509,7 @@
       const element = document.getElementById('reportRenderArea');
       const filename = `Relatorio_RS_${activeReportData.number || 'RS-1000'}.pdf`;
       const opt = {
-        margin: [6, 6, 6, 6],
-        filename: filename,
+        margin: [6, 6, 6, 6], filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, allowTaint: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -564,9 +519,39 @@
         document.getElementById('loadingStatusRs').textContent = 'Descarregado!';
       });
     };
+
+    async function verificarEInjetarModulosDinamicos() {
+      firebase.auth().onAuthStateChanged(async (user) => {
+        if (!user) return;
+        try {
+          const configDoc = await db.collection('rg_config').doc(user.uid).get();
+          if (configDoc.exists) {
+            const data = configDoc.data();
+            if (data.modHorasExtras === true) {
+              const bottomNav = document.querySelector('.bottom-nav');
+              if (bottomNav) {
+                if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
+                  const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+                  const btnHoras = document.createElement('a');
+                  btnHoras.href = 'horas-extras.html';
+                  btnHoras.className = isActive;
+                  btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
+                  bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Erro ao carregar módulos dinâmicos do menu:", err);
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      verificarEInjetarModulosDinamicos();
+    });
   </script>
 
-  <!-- Barra de Navegação Inferior -->
   <nav class="bottom-nav no-print">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
@@ -589,50 +574,5 @@
       <span>Config</span>
     </a>
   </nav>
-// Script de Controlo Dinâmico da Barra de Navegação Inferior (Bottom Nav)
-async function verificarEInjetarModulosDinamicos() {
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (!user) return;
-
-    try {
-      // Lê as configurações do tenant atual na nuvem
-      const configDoc = await db.collection('rg_config').doc(user.uid).get();
-      if (configDoc.exists) {
-        const data = configDoc.data();
-        
-        // Verifica se o módulo de Horas Extras está ativo para este cliente
-        if (data.modHorasExtras === true) {
-          const bottomNav = document.querySelector('.bottom-nav');
-          if (bottomNav) {
-            // Verifica se o botão já foi injetado para evitar duplicados
-            if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
-              const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-              
-              // Cria o elemento do link e injeta na barra inferior
-              const btnHoras = document.createElement('a');
-              btnHoras.href = 'horas-extras.html';
-              btnHoras.className = isActive;
-              btnHoras.innerHTML = `
-                <i class="fa-solid fa-clock"></i>
-                <span>Horas</span>
-              `;
-              
-              // Insere o botão logo antes da penúltima opção (por exemplo, antes de Configurações)
-              bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao carregar módulos dinâmicos do menu:", err);
-    }
-  });
-}
-
-// Executa assim que a página carrega
-document.addEventListener('DOMContentLoaded', () => {
-  verificarEInjetarModulosDinamicos();
-});
-
 </body>
 </html>
