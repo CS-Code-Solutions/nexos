@@ -124,6 +124,9 @@
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
                 <input type="checkbox" id="pageOrcamentos" checked style="width: 16px; height: 16px;"> Página Orçamentos
               </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; grid-column: 1 / -1; background: #E0F2FE; padding: 6px; border-radius: 4px;">
+                <input type="checkbox" id="modHorasExtras" style="width: 16px; height: 16px;"> ⏱️ Módulo de Horas Extras (Exclusivo)
+              </label>
             </div>
 
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">⚙️ Critérios e Campos Opcionais (Relatórios)</h4>
@@ -156,7 +159,7 @@
     </div>
   </div>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR (Mantida fielmente) -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
   <nav class="bottom-nav no-print">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
@@ -225,13 +228,14 @@
           const nomeEmpresa = data.name || 'Empresa Sem Nome';
           const emailEmpresa = data.email || 'E-mail não informado';
           const temLogo = data.logoBase64 ? 'Sim (Personalizado)' : 'Padrão (marca.png)';
+          const statusHE = data.modHorasExtras ? 'Ativo' : 'Inativo';
 
           html += `
             <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
               <div style="flex: 1; min-width: 250px;">
                 <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
                 <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(emailEmpresa)}</span><br>
-                <span style="font-size: 0.85rem; color: #0D9488;"><strong>Logótipo:</strong> ${temLogo}</span><br>
+                <span style="font-size: 0.85rem; color: #0D9488;"><strong>Logótipo:</strong> ${temLogo} | <strong>Horas Extras:</strong> ${statusHE}</span><br>
                 <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
               </div>
               <div style="display: flex; gap: 8px;">
@@ -249,7 +253,6 @@
       }
     }
 
-    // Função de upload de imagem com compressão client-side em Base64
     window.processarUploadLogo = function(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -281,7 +284,6 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Comprime para JPEG com qualidade 0.85
           const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
           document.getElementById('tenantLogoBase64').value = dataUrl;
 
@@ -324,11 +326,12 @@
         document.getElementById('logoPreviewContainer').style.display = 'none';
       }
 
-      // Páginas gerais
+      // Páginas gerais e Módulos
       document.getElementById('pageClientes').checked = t.pageClientes !== false;
       document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
       document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
       document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
+      document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
       // Critérios opcionais
       document.getElementById('criterioEmpreitada').checked = t.criterioEmpreitada !== false;
@@ -359,9 +362,10 @@
         pageMaquinas: document.getElementById('pageMaquinas').checked,
         pageRelatorios: document.getElementById('pageRelatorios').checked,
         pageOrcamentos: document.getElementById('pageOrcamentos').checked,
+        modHorasExtras: document.getElementById('modHorasExtras').checked,
 
         criterioEmpreitada: document.getElementById('criterioEmpreitada').checked,
-        criterioHoraTrabalhada: document.getElementById('criterioHoraTrabalhada').checked,
+        criterioHoraTrabalhada: document.getElementById('criterioHoraTrabalhada'].checked,
         criterioHoraDeslocamento: document.getElementById('criterioHoraDeslocamento').checked,
         criterioHospedagem: document.getElementById('criterioHospedagem').checked,
         criterioOutrasDespesas: document.getElementById('criterioOutrasDespesas').checked,
