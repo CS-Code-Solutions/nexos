@@ -28,7 +28,8 @@
   <!-- CABEÇALHO DO SUPER ADMIN -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
     <div style="display: flex; align-items: center; gap: 10px;">
-      <img src="marca.png" alt="NexOS" style="max-height: 35px; width: auto;">
+      <!-- Ajustado com o ID id="logo-cliente" para assumir o comportamento dinâmico do index.html -->
+      <img id="logo-cliente" alt="NexOS" style="max-height: 35px; width: auto; display: none;">
       <span style="background: #EF4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Super Admin</span>
     </div>
     
@@ -44,7 +45,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <div>
           <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 5px;">Painel de Controlo Global</h2>
-          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Inquilinos, White-Label e Feature Flags | <strong>CS Code Solutions</strong>[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span)</p>
+          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Inquilinos, White-Label e Feature Flags | <strong>CS Code Solutions</strong></p>
         </div>
         <button type="button" class="btn" onclick="abrirModalCliente()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 18px;">
           <i class="fa-solid fa-user-plus"></i> Novo Cliente
@@ -63,7 +64,7 @@
 
   </main>
 
-  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT (Com altura contida e rodapé fixo visível) -->
+  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
   <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
     <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 78vh; overflow: hidden; margin: auto;">
       
@@ -96,7 +97,6 @@
           <!-- WHITE-LABEL: LOGO E MARCA D'ÁGUA -->
           <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">🎨 Identidade Visual (White-Label)</h4>
-
             
             <div class="form-group" style="margin-bottom: 10px;">
               <label><strong>Logótipo da Empresa:</strong></label>
@@ -167,30 +167,6 @@
     </div>
   </div>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
-  <nav class="bottom-nav no-print">
-    <a href="index.html">
-      <i class="fa-solid fa-users"></i>
-      <span>Clientes</span>
-    </a>
-    <a href="maquinas.html">
-      <i class="fa-solid fa-gears"></i>
-      <span>Máquinas</span>
-    </a>
-    <a href="historico.html">
-      <i class="fa-solid fa-file-lines"></i>
-      <span>Relatórios</span>
-    </a>
-    <a href="orcamentos.html">
-      <i class="fa-solid fa-calculator"></i>
-      <span>Orçamentos</span>
-    </a>
-    <a href="configuracao.html">
-      <i class="fa-solid fa-gear"></i>
-      <span>Config</span>
-    </a>
-  </nav>
-
   <script>
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
@@ -209,7 +185,7 @@
         
         container.innerHTML = '';
         if (configSnapshot.empty) {
-          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na base de dados[span_8](start_span)[span_8](end_span)[span_9](start_span)[span_9](end_span).</p>';
+          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na base de dados.</p>';
           return;
         }
 
@@ -511,6 +487,50 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+  </script>
+
+  <!-- Script de Comportamento Dinâmico (Logótipo e Injeção idêntica ao Index) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tenantId = localStorage.getItem('rg_tenant_id');
+      const userRole = localStorage.getItem('rg_user_role'); 
+      const isSuperAdmin = (userRole === 'super_admin');
+      
+      const imgLogo = document.getElementById('logo-cliente');
+
+      const setFallbackLogo = () => {
+        if (imgLogo) {
+          imgLogo.src = 'marca.png';
+          imgLogo.style.objectFit = 'contain';
+          imgLogo.style.display = 'block';
+        }
+      };
+
+      if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
+        setFallbackLogo();
+        return;
+      }
+
+      db.collection('rg_config').doc(tenantId).get().then((doc) => {
+        if (doc.exists) {
+          const config = doc.data();
+          if (imgLogo) {
+            if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
+              imgLogo.src = config.logoBase64;
+            } else {
+              setFallbackLogo();
+            }
+            imgLogo.style.objectFit = 'contain';
+            imgLogo.style.display = 'block';
+          }
+        } else {
+          setFallbackLogo();
+        }
+      }).catch(err => {
+        console.error("[NexOS] Erro ao carregar logótipo no Admin:", err);
+        setFallbackLogo();
+      });
+    });
   </script>
 </body>
 </html>
