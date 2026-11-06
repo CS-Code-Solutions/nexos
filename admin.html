@@ -37,101 +37,167 @@
     </button>
   </header>
 
-  <main style="max-width: 1000px; margin: 20px auto; padding: 0 15px;">
+  <main style="max-width: 1000px; margin: 20px auto; padding: 0 15px; padding-top: 20px;">
     
-    <!-- CARD DE BOAS-VINDAS E STATUS -->
+    <!-- CARD DE BOAS-VINDAS E AÇÃO DE NOVO CLIENTE -->
     <section class="card" style="border-top: 4px solid #EF4444; margin-bottom: 20px;">
-      <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 10px;">Painel de Controlo Global</h2>
-      <p style="color: #475569; font-size: 0.95rem; margin-bottom: 15px;">Área restrita de gestão de infraestrutura multi-tenant operada por <strong>CS Code Solutions</strong>.</p>
-      
-      <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <div>
-          <strong style="color: #0B132B;">Administrador Conectado:</strong><br>
-          <span id="adminEmailLogado" style="color: #0D9488; font-weight: bold;">A carregar credenciais...</span>
+          <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 5px;">Painel de Controlo Global</h2>
+          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Inquilinos, White-Label e Feature Flags | <strong>CS Code Solutions</strong></p>
         </div>
-        <div>
-          <a href="index.html" class="btn" style="background-color: #0B132B; color: #FFF; padding: 8px 16px; text-decoration: none; font-size: 0.85rem;">
-            <i class="fa-solid fa-arrow-left"></i> Voltar ao NexOS (App)
-          </a>
-        </div>
+        <button type="button" class="btn" onclick="abrirModalCliente()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 18px;">
+          <i class="fa-solid fa-user-plus"></i> Novo Cliente / Tenant
+        </button>
       </div>
     </section>
 
-    <!-- CARD DE GESTÃO DE TENANTS / UTILIZADORES -->
+    <!-- LISTA DE CLIENTES / TENANTS -->
     <section class="card" style="border-top: 4px solid var(--electric-cyan);">
-      <h3 style="color: #0B132B; font-size: 1.25rem; margin-bottom: 15px;"><i class="fa-solid fa-users-gear"></i> Inquilinos e Licenças Ativas</h3>
+      <h3 style="color: #0B132B; font-size: 1.25rem; margin-bottom: 15px;"><i class="fa-solid fa-users-gear"></i> Clientes Registados no Sistema</h3>
       
-      <div id="adminTenantList" style="display: flex; flex-direction: column; gap: 10px;">
-        <p style="text-align: center; color: #64748B; padding: 20px;">A carregar registos globais do Firestore...</p>
+      <div id="adminTenantList" style="display: flex; flex-direction: column; gap: 15px;">
+        <p style="text-align: center; color: #64748B; padding: 20px;">A carregar dados do Firestore...</p>
       </div>
     </section>
 
   </main>
+
+  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
+  <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; overflow-y: auto; padding: 15px;">
+    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 90vh; overflow: hidden;">
+      
+      <div style="background: var(--deep-navy); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan);">
+        <h3 id="modalTenantTitle" style="margin: 0; font-size: 1.1rem; color: var(--electric-cyan);">Configurar Cliente</h3>
+        <button type="button" onclick="fecharModalCliente()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: white;">&times;</button>
+      </div>
+
+      <div style="padding: 20px; overflow-y: auto; flex-grow: 1;">
+        <form id="tenantForm">
+          <input type="hidden" id="tenantUid">
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="tenantNome"><strong>Nome / Razão Social:</strong></label>
+            <input type="text" id="tenantNome" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="tenantEmail"><strong>E-mail de Acesso (Firebase Auth UID):</strong></label>
+            <input type="email" id="tenantEmail" required placeholder="cliente@empresa.com" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+            <small style="color: #64748B;">Nota: O UID deve corresponder exatamente ao ID de documento no Firestore do utilizador.</small>
+          </div>
+
+          <!-- WHITE-LABEL: LOGO E MARCA D'ÁGUA -->
+          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">🎨 Identidade Visual (White-Label)</h4>
+            
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="tenantLogoUrl"><strong>URL do Logótipo (Substitui o `marca.png`):</strong></label>
+              <input type="text" id="tenantLogoUrl" placeholder="https://exemplo.com/logo.png ou Base64" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+            </div>
+
+            <div class="form-group">
+              <label for="tenantWatermark"><strong>Texto da Marca d'Água nos PDFs:</strong></label>
+              <input type="text" id="tenantWatermark" placeholder="Ex: NOME DA EMPRESA LTDA" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+            </div>
+          </div>
+
+          <!-- FEATURE FLAGS: ATIVAR / DESATIVAR PÁGINAS E CAMPOS -->
+          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">⚙️ Controlo de Módulos e Campos (Feature Flags)</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="modOrcamentos" checked style="width: 16px; height: 16px;"> Usar Orçamentos
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="modMaquinas" checked style="width: 16px; height: 16px;"> Usar Máquinas
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="campoKm" checked style="width: 16px; height: 16px;"> Usar KM / Deslocamento
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="campoEmpreitada" checked style="width: 16px; height: 16px;"> Usar Empreitada
+              </label>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 8px 16px;" onclick="fecharModalCliente()">Cancelar</button>
+            <button type="submit" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px;">Guardar Configurações</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
 
   <footer class="no-print">
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
   <script>
-    // LISTA DE EMAILS AUTORIZADOS COMO SUPER ADMIN
-    const EMAILS_ADMIN = [
-      'contato@cscodesolutions.com', // Altere ou adicione o seu e-mail principal aqui se necessário
-      // Pode adicionar outros e-mails de administração se pretender
-    ];
-
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         window.location.href = 'login.html';
       } else {
-        document.getElementById('adminEmailLogado').textContent = user.email;
-
-        // Validação opcional de segurança por e-mail (caso queira restringir rigorosamente)
-        // Se o utilizador atual não for admin, podemos emitir um aviso ou permitir acesso administrativo geral:
-        /*
-        if (!EMAILS_ADMIN.includes(user.email) && user.email !== 'o_seu_email_aqui@gmail.com') {
-          alert('Acesso negado: Área restrita ao Super Admin.');
-          window.location.href = 'index.html';
-          return;
-        }
-        */
-
         await carregarPainelAdmin();
       }
     });
 
+    let tenantsCache = [];
+
     async function carregarPainelAdmin() {
       const container = document.getElementById('adminTenantList');
       try {
-        // Exemplo: Listar documentos de configuração ou relatórios existentes na base para auditoria
-        const configDoc = await db.collection('rg_config').get();
+        const configSnapshot = await db.collection('rg_config').get();
         
         container.innerHTML = '';
-        if (configDoc.empty) {
-          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na coleção de configurações.</p>';
+        if (configSnapshot.empty) {
+          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na base de dados.</p>';
           return;
         }
 
+        tenantsCache = [];
         let html = '';
-        configDoc.forEach(doc => {
+
+        for (const doc of configSnapshot.docs) {
           const data = doc.data();
           const uid = doc.id;
+          tenantsCache.push({ uid, ...data });
+
+          // CÁLCULO APROXIMADO DO TAMANHO DO BANCO DE DADOS (Dedução pelo tamanho do JSON das coleções)
+          let totalBytes = 0;
+          const colecoes = ['rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos', 'rg_config'];
+          for (const col of colecoes) {
+            try {
+              const dSnap = await db.collection(col).doc(uid).get();
+              if (dSnap.exists) {
+                totalBytes += JSON.stringify(dSnap.data()).length;
+              }
+            } catch (e) {}
+          }
+          const tamanhoKb = (totalBytes / 1024).toFixed(1);
+
           const nomeEmpresa = data.name || 'Empresa Sem Nome';
           const emailEmpresa = data.email || 'E-mail não informado';
-          const rsAtual = data.nextRsNumber || '1000';
+          const logoUsado = data.logoUrl || 'marca.png (Padrão)';
 
           html += `
-            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-              <div>
-                <strong style="font-size: 1.05rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
+            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+              <div style="flex: 1; min-width: 250px;">
+                <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
                 <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(emailEmpresa)}</span><br>
-                <span style="font-size: 0.85rem; color: #0D9488;"><strong>Próximo RS:</strong> ${rsAtual}</span>
+                <span style="font-size: 0.85rem; color: #0D9488;"><strong>Logo:</strong> ${escapeHTML(logoUsado)}</span><br>
+                <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
               </div>
-              <div>
-                <span style="background: #10B981; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">Ativo</span>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
+                <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
               </div>
             </div>
           `;
-        });
+        }
 
         container.innerHTML = html;
       } catch (err) {
@@ -139,6 +205,78 @@
         container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar dados do painel administrativo.</p>';
       }
     }
+
+    window.abrirModalCliente = function() {
+      document.getElementById('tenantForm').reset();
+      document.getElementById('tenantUid').value = '';
+      document.getElementById('modalTenantTitle').textContent = 'Adicionar Novo Cliente / Tenant';
+      document.getElementById('tenantModal').style.display = 'flex';
+    };
+
+    window.fecharModalCliente = function() {
+      document.getElementById('tenantModal').style.display = 'none';
+    };
+
+    window.editarTenant = function(uid) {
+      const t = tenantsCache.find(item => item.uid === uid);
+      if (!t) return;
+
+      document.getElementById('tenantUid').value = t.uid;
+      document.getElementById('tenantNome').value = t.name || '';
+      document.getElementById('tenantEmail').value = t.email || '';
+      document.getElementById('tenantLogoUrl').value = t.logoUrl || '';
+      document.getElementById('tenantWatermark').value = t.watermark || '';
+      
+      document.getElementById('modOrcamentos').checked = t.modOrcamentos !== false;
+      document.getElementById('modMaquinas').checked = t.modMaquinas !== false;
+      document.getElementById('campoKm').checked = t.campoKm !== false;
+      document.getElementById('campoEmpreitada').checked = t.campoEmpreitada !== false;
+
+      document.getElementById('modalTenantTitle').textContent = `Editar Configurações - ${t.name || uid}`;
+      document.getElementById('tenantModal').style.display = 'flex';
+    };
+
+    document.getElementById('tenantForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const uid = document.getElementById('tenantUid').value.trim();
+      if (!uid) {
+        alert('Por favor, informe um UID válido correspondente ao ID do documento no Firestore.');
+        return;
+      }
+
+      const tenantData = {
+        name: document.getElementById('tenantNome').value.trim(),
+        email: document.getElementById('tenantEmail').value.trim(),
+        logoUrl: document.getElementById('tenantLogoUrl').value.trim(),
+        watermark: document.getElementById('tenantWatermark').value.trim(),
+        modOrcamentos: document.getElementById('modOrcamentos').checked,
+        modMaquinas: document.getElementById('modMaquinas').checked,
+        campoKm: document.getElementById('campoKm').checked,
+        campoEmpreitada: document.getElementById('campoEmpreitada').checked,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
+        alert('Configurações do cliente salvas com sucesso!');
+        fecharModalCliente();
+        carregarPainelAdmin();
+      } catch (err) {
+        alert('Erro ao salvar tenant: ' + err.message);
+      }
+    });
+
+    window.excluirTenant = async function(uid) {
+      if (confirm(`Tem a certeza que deseja excluir as configurações do tenant ID: ${uid}? (Nota: Os documentos nas coleções individuais não serão apagados automaticamente para segurança).`)) {
+        try {
+          await db.collection('rg_config').doc(uid).delete();
+          alert('Configurações removidas com sucesso.');
+          carregarPainelAdmin();
+        } catch (err) {
+          alert('Erro ao excluir tenant: ' + err.message);
+        }
+      }
+    };
 
     function escapeHTML(str) {
       if (!str) return '';
