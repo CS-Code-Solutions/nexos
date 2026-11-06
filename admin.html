@@ -64,17 +64,24 @@
   </main>
 
   <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
-  <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; overflow-y: auto; padding: 15px;">
-    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 90vh; overflow: hidden;">
+  <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px;">
+    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 92vh; overflow: hidden;">
       
-      <div style="background: var(--deep-navy); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan);">
-        <h3 id="modalTenantTitle" style="margin: 0; font-size: 1.1rem; color: var(--electric-cyan);">Configurar Cliente</h3>
+      <!-- Cabeçalho Fixo do Modal -->
+      <div style="background: var(--deep-navy); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan); flex-shrink: 0;">
+        <h3 id="modalTenantTitle" style="margin: 0; font-size: 1.05rem; color: var(--electric-cyan);">Configurar Cliente</h3>
         <button type="button" onclick="fecharModalCliente()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: white;">&times;</button>
       </div>
 
-      <div style="padding: 20px; overflow-y: auto; flex-grow: 1;">
+      <!-- Corpo com Rolagem Interna -->
+      <div style="padding: 15px; overflow-y: auto; flex-grow: 1;">
         <form id="tenantForm">
-          <input type="hidden" id="tenantUid">
+          
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="tenantUid"><strong>UID do Cliente (ID no Firestore):</strong></label>
+            <input type="text" id="tenantUid" placeholder="Deixe em branco para gerar automático ou informe o UID" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background: #F8FAFC;">
+            <small style="color: #64748B;">Se criado pelo painel, será gerado um ID automático caso esteja vazio.</small>
+          </div>
 
           <div class="form-group" style="margin-bottom: 12px;">
             <label for="tenantNome"><strong>Nome / Razão Social:</strong></label>
@@ -82,9 +89,8 @@
           </div>
 
           <div class="form-group" style="margin-bottom: 12px;">
-            <label for="tenantEmail"><strong>E-mail de Acesso (Firebase Auth UID):</strong></label>
+            <label for="tenantEmail"><strong>E-mail de Acesso:</strong></label>
             <input type="email" id="tenantEmail" required placeholder="cliente@empresa.com" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-            <small style="color: #64748B;">Nota: O UID deve corresponder exatamente ao ID de documento no Firestore do utilizador.</small>
           </div>
 
           <!-- WHITE-LABEL: LOGO E MARCA D'ÁGUA -->
@@ -102,14 +108,14 @@
               </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 0;">
               <label for="tenantWatermark"><strong>Texto da Marca d'Água nos PDFs:</strong></label>
               <input type="text" id="tenantWatermark" placeholder="Ex: NOME DA EMPRESA LTDA" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
             </div>
           </div>
 
           <!-- FEATURE FLAGS: PÁGINAS GERAIS E MÓDULOS -->
-          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">📑 Controlo de Páginas Gerais</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
@@ -148,12 +154,13 @@
               </label>
             </div>
           </div>
-
-          <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 8px 16px;" onclick="fecharModalCliente()">Cancelar</button>
-            <button type="submit" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px;">Guardar Configurações</button>
-          </div>
         </form>
+      </div>
+
+      <!-- Rodapé Fixo com Botões Visíveis Acima da Bottom Nav -->
+      <div style="background: #F1F5F9; padding: 12px 15px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #CBD5E1; flex-shrink: 0;">
+        <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 8px 16px;" onclick="fecharModalCliente()">Cancelar</button>
+        <button type="submit" form="tenantForm" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px;">Guardar Configurações</button>
       </div>
 
     </div>
@@ -298,7 +305,11 @@
 
     window.abrirModalCliente = function() {
       document.getElementById('tenantForm').reset();
-      document.getElementById('tenantUid').value = '';
+      const inputUid = document.getElementById('tenantUid');
+      inputUid.value = '';
+      inputUid.readOnly = false;
+      inputUid.style.background = '#F8FAFC';
+      
       document.getElementById('tenantLogoBase64').value = '';
       document.getElementById('logoPreviewContainer').style.display = 'none';
       document.getElementById('modalTenantTitle').textContent = 'Adicionar Novo Cliente / Tenant';
@@ -313,7 +324,11 @@
       const t = tenantsCache.find(item => item.uid === uid);
       if (!t) return;
 
-      document.getElementById('tenantUid').value = t.uid;
+      const inputUid = document.getElementById('tenantUid');
+      inputUid.value = t.uid;
+      inputUid.readOnly = true;
+      inputUid.style.background = '#F1F5F9';
+
       document.getElementById('tenantNome').value = t.name || '';
       document.getElementById('tenantEmail').value = t.email || '';
       document.getElementById('tenantWatermark').value = t.watermark || '';
@@ -344,10 +359,11 @@
 
     document.getElementById('tenantForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const uid = document.getElementById('tenantUid').value.trim();
+      let uid = document.getElementById('tenantUid').value.trim();
+      
+      // Se o UID estiver vazio, gera um ID único automático (ex: tenant_timestamp)
       if (!uid) {
-        alert('Por favor, informe um UID válido correspondente ao ID do documento no Firestore.');
-        return;
+        uid = 'tenant_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
       }
 
       const tenantData = {
