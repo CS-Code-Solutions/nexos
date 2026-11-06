@@ -25,8 +25,7 @@
 </head>
 <body>
 
-  <!-- CABEÇALHO PADRÃO NEXOS (Altura Fixa, Logo à esquerda, Sair à direita) -->
-    <!-- CABEÇALHO PADRÃO NEXOS (Corrigido) -->
+  <!-- CABEÇALHO PADRÃO NEXOS -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
       <img id="logo-cliente" alt="NexOS" style="max-height: 35px; width: auto; display: none;">
@@ -36,7 +35,6 @@
       <i class="fa-solid fa-power-off"></i>
     </button>
   </header>
-
 
   <main style="padding-top: 20px;">
     
@@ -281,6 +279,9 @@
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(x, y);
+      
+      // Atualiza em tempo real a string da assinatura enquanto desenha
+      currentTechSignature = canvas.toDataURL();
     }
 
     canvas.addEventListener('mousedown', startPosition);
@@ -334,7 +335,10 @@
         if (config.techSignature) {
           currentTechSignature = config.techSignature;
           const img = new Image();
-          img.onload = () => { ctx.drawImage(img, 0, 0); };
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
           img.src = config.techSignature;
         }
       } catch (err) {
@@ -345,10 +349,13 @@
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
+      // Assegura que captura a assinatura atual do canvas antes de submeter
+      currentTechSignature = canvas.toDataURL();
+
       dadosPendentesSalvar = {
         name: document.getElementById('configName').value,
         tech: document.getElementById('configTech').value,
-        techSignature: currentTechSignature || (await DataSync.load('rg_config') || {}).techSignature || '',
+        techSignature: currentTechSignature,
         doc: document.getElementById('configDoc').value,
         email: document.getElementById('configEmail').value,
         contact: document.getElementById('configContact').value,
@@ -484,7 +491,7 @@
     </a>
   </nav>
 
-  <!-- Script de Controlo Dinâmico da Barra de Navegação Inferior (Bottom Nav) -->
+  <!-- Script de Controlo Dinâmico da Barra de Navegação Inferior -->
    <script>
     document.addEventListener('DOMContentLoaded', () => {
       const tenantId = localStorage.getItem('rg_tenant_id') || (firebase.auth().currentUser ? firebase.auth().currentUser.uid : null);
