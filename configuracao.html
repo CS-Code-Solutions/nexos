@@ -483,7 +483,7 @@
   </nav>
 
   <!-- Script de Controlo Dinâmico (Logótipo e Menus White-Label) -->
-   <script>
+  <script>
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         window.location.href = 'login.html';
@@ -492,18 +492,22 @@
         statusText.innerHTML = "🟢 Conectado à Nuvem (Sessão Segura)";
         statusText.style.color = "#10B981";
 
-        // --- LIBERAÇÃO ROBUSTA DO SUPER ADMIN ---
+        // 1. GESTÃO DO SUPER ADMIN E BOTÃO DO PAINEL
         const userEmail = user.email || '';
         let userRole = localStorage.getItem('rg_user_role');
+        let tenantId = localStorage.getItem('rg_tenant_id');
 
-        // Se o e-mail for o seu e-mail mestre de administração ou estiver no storage
+        if (!tenantId) {
+          tenantId = user.uid;
+          localStorage.setItem('rg_tenant_id', tenantId);
+        }
+
         if (userEmail.includes('cs.codesolutions') || userEmail.includes('admin') || userRole === 'super_admin') {
           userRole = 'super_admin';
           localStorage.setItem('rg_user_role', 'super_admin');
           const adminCard = document.getElementById('superAdminCard');
           if (adminCard) adminCard.style.display = 'block';
         } else {
-          // Consulta de segurança secundária no Firestore caso venha por UID/email registado
           try {
             const userDoc = await db.collection('saas_users').doc(userEmail).get();
             if (userDoc.exists) {
@@ -519,10 +523,72 @@
           }
         }
 
+        const isSuperAdmin = (userRole === 'super_admin');
+        const imgLogo = document.getElementById('logo-cliente');
+        const bottomNav = document.querySelector('.bottom-nav');
+
+        const setFallbackLogo = () => {
+          if (imgLogo) {
+            imgLogo.src = 'marca.png';
+            imgLogo.style.objectFit = 'contain';
+            imgLogo.style.display = 'block';
+          }
+        };
+
+        const injectHorasExtras = () => {
+          if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
+            const btnHoras = document.createElement('a');
+            btnHoras.href = 'horas-extras.html';
+            const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+            btnHoras.className = isActive;
+            btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
+            bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+          }
+        };
+
+        // 2. CARREGAR CONFIGURAÇÕES VISUAIS DO FIRESTORE (WHITE-LABEL & FEATURE FLAGS)
+        try {
+          const configDoc = await db.collection('rg_config').doc(tenantId).get();
+          if (configDoc.exists) {
+            const config = configDoc.data();
+            
+            // Carregar Logótipo sem compactação
+            if (imgLogo) {
+              if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
+                imgLogo.src = config.logoBase64;
+              } else {
+                setFallbackLogo();
+              }
+              imgLogo.style.objectFit = 'contain';
+              imgLogo.style.display = 'block';
+            }
+
+            // Controlo de Menus e Módulos
+            if (bottomNav) {
+              if (!isSuperAdmin && config.pageOrcamentos === false) {
+                const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+                if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
+              }
+              
+              if (isSuperAdmin || config.modHorasExtras === true) {
+                injectHorasExtras();
+              }
+            }
+          } else {
+            setFallbackLogo();
+            if (isSuperAdmin) injectHorasExtras();
+          }
+        } catch (err) {
+          console.error("[NexOS] Erro ao carregar interface visual:", err);
+          setFallbackLogo();
+          if (isSuperAdmin) injectHorasExtras();
+        }
+
         await carregarConfiguracoesIniciais();
       }
     });
   </script>
+
 
 </body>
 </html>
