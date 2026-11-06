@@ -231,7 +231,7 @@
           const statusHE = data.modHorasExtras ? 'Ativo' : 'Inativo';
 
           html += `
-            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
               <div style="flex: 1; min-width: 250px;">
                 <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
                 <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(emailEmpresa)}</span><br>
@@ -239,8 +239,8 @@
                 <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
               </div>
               <div style="display: flex; gap: 8px;">
-                <button class="btn" style="background-color: #F59E0B; color: white; padding: 5px 10px; font-size: 0.75rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
-                <button class="btn" style="background-color: #EF4444; color: white; padding: 5px 10px; font-size: 0.75rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
+                <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
+                <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
               </div>
             </div>
           `;
@@ -326,14 +326,12 @@
         document.getElementById('logoPreviewContainer').style.display = 'none';
       }
 
-      // Páginas gerais e Módulos
       document.getElementById('pageClientes').checked = t.pageClientes !== false;
       document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
       document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
       document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
       document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
-      // Critérios opcionais
       document.getElementById('criterioEmpreitada').checked = t.criterioEmpreitada !== false;
       document.getElementById('criterioHoraTrabalhada').checked = t.criterioHoraTrabalhada !== false;
       document.getElementById('criterioHoraDeslocamento').checked = t.criterioHoraDeslocamento !== false;
@@ -404,51 +402,40 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
-// Script de Controlo Dinâmico da Barra de Navegação Inferior (Bottom Nav)
-async function verificarEInjetarModulosDinamicos() {
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (!user) return;
 
-    try {
-      // Lê as configurações do tenant atual na nuvem
-      const configDoc = await db.collection('rg_config').doc(user.uid).get();
-      if (configDoc.exists) {
-        const data = configDoc.data();
-        
-        // Verifica se o módulo de Horas Extras está ativo para este cliente
-        if (data.modHorasExtras === true) {
-          const bottomNav = document.querySelector('.bottom-nav');
-          if (bottomNav) {
-            // Verifica se o botão já foi injetado para evitar duplicados
-            if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
-              const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-              
-              // Cria o elemento do link e injeta na barra inferior
-              const btnHoras = document.createElement('a');
-              btnHoras.href = 'horas-extras.html';
-              btnHoras.className = isActive;
-              btnHoras.innerHTML = `
-                <i class="fa-solid fa-clock"></i>
-                <span>Horas</span>
-              `;
-              
-              // Insere o botão logo antes da penúltima opção (por exemplo, antes de Configurações)
-              bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+    async function verificarEInjetarModulosDinamicos() {
+      firebase.auth().onAuthStateChanged(async (user) => {
+        if (!user) return;
+        try {
+          const configDoc = await db.collection('rg_config').doc(user.uid).get();
+          if (configDoc.exists) {
+            const data = configDoc.data();
+            if (data.modHorasExtras === true) {
+              const bottomNav = document.querySelector('.bottom-nav');
+              if (bottomNav) {
+                if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
+                  const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+                  const btnHoras = document.createElement('a');
+                  btnHoras.href = 'horas-extras.html';
+                  btnHoras.className = isActive;
+                  btnHoras.innerHTML = `
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Horas</span>
+                  `;
+                  bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+                }
+              }
             }
           }
+        } catch (err) {
+          console.error("Erro ao carregar módulos dinâmicos do menu:", err);
         }
-      }
-    } catch (err) {
-      console.error("Erro ao carregar módulos dinâmicos do menu:", err);
+      });
     }
-  });
-}
 
-// Executa assim que a página carrega
-document.addEventListener('DOMContentLoaded', () => {
-  verificarEInjetarModulosDinamicos();
-});
+    document.addEventListener('DOMContentLoaded', () => {
+      verificarEInjetarModulosDinamicos();
+    });
   </script>
-
 </body>
 </html>
