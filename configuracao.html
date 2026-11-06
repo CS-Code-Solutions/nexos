@@ -488,6 +488,50 @@
       <span>Config</span>
     </a>
   </nav>
+// Script de Controlo Dinâmico da Barra de Navegação Inferior (Bottom Nav)
+async function verificarEInjetarModulosDinamicos() {
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) return;
+
+    try {
+      // Lê as configurações do tenant atual na nuvem
+      const configDoc = await db.collection('rg_config').doc(user.uid).get();
+      if (configDoc.exists) {
+        const data = configDoc.data();
+        
+        // Verifica se o módulo de Horas Extras está ativo para este cliente
+        if (data.modHorasExtras === true) {
+          const bottomNav = document.querySelector('.bottom-nav');
+          if (bottomNav) {
+            // Verifica se o botão já foi injetado para evitar duplicados
+            if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
+              const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+              
+              // Cria o elemento do link e injeta na barra inferior
+              const btnHoras = document.createElement('a');
+              btnHoras.href = 'horas-extras.html';
+              btnHoras.className = isActive;
+              btnHoras.innerHTML = `
+                <i class="fa-solid fa-clock"></i>
+                <span>Horas</span>
+              `;
+              
+              // Insere o botão logo antes da penúltima opção (por exemplo, antes de Configurações)
+              bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao carregar módulos dinâmicos do menu:", err);
+    }
+  });
+}
+
+// Executa assim que a página carrega
+document.addEventListener('DOMContentLoaded', () => {
+  verificarEInjetarModulosDinamicos();
+});
 
 </body>
 </html>
