@@ -295,7 +295,6 @@
   </nav>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // Dá 1 segundo para garantir que a autenticação e o localStorage estão prontos
     setTimeout(() => {
       const tenantId = localStorage.getItem('rg_tenant_id');
       
@@ -309,13 +308,12 @@
         if (doc.exists) {
           const config = doc.data();
           
-          // --- 1. APLICAR LOGÓTIPO ---
-          if (config.logoBase64) {
-            // Procura a imagem do cabeçalho de várias formas seguras
-            const imgLogo = document.querySelector('img[src="marca.png"]') || document.querySelector('img[alt="Sua marca aqui"]') || document.querySelector('header img');
+          // --- 1. MECÂNICA DE SUBSTITUIÇÃO DO LOGÓTIPO ---
+          if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
+            // Agora vai direto ao ID certo, ignorando a pasta do GitHub
+            const imgLogo = document.getElementById('logo-cliente');
             if (imgLogo) {
               imgLogo.src = config.logoBase64;
-              imgLogo.style.maxHeight = '40px'; 
               imgLogo.style.objectFit = 'contain';
             }
           }
@@ -324,19 +322,18 @@
           const bottomNav = document.querySelector('.bottom-nav');
           if (bottomNav) {
             
-            // Se "Orçamentos" estiver desmarcado (false), OCULTA o botão
+            // Orçamentos: Remove se for false
             if (config.pageOrcamentos === false) {
               const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
               if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
             }
             
-            // Se "Horas Extras" estiver marcado (true), ADICIONA o botão
+            // Horas Extras: Adiciona se for true
             if (config.modHorasExtras === true) {
               if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
                 const btnHoras = document.createElement('a');
                 btnHoras.href = 'horas-extras.html';
                 btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-                // Insere antes do último botão (Config)
                 bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
               }
             }
@@ -344,13 +341,11 @@
         }
       }).catch(err => {
         console.error("[NexOS] Erro ao carregar interface visual:", err);
-        if(err.message.includes('permissions') || err.message.includes('Missing')) {
-           alert("Alerta: O Firebase bloqueou a leitura do painel. Verifique as Regras de Segurança.");
-        }
       });
-    }, 1000);
+    }, 500); // Reduzi o tempo para 0.5s para o logótipo trocar mais rápido
   });
 </script>
+
 
 </body>
 </html>
