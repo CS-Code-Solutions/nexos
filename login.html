@@ -18,7 +18,12 @@
 
   <style>
     body {
-      background-color: #FFFFFF; /* Fundo branco liso */
+      /* Fundo padrão para telemóvel (loginmob.png) */
+      background-image: url('loginmob.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #0B132B; 
       display: flex;
       justify-content: center;
       align-items: center;
@@ -29,15 +34,16 @@
     }
 
     .login-card {
-      background: #0B132B; /* Fundo escuro para destacar a marca e o LED */
-      border: 1px solid rgba(0, 245, 212, 0.2); 
-      padding: 40px 30px;
+      background: rgba(11, 19, 43, 0.9); /* Fundo escuro levemente translúcido para destacar sobre a imagem */
+      border: 1px solid rgba(0, 245, 212, 0.3); 
+      padding: 35px 25px;
       border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-      width: 100%;
-      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+      width: 88%; /* Ajustado para não ocupar de lado a lado no telemóvel */
+      max-width: 380px;
       text-align: center;
       transition: box-shadow 0.3s ease, border 0.3s ease;
+      box-sizing: border-box;
     }
 
     /* Efeito de LED estático ao passar o rato */
@@ -47,23 +53,23 @@
     }
 
     .login-card img.logo-login {
-      max-width: 260px;
+      max-width: 240px;
       width: 100%;
       height: auto;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
     .login-card h2 {
       color: #FFFFFF;
-      margin-bottom: 25px;
-      font-size: 1.25rem;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
       letter-spacing: 0.5px;
     }
     .btn-google {
       width: 100%;
-      background-color: #1C2541; /* Botão ligeiramente mais claro que o card */
+      background-color: #1C2541; 
       color: #FFFFFF;
       font-weight: bold;
-      padding: 13px;
+      padding: 12px;
       border: 1px solid #00F5D4;
       border-radius: 6px;
       font-size: 0.95rem;
@@ -73,13 +79,14 @@
       justify-content: center;
       gap: 10px;
       transition: background 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
     }
     .btn-google:hover {
       background-color: rgba(0, 245, 212, 0.15);
       box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
     }
     .login-footer {
-      margin-top: 25px;
+      margin-top: 20px;
       font-size: 0.8rem;
       color: #94A3B8;
     }
@@ -101,6 +108,17 @@
       padding: 10px;
       border-radius: 4px;
       border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    /* Media Query para Computadores (PC): Altera para loginpc.png e ajusta a caixa */
+    @media (min-width: 768px) {
+      body {
+        background-image: url('loginpc.png');
+      }
+      .login-card {
+        max-width: 400px;
+        padding: 40px 30px;
+      }
     }
   </style>
 </head>
@@ -133,7 +151,7 @@
         .replace(/'/g, '&#039;');
     }
 
-    // Nova função de validação conectada à coleção saas_users
+    // Função de validação conectada à coleção saas_users
     async function validarAcessoSaaS(userEmail) {
       try {
         const docRef = db.collection('saas_users').doc(userEmail);
@@ -175,7 +193,7 @@
           throw new Error(`Acesso negado: O e-mail (${user.email}) não está registado no sistema ou encontra-se inativo.`);
         }
 
-        // Grava as novas chaves estruturais no LocalStorage
+        // Grava as chaves estruturais no LocalStorage
         localStorage.setItem('rg_logged', 'true');
         localStorage.setItem('rg_user_email', escapeHTML(user.email));
         localStorage.setItem('rg_user_uid', escapeHTML(user.uid));
