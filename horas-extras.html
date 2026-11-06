@@ -480,76 +480,83 @@
   </script>
 
   <!-- Script Universal de Identidade Visual (White-Label) e Feature Flags -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const tenantId = localStorage.getItem('rg_tenant_id');
-      const userRole = localStorage.getItem('rg_user_role'); 
-      const isSuperAdmin = (userRole === 'super_admin');
-      
-      const imgLogo = document.getElementById('logo-cliente');
-      const bottomNav = document.querySelector('.bottom-nav');
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tenantId = localStorage.getItem('rg_tenant_id');
+    const userRole = localStorage.getItem('rg_user_role'); // Lê se é cliente normal ou super_admin
+    const isSuperAdmin = (userRole === 'super_admin');
+    
+    const imgLogo = document.getElementById('logo-cliente');
+    const bottomNav = document.querySelector('.bottom-nav');
 
-      const setFallbackLogo = () => {
+    // Função para mostrar a imagem padrão caso falhe ou não tenha logo personalizado
+    const setFallbackLogo = () => {
+      if (imgLogo) {
+        imgLogo.src = 'marca.png';
+        imgLogo.style.objectFit = 'contain';
+        imgLogo.style.display = 'block';
+      }
+    };
+
+    // Função para injetar as Horas Extras no menu (Super Admin ou clientes autorizados)
+    const injectHorasExtras = () => {
+      if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
+        const btnHoras = document.createElement('a');
+        btnHoras.href = 'horas-extras.html';
+        const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+        btnHoras.className = isActive;
+        btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
+        bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+      }
+    };
+
+    // Se não houver sessão ativa
+    if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
+      setFallbackLogo();
+      if (isSuperAdmin) injectHorasExtras();
+      return;
+    }
+
+    // Lê a configuração da empresa no Firestore
+    db.collection('rg_config').doc(tenantId).get().then((doc) => {
+      if (doc.exists) {
+        const config = doc.data();
+        
+        // --- 1. CARREGAR LOGÓTIPO ---
         if (imgLogo) {
-          imgLogo.src = 'marca.png';
+          if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
+            imgLogo.src = config.logoBase64;
+          } else {
+            setFallbackLogo();
+          }
           imgLogo.style.objectFit = 'contain';
           imgLogo.style.display = 'block';
         }
-      };
 
-      const injectHorasExtras = () => {
-        if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
-          const btnHoras = document.createElement('a');
-          btnHoras.href = 'horas-extras.html';
-          const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-          btnHoras.className = isActive;
-          btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-          bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
-        }
-      };
-
-      if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
-        setFallbackLogo();
-        if (isSuperAdmin) injectHorasExtras();
-        return;
-      }
-
-      db.collection('rg_config').doc(tenantId).get().then((doc) => {
-        if (doc.exists) {
-          const config = doc.data();
+        // --- 2. CONTROLAR MENUS ---
+        if (bottomNav) {
+          // Orçamentos: Esconde apenas se FOR CLIENTE NORMAL e a flag for false
+          if (!isSuperAdmin && config.pageOrcamentos === false) {
+            const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+            if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
+          }
           
-          // Carregar Logótipo Dinâmico
-          if (imgLogo) {
-            if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
-              imgLogo.src = config.logoBase64;
-            } else {
-              setFallbackLogo();
-            }
-            imgLogo.style.objectFit = 'contain';
-            imgLogo.style.display = 'block';
+          // Horas Extras: Mostra se FOR SUPER ADMIN ou se a flag for true
+          if (isSuperAdmin || config.modHorasExtras === true) {
+            injectHorasExtras();
           }
-
-          // Controlar Menus e Módulos (Feature Flags)
-          if (bottomNav) {
-            if (!isSuperAdmin && config.pageOrcamentos === false) {
-              const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
-              if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
-            }
-            
-            if (isSuperAdmin || config.modHorasExtras === true) {
-              injectHorasExtras();
-            }
-          }
-        } else {
-          setFallbackLogo();
-          if (isSuperAdmin) injectHorasExtras();
         }
-      }).catch(err => {
-        console.error("[NexOS] Erro ao carregar interface visual:", err);
+      } else {
+        // Se o documento rg_config não existir (ex: cs_master sem config salva no painel)
         setFallbackLogo();
         if (isSuperAdmin) injectHorasExtras();
-      });
+      }
+    }).catch(err => {
+      console.error("[NexOS] Erro ao carregar interface visual:", err);
+      setFallbackLogo();
+      if (isSuperAdmin) injectHorasExtras();
     });
-  </script>
+  });
+</script>
 </body>
 </html>
