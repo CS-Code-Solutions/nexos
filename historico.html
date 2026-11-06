@@ -205,31 +205,31 @@
           const safeNature = escapeHTML(rep.serviceNature || rep.type || '-');
 
           htmlCards += `
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 160px; overflow: hidden;">
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 120px; overflow: hidden;">
               
               <div style="overflow: hidden;">
-                <h3 style="margin: 0 0 10px 0; color: #0B132B; font-size: 1.1rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNumber} - ${safeDate}">
+                <h3 style="margin: 0 0 8px 0; color: #0B132B; font-size: 1rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNumber} - ${safeDate}">
                   ${safeNumber} <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">| ${safeDate}</span>
                 </h3>
                 
-                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                <div style="display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.85rem; color: #475569;">
                   <i class="fa-solid fa-building" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeClient}">${safeClient}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                <div style="display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.85rem; color: #475569;">
                   <i class="fa-solid fa-gear" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeEquipment}">${safeEquipment}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
+                <div style="display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.85rem; color: #475569;">
                   <i class="fa-solid fa-wrench" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNature}">${safeNature}</span>
                 </div>
               </div>
               
-              <div class="no-print" style="display: flex; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
-                <button class="btn" style="flex: 1.5; padding: 6px 0; font-size: 0.8rem; background-color: #1D4ED8; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="openReportPreview(${i})">Gerar PDF</button>
-                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editReport(${i})">Editar</button>
-                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteReport(${i})">Excluir</button>
+              <div class="no-print" style="display: flex; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #F1F5F9;">
+                <button class="btn" style="flex: 1.5; padding: 5px 0; font-size: 0.75rem; background-color: #1D4ED8; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="openReportPreview(${i})">Gerar PDF</button>
+                <button class="btn" style="flex: 1; padding: 5px 0; font-size: 0.75rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editReport(${i})">Editar</button>
+                <button class="btn" style="flex: 1; padding: 5px 0; font-size: 0.75rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteReport(${i})">Excluir</button>
               </div>
 
             </div>
