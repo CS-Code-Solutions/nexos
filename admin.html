@@ -404,7 +404,6 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
-  </script>
 // Script de Controlo Dinâmico da Barra de Navegação Inferior (Bottom Nav)
 async function verificarEInjetarModulosDinamicos() {
   firebase.auth().onAuthStateChanged(async (user) => {
@@ -449,6 +448,7 @@ async function verificarEInjetarModulosDinamicos() {
 document.addEventListener('DOMContentLoaded', () => {
   verificarEInjetarModulosDinamicos();
 });
+  </script>
 
 </body>
 </html>
