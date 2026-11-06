@@ -269,8 +269,8 @@
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 300;
-          const MAX_HEIGHT = 100;
+          const MAX_WIDTH = 250;
+          const MAX_HEIGHT = 80;
           let width = img.width;
           let height = img.height;
 
@@ -291,7 +291,7 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
           document.getElementById('tenantLogoBase64').value = dataUrl;
 
           const preview = document.getElementById('logoPreviewImg');
@@ -341,10 +341,11 @@
         document.getElementById('logoPreviewContainer').style.display = 'none';
       }
 
+      // Feature flags lidas explicitamente do registo do tenant
       document.getElementById('pageClientes').checked = t.pageClientes !== false;
       document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
       document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
-      document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
+      document.getElementById('pageOrcamentos').checked = t.pageOrcamentos === true;
       document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
       document.getElementById('criterioEmpreitada').checked = t.criterioEmpreitada !== false;
@@ -396,7 +397,7 @@
         // 1. Salva as configurações do tenant em rg_config
         await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
 
-        // 2. Concede permissão de login automática em saas_users com os campos idênticos ao padrão do sistema
+        // 2. Concede permissão de login automática em saas_users
         await db.collection('saas_users').doc(emailCliente).set({
           role: "client",
           status: "ativo",
@@ -405,7 +406,7 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        alert('Cliente criado e permissão de login concedida com sucesso!');
+        alert('Cliente criado e configurações salvas com sucesso!');
         fecharModalCliente();
         carregarPainelAdmin();
       } catch (err) {
