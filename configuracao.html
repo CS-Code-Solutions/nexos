@@ -83,7 +83,7 @@
           </div>
 
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="salvarAssinaturaTech()">💾 Guardar Assinatura</button>
+            <button type="button" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="salvarAssinaturaTech()">💾 Guardar Assinatura Apenas</button>
             <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 6px 12px; font-size: 0.85rem;" onclick="limparAssinaturaTech()">✖ Limpar Assinatura</button>
           </div>
         </div>
@@ -154,7 +154,7 @@
         </div>
 
         <div style="margin-top: 25px; display: flex; gap: 10px;">
-          <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 20px;">Guardar Configurações</button>
+          <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 20px; width: 100%;">GUARDAR TODAS AS CONFIGURAÇÕES</button>
         </div>
       </form>
 
@@ -236,15 +236,12 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then((reg) => console.log('Service Worker registado:', reg.scope))
-          .catch((err) => console.log('Falha ao registar Service Worker:', err));
+        navigator.serviceWorker.register('sw.js').catch((err) => console.log('Falha ao registar SW:', err));
       });
     }
 
     let deferredPrompt;
     const btnInstall = document.getElementById('btnInstall');
-
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -255,7 +252,6 @@
         if (deferredPrompt) {
           deferredPrompt.prompt();
           const { outcome } = await deferredPrompt.userChoice;
-          console.log(`Resultado da instalação: ${outcome}`);
           deferredPrompt = null;
         } else {
           alert('Para instalar a aplicação no seu dispositivo:\n\n1. Toque nos 3 pontos (menu) no canto superior direito do seu navegador.\n2. Selecione "Adicionar ao ecrã principal" ou "Instalar aplicação".');
@@ -263,35 +259,52 @@
       });
     }
 
+    // ==========================================
+    // LÓGICA BLINDADA DA ASSINATURA (CANVAS)
+    // ==========================================
     const canvas = document.getElementById('techSignatureCanvas');
     const ctx = canvas.getContext('2d');
     let painting = false;
+    let hasDrawn = false; // FLAG CRÍTICA: Só atualiza imagem se desenhar algo.
     let currentTechSignature = '';
 
-    function startPosition(e) { painting = true; draw(e); }
+    // Preenche o fundo de branco logo no início (evita fundo transparente gigante)
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    function startPosition(e) { 
+      painting = true; 
+      draw(e); 
+    }
+    
     function finishedPosition() { 
-      painting = false; 
-      ctx.beginPath(); 
-      currentTechSignature = canvas.toDataURL();
-      atualizarPreviewAssinatura(currentTechSignature);
+      if (painting) {
+        painting = false; 
+        ctx.beginPath(); 
+        if (hasDrawn) {
+          currentTechSignature = canvas.toDataURL('image/png');
+          atualizarPreviewAssinatura(currentTechSignature);
+        }
+      }
     }
     
     function draw(e) {
       if (!painting) return;
+      hasDrawn = true; // Avisa que o rato/dedo foi arrastado no ecrã.
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.strokeStyle = '#0B132B';
       
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX || e.touches[0].clientX) - rect.left;
-      const y = (e.clientY || e.touches[0].clientY) - rect.top;
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
       ctx.lineTo(x, y);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(x, y);
-      
-      currentTechSignature = canvas.toDataURL();
     }
 
     canvas.addEventListener('mousedown', startPosition);
@@ -304,7 +317,7 @@
     function atualizarPreviewAssinatura(dataUrl) {
       const boxPreview = document.getElementById('containerPreviewAssinatura');
       const imgPreview = document.getElementById('imgPreviewAssinatura');
-      if (dataUrl && dataUrl.length > 50) {
+      if (dataUrl && dataUrl.length > 100) {
         imgPreview.src = dataUrl;
         boxPreview.style.display = 'block';
       } else {
@@ -313,11 +326,14 @@
     }
 
     window.limparAssinaturaTech = async function() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Pinta tudo de branco
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      hasDrawn = false;
       currentTechSignature = '';
       atualizarPreviewAssinatura('');
       
-      // Salva imediatamente a limpeza na nuvem se necessário
       try {
         let config = await DataSync.load('rg_config') || {};
         config.techSignature = '';
@@ -329,12 +345,15 @@
 
     window.salvarAssinaturaTech = async function() {
       try {
-        currentTechSignature = canvas.toDataURL();
+        if (hasDrawn) {
+          currentTechSignature = canvas.toDataURL('image/png');
+        }
         let config = await DataSync.load('rg_config') || {};
         config.techSignature = currentTechSignature;
         await DataSync.save('rg_config', config);
         atualizarPreviewAssinatura(currentTechSignature);
-        alert('Assinatura do técnico guardada com sucesso!');
+        alert('Assinatura do técnico guardada isoladamente na nuvem!');
+        hasDrawn = false; // Reset da flag
       } catch (err) {
         alert('Erro ao guardar assinatura: ' + err.message);
       }
@@ -364,13 +383,15 @@
 
         document.getElementById('configNextRs').value = config.nextRsNumber || '1000';
 
-        if (config.techSignature && config.techSignature.length > 50) {
+        if (config.techSignature && config.techSignature.length > 100) {
           currentTechSignature = config.techSignature;
           const img = new Image();
           img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             atualizarPreviewAssinatura(config.techSignature);
+            hasDrawn = false; // Foi apenas carregada do banco, não desenhada manualmente agora.
           };
           img.src = config.techSignature;
         }
@@ -382,16 +403,15 @@
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // Captura a assinatura atual do canvas caso tenha desenhado e não clicado em "Guardar Assinatura" antes
-      const canvasData = canvas.toDataURL();
-      if (canvasData && canvasData.length > 50) {
-        currentTechSignature = canvasData;
+      // Só captura nova assinatura do canvas SE ALGO NOVO FOI DESENHADO!
+      if (hasDrawn) {
+        currentTechSignature = canvas.toDataURL('image/png');
       }
 
       dadosPendentesSalvar = {
         name: document.getElementById('configName').value,
         tech: document.getElementById('configTech').value,
-        techSignature: currentTechSignature || (await DataSync.load('rg_config') || {}).techSignature || '',
+        techSignature: currentTechSignature, // Mantém a imagem que estava ou a nova que foi desenhada.
         doc: document.getElementById('configDoc').value,
         email: document.getElementById('configEmail').value,
         contact: document.getElementById('configContact').value,
@@ -408,15 +428,13 @@
         lgpdConsent: true
       };
 
-      // Verifica se o utilizador já deu o consentimento anteriormente no localStorage ou na nuvem
       const lgpdAceitoLocal = localStorage.getItem('rg_lgpd_consent');
-      let configNuven = await DataSync.load('rg_config') || {};
-
-      if (lgpdAceitoLocal === 'true' || configNuven.lgpdConsent === true) {
-        // Se já aceitou, guarda diretamente sem reabrir o modal chato
+      
+      // Checa diretamente no pendente se ele já existe na nuvem ou localmente
+      if (lgpdAceitoLocal === 'true') {
         await executarSalvamentoConfiguracoes();
       } else {
-        // Se nunca aceitou, exibe o modal LGPD pela primeira vez
+        // Exibe modal apenas se nunca foi aceite localmente
         document.getElementById('lgpdModal').style.display = 'flex';
       }
     });
@@ -427,6 +445,7 @@
         await DataSync.save('rg_config', dadosPendentesSalvar);
         localStorage.setItem('rg_lgpd_consent', 'true');
         alert('Configurações salvas com sucesso!');
+        hasDrawn = false; // Reseta a flag de desenho após salvar
         dadosPendentesSalvar = null;
       } catch (err) {
         alert('Erro ao guardar configurações: ' + err.message);
