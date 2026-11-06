@@ -195,7 +195,7 @@
       </p>
       <div style="background: #1e293b; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px; max-height: 140px; overflow-y: auto;">
         <strong>Dados a serem salvos:</strong> Razão social, dados de contacto, credenciais bancárias e assinaturas digitadas vinculadas à sua conta para fins de emissão de relatórios e gestão técnica.<br><br>
-        <span style="color: #38bdf8;">ℹ️ <strong>Direitos del Titular:</strong> Os dados armazenados podem ser consultados, alterados ou totalmente excluídos pelo utilizador a qualquer momento através das ferramentas do sistema ou solicitação direta.</span>
+        <span style="color: #38bdf8;">ℹ️ <strong>Direitos do Titular:</strong> Os dados armazenados podem ser consultados, alterados ou totalmente excluídos pelo utilizador a qualquer momento através das ferramentas do sistema ou solicitação direta.</span>
       </div>
       <div style="display: flex; gap: 12px; justify-content: flex-end;">
         <button type="button" onclick="recusarLgpd()" style="background: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">Não Aceito</button>
@@ -312,10 +312,19 @@
       }
     }
 
-    window.limparAssinaturaTech = function() {
+    window.limparAssinaturaTech = async function() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       currentTechSignature = '';
       atualizarPreviewAssinatura('');
+      
+      // Salva imediatamente a limpeza na nuvem se necessário
+      try {
+        let config = await DataSync.load('rg_config') || {};
+        config.techSignature = '';
+        await DataSync.save('rg_config', config);
+      } catch (err) {
+        console.error("Erro ao limpar assinatura na nuvem:", err);
+      }
     };
 
     window.salvarAssinaturaTech = async function() {
@@ -355,7 +364,7 @@
 
         document.getElementById('configNextRs').value = config.nextRsNumber || '1000';
 
-        if (config.techSignature) {
+        if (config.techSignature && config.techSignature.length > 50) {
           currentTechSignature = config.techSignature;
           const img = new Image();
           img.onload = () => {
@@ -373,7 +382,11 @@
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      currentTechSignature = canvas.toDataURL();
+      // Captura a assinatura atual do canvas caso tenha desenhado e não clicado em "Guardar Assinatura" antes
+      const canvasData = canvas.toDataURL();
+      if (canvasData && canvasData.length > 50) {
+        currentTechSignature = canvasData;
+      }
 
       dadosPendentesSalvar = {
         name: document.getElementById('configName').value,
@@ -391,29 +404,45 @@
         bank2: document.getElementById('configBank2').value,
         agency2: document.getElementById('configAgency2').value,
         account2: document.getElementById('configAccount2').value,
-        nextRsNumber: document.getElementById('configNextRs').value
+        nextRsNumber: document.getElementById('configNextRs').value,
+        lgpdConsent: true
       };
 
-      document.getElementById('lgpdModal').style.display = 'flex';
+      // Verifica se o utilizador já deu o consentimento anteriormente no localStorage ou na nuvem
+      const lgpdAceitoLocal = localStorage.getItem('rg_lgpd_consent');
+      let configNuven = await DataSync.load('rg_config') || {};
+
+      if (lgpdAceitoLocal === 'true' || configNuven.lgpdConsent === true) {
+        // Se já aceitou, guarda diretamente sem reabrir o modal chato
+        await executarSalvamentoConfiguracoes();
+      } else {
+        // Se nunca aceitou, exibe o modal LGPD pela primeira vez
+        document.getElementById('lgpdModal').style.display = 'flex';
+      }
     });
 
-    window.aceitarLgpd = async function() {
-      document.getElementById('lgpdModal').style.display = 'none';
+    async function executarSalvamentoConfiguracoes() {
       if (!dadosPendentesSalvar) return;
-
       try {
         await DataSync.save('rg_config', dadosPendentesSalvar);
+        localStorage.setItem('rg_lgpd_consent', 'true');
         alert('Configurações salvas com sucesso!');
         dadosPendentesSalvar = null;
       } catch (err) {
         alert('Erro ao guardar configurações: ' + err.message);
       }
+    }
+
+    window.aceitarLgpd = async function() {
+      document.getElementById('lgpdModal').style.display = 'none';
+      localStorage.setItem('rg_lgpd_consent', 'true');
+      await executarSalvamentoConfiguracoes();
     };
 
     window.recusarLgpd = function() {
       document.getElementById('lgpdModal').style.display = 'none';
       dadosPendentesSalvar = null;
-      alert('Erro: Consentimento negado. Não é possível concluir o cadastro ou salvamento das configurações sem a aceitação dos termos de proteção de dados (LGPD).');
+      alert('Erro: Consentimento negado. Não é possível concluir o salvamento das configurações sem a aceitação dos termos de proteção de dados (LGPD).');
     };
 
     window.fazerBackup = async function() {
