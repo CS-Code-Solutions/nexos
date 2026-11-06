@@ -18,7 +18,7 @@
 
   <style>
     body {
-      /* Fundo padrão para telemóvel (loginmob.png) */
+      /* Fundo padrão para telemóvel (loginmob.png) como background CSS (impossível de salvar por clique direito) */
       background-image: url('loginmob.png');
       background-size: cover;
       background-position: center;
@@ -31,10 +31,13 @@
       margin: 0;
       font-family: Arial, sans-serif;
       overflow: hidden;
+      /* Impede seleção acidental de texto na tela de login */
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .login-card {
-      background: rgba(11, 19, 43, 0.9); /* Fundo escuro levemente translúcido para destacar sobre a imagem */
+      background: rgba(11, 19, 43, 0.9); /* Fundo escuro levemente translúcido */
       border: 1px solid rgba(0, 245, 212, 0.3); 
       padding: 35px 25px;
       border-radius: 12px;
@@ -57,6 +60,8 @@
       width: 100%;
       height: auto;
       margin-bottom: 20px;
+      /* Bloqueia arrastar ou menu de contexto na logo principal */
+      pointer-events: none; 
     }
     .login-card h2 {
       color: #FFFFFF;
@@ -110,7 +115,7 @@
       border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
-    /* Media Query para Computadores (PC): Altera para loginpc.png e ajusta a caixa */
+    /* Media Query para Computadores (PC): Altera para loginpc.png */
     @media (min-width: 768px) {
       body {
         background-image: url('loginpc.png');
@@ -141,6 +146,9 @@
   </div>
 
   <script>
+    // Bloqueia o clique direito (Menu de contexto) em toda a página de login
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
     function escapeHTML(str) {
       if (!str) return '';
       return String(str)
@@ -151,7 +159,6 @@
         .replace(/'/g, '&#039;');
     }
 
-    // Função de validação conectada à coleção saas_users
     async function validarAcessoSaaS(userEmail) {
       try {
         const docRef = db.collection('saas_users').doc(userEmail);
@@ -170,7 +177,6 @@
       }
     }
 
-    // Fluxo de autenticação integrado com a trava do SaaS
     async function handleGoogleLogin() {
       const errorBox = document.getElementById('loginError');
       const btnGoogle = document.getElementById('btnGoogle');
@@ -193,7 +199,6 @@
           throw new Error(`Acesso negado: O e-mail (${user.email}) não está registado no sistema ou encontra-se inativo.`);
         }
 
-        // Grava as chaves estruturais no LocalStorage
         localStorage.setItem('rg_logged', 'true');
         localStorage.setItem('rg_user_email', escapeHTML(user.email));
         localStorage.setItem('rg_user_uid', escapeHTML(user.uid));
