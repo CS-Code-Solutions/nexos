@@ -1,33 +1,43 @@
 // Forçamos a variável para a janela global (window) para que qualquer página a encontre
 window.DataSync = {
+  // Retorna o UID do utilizador logado no Auth
   getUid: function() {
     const user = firebase.auth().currentUser;
     return user ? user.uid : localStorage.getItem('rg_user_uid');
   },
 
+  // Retorna o tenant_id da empresa, armazenado no momento do login
   getTenantId: function() {
     return localStorage.getItem('rg_tenant_id') || 'default_tenant';
   },
 
+  // Usa o tenant_id para carregar configurações em rg_config,
+  // ou usa o uid para outras coleções se necessário
   load: async function(collectionName) {
+    const tenantId = this.getTenantId();
     const uid = this.getUid();
-    if (!uid) {
+    
+    // Se for a coleção de configuração, carrega pelo tenant_id
+    const documentId = collectionName === 'rg_config' ? tenantId : uid;
+
+    if (!documentId) {
       const localData = localStorage.getItem(collectionName);
       return localData ? JSON.parse(localData) : [];
     }
 
     try {
-      const doc = await db.collection(collectionName).doc(uid).get();
+      const doc = await db.collection(collectionName).doc(documentId).get();
       if (doc.exists) {
-        const data = doc.data().items || [];
+        // Se for rg_config, retorna os dados diretamente em vez de procurar "items"
+        const data = collectionName === 'rg_config' ? doc.data() : (doc.data().items || []);
         localStorage.setItem(collectionName, JSON.stringify(data));
         return data;
       }
-      return [];
+      return collectionName === 'rg_config' ? null : [];
     } catch (error) {
       console.error(`[NexOS] Erro ao carregar coleção ${collectionName}:`, error);
       const localData = localStorage.getItem(collectionName);
-      return localData ? JSON.parse(localData) : [];
+      return localData ? JSON.parse(localData) : (collectionName === 'rg_config' ? null : []);
     }
   },
 
@@ -60,12 +70,16 @@ window.DataSync = {
   },
 
   listen: function(collectionName, callback) {
+    const tenantId = this.getTenantId();
     const uid = this.getUid();
-    if (!uid) return null;
+    
+    const documentId = collectionName === 'rg_config' ? tenantId : uid;
 
-    return db.collection(collectionName).doc(uid).onSnapshot((doc) => {
+    if (!documentId) return null;
+
+    return db.collection(collectionName).doc(documentId).onSnapshot((doc) => {
       if (doc.exists) {
-        const data = doc.data().items || [];
+        const data = collectionName === 'rg_config' ? doc.data() : (doc.data().items || []);
         localStorage.setItem(collectionName, JSON.stringify(data));
         callback(data);
       }
@@ -75,4 +89,4 @@ window.DataSync = {
   }
 };
 
-console.log("[NexOS] Módulo DataSync carregado e pronto a usar!");
+console.log("[NexOS] Módulo DataSync carregado e pronto a usar com multi-tenant!");
