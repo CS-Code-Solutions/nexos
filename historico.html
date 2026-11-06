@@ -337,6 +337,18 @@
         const valorTotalStr = valorTotal.toFixed(2);
         activeReportData = { number: rep.number, client: rep.client };
 
+        // Formata a data para o padrão brasileiro DD/MM/AAAA
+        let dataFormatada = rep.date || '-';
+        if (rep.date && rep.date.includes('-')) {
+          const partes = rep.date.split('-');
+          if (partes.length === 3) {
+            dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+          }
+        }
+
+        // Limpa o número do RS para evitar duplicidade
+        const numeroLimpo = escapeHTML(rep.number || 'RS-1000').replace(/^RS-?/i, '');
+
         const deslocamentoHtml = rep.temDeslocamento === 'sim' ? `<p>• <strong>Hora de Deslocamento:</strong> ${rep.tempoDeslocamentoHoras || 0}h a R$ ${Number(rep.valorHoraDeslocamento || 0).toFixed(2)}/h (Total: R$ ${(Number(rep.valorHoraDeslocamento || 0) * Number(rep.tempoDeslocamentoHoras || 0)).toFixed(2)})</p>` : '';
         const hospedagemHtml = rep.temHospedagem === 'sim' ? `<p>• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : '';
         const outrasHtml = rep.temOutras === 'sim' ? `<p>• <strong>Outras Despesas / Alimentação:</strong> R$ ${Number(rep.valorOutras || 0).toFixed(2)}</p>` : '';
@@ -382,9 +394,8 @@
                 <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">ANEXOS / FOTOGRAFIAS DO EQUIPAMENTO</h1>
               </div>
               <div class="print-header-info">
-      <!-- FORMATO DATA -->          
-                <h1>Nº do RS: ${escapeHTML(rep.number)}</h1>
-                <p>Data: ${escapeHTML(rep.date)}</p>
+                <h1>Nº do RS: RS-${numeroLimpo}</h1>
+                <p>Data: ${dataFormatada}</p>
               </div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
@@ -403,8 +414,8 @@
                 <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">RELATÓRIO DE SERVIÇO (RS)</h1>
               </div>
               <div class="print-header-info">
-                <h1>Nº do RS: ${escapeHTML(rep.number)}</h1>
-                <p>Data: ${escapeHTML(rep.date)}</p>
+                <h1>Nº do RS: RS-${numeroLimpo}</h1>
+                <p>Data: ${dataFormatada}</p>
               </div>
             </div>
 
@@ -467,7 +478,7 @@
         `;
 
         document.getElementById('reportRenderArea').innerHTML = fullReportHtml;
-        document.getElementById('modalTitleRs').textContent = `Relatório de Serviço - ${rep.number} (${rep.client})`;
+        document.getElementById('modalTitleRs').textContent = `Relatório de Serviço - RS-${numeroLimpo} (${rep.client})`;
         document.getElementById('loadingStatusRs').textContent = 'Pronto';
         document.getElementById('reportPreviewModal').style.display = 'flex';
       } catch (err) {
