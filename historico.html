@@ -89,9 +89,9 @@
     .section-title { font-weight: bold; font-size: 9.5px; color: #0B132B; margin-bottom: 2px; border-bottom: 1px solid #CBD5E1; padding-bottom: 2px; background: #FFFFFF !important; }
     
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-    .print-body p { margin: 1px 0; }
+    .print-body p { margin: 1px 0; font-size: 9px; }
     .signature-area { margin-top: 6px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; break-inside: avoid; }
-    .signature-box { text-align: center; width: 45%; }
+    .signature-box { text-align: center; width: 45%; font-size: 9px; }
     .signature-box img { max-width: 130px; height: 32px; object-fit: contain; display: block; margin: 0 auto; }
     .page-break { page-break-before: always; }
   </style>
@@ -262,7 +262,7 @@
               minutosTotais += minDia;
               const hExata = Math.floor(minDia / 60);
               const mRest = Math.round(minDia % 60);
-              detalhesDiasHtml += `<span style="display: block; margin-left: 6px;">• Dia ${idx + 1}: ${d.inicio.replace('T', ' ')} até ${d.fim.replace('T', ' ')} (${hExata}h ${mRest}m)</span>`;
+              detalhesDiasHtml += `<span style="display: block; margin-left: 6px; font-size: 9px;">• Dia ${idx + 1}: ${d.inicio.replace('T', ' ')} até ${d.fim.replace('T', ' ')} (${hExata}h ${mRest}m)</span>`;
             }
           }
         });
@@ -292,7 +292,6 @@
 
         let config = { ...defaultConfig };
         try {
-          // Ajustado para usar o tenant_id correto em vez de user.uid
           const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
           const savedCfg = await db.collection('rg_config').doc(tenantId).get();
           if (savedCfg.exists) {
@@ -344,13 +343,14 @@
 
         const clientSignature = rep.signature || rep.assinatura || rep.clientSignature || '';
         const techSignature = config.techSignature || '';
+        const nomeTecnico = config.tech || 'Técnico Responsável';
 
         const signatureAreaHtml = `
           <div class="signature-area">
             <div class="signature-box">
               ${techSignature ? `<img src="${techSignature}" alt="Assinatura Técnico">` : '<p style="height: 30px;"></p>'}
               <p>________________________________________</p>
-              <p><strong>Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico Responsável')}</p>
+              <p><strong>Assinatura Técnico:</strong> ${escapeHTML(nomeTecnico)}</p>
             </div>
             <div class="signature-box">
               ${clientSignature ? `<img src="${clientSignature}" alt="Assinatura Cliente">` : '<p style="height: 30px;"></p>'}
@@ -359,6 +359,8 @@
             </div>
           </div>
         `;
+
+        const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
 
         let anexosHtml = '';
         if (rep.anexos && rep.anexos.length > 0) {
@@ -374,12 +376,14 @@
           });
           anexosHtml = `
             <div class="page-break"></div>
-                        <div class="print-header">
-              <img src="${(config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png'}" alt="Logo" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
-
+            <div class="print-header">
+              <img src="${logoSrc}" alt="Logo" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
+              <div style="text-align: center; flex-grow: 1;">
+                <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">ANEXOS / FOTOGRAFIAS DO EQUIPAMENTO</h1>
+              </div>
               <div class="print-header-info">
-                <h1>ANEXOS / FOTOGRAFIAS DO EQUIPAMENTO</h1>
-                <p><strong>RS Nº:</strong> ${escapeHTML(rep.number)} | <strong>Cliente:</strong> ${escapeHTML(rep.client)}</p>
+                <h1>Nº do RS: ${escapeHTML(rep.number)}</h1>
+                <p>Data: ${escapeHTML(rep.date)}</p>
               </div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
@@ -393,9 +397,13 @@
             <div class="watermark">${escapeHTML(config.name)}</div>
 
             <div class="print-header">
-              <img src="${(config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png'}" alt="Logo" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
-                <h1>RELATÓRIO DE SERVIÇO (RS)</h1>
-                <p><strong>Nº do RS:</strong> ${escapeHTML(rep.number)} | <strong>Data:</strong> ${escapeHTML(rep.date)}</p>
+              <img src="${logoSrc}" alt="Logo" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
+              <div style="text-align: center; flex-grow: 1;">
+                <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">RELATÓRIO DE SERVIÇO (RS)</h1>
+              </div>
+              <div class="print-header-info">
+                <h1>Nº do RS: ${escapeHTML(rep.number)}</h1>
+                <p>Data: ${escapeHTML(rep.date)}</p>
               </div>
             </div>
 
@@ -437,7 +445,7 @@
                 <p><strong>Área de Serviço:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
               </div>
               <p><strong>Descrição Detalhada:</strong></p>
-              <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(rep.desc || '-')}</p>
+              <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 9px;">${escapeHTML(rep.desc || '-')}</p>
             </div>
 
             <div class="section-box">
@@ -553,13 +561,12 @@
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const tenantId = localStorage.getItem('rg_tenant_id');
-    const userRole = localStorage.getItem('rg_user_role'); // Lê se é cliente normal ou super_admin
+    const userRole = localStorage.getItem('rg_user_role');
     const isSuperAdmin = (userRole === 'super_admin');
     
     const imgLogo = document.getElementById('logo-cliente');
     const bottomNav = document.querySelector('.bottom-nav');
 
-    // Função para mostrar a imagem padrão caso falhe ou não tenha logo personalizado
     const setFallbackLogo = () => {
       if (imgLogo) {
         imgLogo.src = 'marca.png';
@@ -568,7 +575,6 @@
       }
     };
 
-    // Função para injetar as Horas Extras no menu (Super Admin ou clientes autorizados)
     const injectHorasExtras = () => {
       if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
         const btnHoras = document.createElement('a');
@@ -580,19 +586,16 @@
       }
     };
 
-    // Se não houver sessão ativa
     if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
       setFallbackLogo();
       if (isSuperAdmin) injectHorasExtras();
       return;
     }
 
-    // Lê a configuração da empresa no Firestore
     db.collection('rg_config').doc(tenantId).get().then((doc) => {
       if (doc.exists) {
         const config = doc.data();
         
-        // --- 1. CARREGAR LOGÓTIPO ---
         if (imgLogo) {
           if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
             imgLogo.src = config.logoBase64;
@@ -603,21 +606,17 @@
           imgLogo.style.display = 'block';
         }
 
-        // --- 2. CONTROLAR MENUS ---
         if (bottomNav) {
-          // Orçamentos: Esconde apenas se FOR CLIENTE NORMAL e a flag for false
           if (!isSuperAdmin && config.pageOrcamentos === false) {
-            const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+            const btnOrcamentos = document.querySelector('a[href="orcamentos.html"]');
             if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
           }
           
-          // Horas Extras: Mostra se FOR SUPER ADMIN ou se a flag for true
           if (isSuperAdmin || config.modHorasExtras === true) {
             injectHorasExtras();
           }
         }
       } else {
-        // Se o documento rg_config não existir (ex: cs_master sem config salva no painel)
         setFallbackLogo();
         if (isSuperAdmin) injectHorasExtras();
       }
