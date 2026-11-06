@@ -255,7 +255,7 @@
 
         <div style="display: flex; gap: 10px;">
           <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 20px;">Salvar Relatório de Serviço</button>
-          <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 10px 20px;" onclick="resetForm()">Cancelar / Limpar</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 10px 20px;" onclick="resetForm()">Cancelar</button>
         </div>
       </form>
     </section>
@@ -751,20 +751,7 @@
     });
 
     window.resetForm = function() {
-      document.getElementById('reportForm').reset();
-      document.getElementById('editIndex').value = '';
-      document.getElementById('formTitle').textContent = 'Novo Relatório de Serviço (RS)';
-      document.getElementById('repDate').valueAsDate = new Date();
-      document.getElementById('repEquipment').innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
-      gerarCamposDias();
-      toggleEmpreitadaSelect();
-      toggleHoraSelect();
-      toggleDeslocamentoSelect();
-      toggleHospedagemSelect();
-      toggleOutrasSelect();
-      clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
-      anexosList = [];
-      renderizarAnexos();
+      window.location.href = 'historico.html';
     };
 
     function escapeHTML(str) {
