@@ -524,12 +524,16 @@
       const termsList = (b.terms || '').split('\n').map(t => `<p>• ${escapeHTML(t)}</p>`).join('');
       const techSignature = config.techSignature || '';
 
+            // Define o logótipo dinâmico (usa o do upload se existir, senão usa marca.png)
+      const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
+
       const renderArea = document.getElementById('budgetRenderArea');
       renderArea.innerHTML = `
         <div class="print-body">
           <div class="watermark">${escapeHTML(config.name)}</div>
           <div class="print-header">
-            <img src="marca.png" alt="Logo">
+            <img src="${logoSrc}" alt="Logo" style="max-height: 30px; width: auto; max-width: 120px; object-fit: contain;">
+
             <div class="print-header-center"><h1>ORÇAMENTO DE SERVIÇO</h1></div>
             <div class="print-header-info"><h2>Nº: ${escapeHTML(b.number || 'ORC-0001')}</h2><p>Data: ${escapeHTML(b.date || '-')}</p></div>
           </div>
