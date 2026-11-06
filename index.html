@@ -295,52 +295,60 @@
   </nav>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // 1. Vai buscar o ID da empresa que foi guardado no momento do login
-    const tenantId = localStorage.getItem('rg_tenant_id');
-    
-    if (tenantId && tenantId !== 'undefined' && tenantId !== 'null') {
+    // Dá 1 segundo para garantir que a autenticação e o localStorage estão prontos
+    setTimeout(() => {
+      const tenantId = localStorage.getItem('rg_tenant_id');
       
-      // 2. Vai ao Firestore buscar as configurações EXATAS deste cliente
+      if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
+        console.warn("[NexOS] Tenant ID não encontrado na sessão.");
+        return;
+      }
+
+      // Vai ao Firestore buscar as configurações EXATAS deste cliente
       db.collection('rg_config').doc(tenantId).get().then((doc) => {
         if (doc.exists) {
           const config = doc.data();
           
-          // --- APLICAR LOGÓTIPO ---
+          // --- 1. APLICAR LOGÓTIPO ---
           if (config.logoBase64) {
-            // Substitua '.logo-marca' pela classe ou ID da tag <img> onde fica a marca no seu index.html
-            // Aqui assumo que a imagem tem um alt="Sua marca aqui" ou classe equivalente
-            const imgLogo = document.querySelector('img[src="marca.png"]') || document.querySelector('header img');
+            // Procura a imagem do cabeçalho de várias formas seguras
+            const imgLogo = document.querySelector('img[src="marca.png"]') || document.querySelector('img[alt="Sua marca aqui"]') || document.querySelector('header img');
             if (imgLogo) {
               imgLogo.src = config.logoBase64;
-              imgLogo.style.maxHeight = '40px'; // Ajuste se necessário para não quebrar o layout
+              imgLogo.style.maxHeight = '40px'; 
+              imgLogo.style.objectFit = 'contain';
             }
           }
 
-          // --- APLICAR FEATURE FLAGS (MENU INFERIOR) ---
+          // --- 2. APLICAR FEATURE FLAGS (MENU INFERIOR) ---
           const bottomNav = document.querySelector('.bottom-nav');
           if (bottomNav) {
             
-            // Se "Orçamentos" estiver desmarcado (false), remove o botão
+            // Se "Orçamentos" estiver desmarcado (false), OCULTA o botão
             if (config.pageOrcamentos === false) {
               const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
-              if (btnOrcamentos) btnOrcamentos.remove();
+              if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
             }
             
-            // Se "Horas Extras" estiver marcado (true), adiciona o botão
+            // Se "Horas Extras" estiver marcado (true), ADICIONA o botão
             if (config.modHorasExtras === true) {
               if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
                 const btnHoras = document.createElement('a');
                 btnHoras.href = 'horas-extras.html';
                 btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-                
-                // Insere o botão de Horas antes do último botão (Configurações)
+                // Insere antes do último botão (Config)
                 bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
               }
             }
           }
         }
-      }).catch(err => console.error("[NexOS] Erro ao aplicar configurações visuais:", err));
-    }
+      }).catch(err => {
+        console.error("[NexOS] Erro ao carregar interface visual:", err);
+        if(err.message.includes('permissions') || err.message.includes('Missing')) {
+           alert("Alerta: O Firebase bloqueou a leitura do painel. Verifique as Regras de Segurança.");
+        }
+      });
+    }, 1000);
   });
 </script>
 
