@@ -231,7 +231,7 @@
           const statusHE = data.modHorasExtras ? 'Ativo' : 'Inativo';
 
           html += `
-            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
               <div style="flex: 1; min-width: 250px;">
                 <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
                 <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(emailEmpresa)}</span><br>
@@ -239,8 +239,8 @@
                 <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
               </div>
               <div style="display: flex; gap: 8px;">
-                <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
-                <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
+                <button class="btn" style="background-color: #F59E0B; color: white; padding: 5px 10px; font-size: 0.75rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
+                <button class="btn" style="background-color: #EF4444; color: white; padding: 5px 10px; font-size: 0.75rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
               </div>
             </div>
           `;
@@ -365,7 +365,7 @@
         modHorasExtras: document.getElementById('modHorasExtras').checked,
 
         criterioEmpreitada: document.getElementById('criterioEmpreitada').checked,
-        criterioHoraTrabalhada: document.getElementById('criterioHoraTrabalhada'].checked,
+        criterioHoraTrabalhada: document.getElementById('criterioHoraTrabalhada').checked,
         criterioHoraDeslocamento: document.getElementById('criterioHoraDeslocamento').checked,
         criterioHospedagem: document.getElementById('criterioHospedagem').checked,
         criterioOutrasDespesas: document.getElementById('criterioOutrasDespesas').checked,
