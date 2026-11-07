@@ -64,10 +64,10 @@
 </head>
 <body>
 
-  <!-- CABEÇALHO COM ID PARA LOGÓTIPO DINÂMICO -->
+  <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img id="logo-cliente" alt="Sua Marca" style="max-height: 35px; width: auto; display: none;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain;">
     </a>
     
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
@@ -788,86 +788,5 @@
       <span>Config</span>
     </a>
   </nav>
-
-  <!-- Script Universal de Identidade Visual (White-Label) e Feature Flags
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const tenantId = localStorage.getItem('rg_tenant_id');
-    const userRole = localStorage.getItem('rg_user_role'); // Lê se é cliente normal ou super_admin
-    const isSuperAdmin = (userRole === 'super_admin');
-    
-    const imgLogo = document.getElementById('logo-cliente');
-    const bottomNav = document.querySelector('.bottom-nav');
-
-    // Função para mostrar a imagem padrão caso falhe ou não tenha logo personalizado
-    const setFallbackLogo = () => {
-      if (imgLogo) {
-        imgLogo.src = 'marca.png';
-        imgLogo.style.objectFit = 'contain';
-        imgLogo.style.display = 'block';
-      }
-    };
-
-    // Função para injetar as Horas Extras no menu (Super Admin ou clientes autorizados)
-    const injectHorasExtras = () => {
-      if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
-        const btnHoras = document.createElement('a');
-        btnHoras.href = 'horas-extras.html';
-        const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-        btnHoras.className = isActive;
-        btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-        bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
-      }
-    };
-
-    // Se não houver sessão ativa
-    if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
-      setFallbackLogo();
-      if (isSuperAdmin) injectHorasExtras();
-      return;
-    }
-
-    // Lê a configuração da empresa no Firestore
-    db.collection('rg_config').doc(tenantId).get().then((doc) => {
-      if (doc.exists) {
-        const config = doc.data();
-        
-        // --- 1. CARREGAR LOGÓTIPO ---
-        if (imgLogo) {
-          if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
-            imgLogo.src = config.logoBase64;
-          } else {
-            setFallbackLogo();
-          }
-          imgLogo.style.objectFit = 'contain';
-          imgLogo.style.display = 'block';
-        }
-
-        // --- 2. CONTROLAR MENUS ---
-        if (bottomNav) {
-          // Orçamentos: Esconde apenas se FOR CLIENTE NORMAL e a flag for false
-          if (!isSuperAdmin && config.pageOrcamentos === false) {
-            const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
-            if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
-          }
-          
-          // Horas Extras: Mostra se FOR SUPER ADMIN ou se a flag for true
-          if (isSuperAdmin || config.modHorasExtras === true) {
-            injectHorasExtras();
-          }
-        }
-      } else {
-        // Se o documento rg_config não existir (ex: cs_master sem config salva no painel)
-        setFallbackLogo();
-        if (isSuperAdmin) injectHorasExtras();
-      }
-    }).catch(err => {
-      console.error("[NexOS] Erro ao carregar interface visual:", err);
-      setFallbackLogo();
-      if (isSuperAdmin) injectHorasExtras();
-    });
-  });
-</script>
--->
 </body>
 </html>
