@@ -118,19 +118,50 @@ console.log("[NexOS] Módulo DataSync carregado e pronto a usar com multi-tenant
       const modHorasExtras = localStorage.getItem('rg_mod_horas_extras');
       const isSuperAdmin = (userRole === 'super_admin');
 
-      if (!isSuperAdmin && pageOrcamentos === 'false') {
-        const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
-        if (btnOrcamentos) btnOrcamentos.classList.add('nav-item-hidden');
+      // Trata o botão de Orçamentos
+      const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+      if (btnOrcamentos) {
+        if (!isSuperAdmin && pageOrcamentos === 'false') {
+          btnOrcamentos.classList.add('nav-item-hidden');
+          btnOrcamentos.style.display = 'none';
+        } else {
+          btnOrcamentos.classList.remove('nav-item-hidden');
+          btnOrcamentos.style.display = 'flex';
+        }
       }
 
+      // Trata o botão de Horas Extras dinamicamente sem duplicar e garantindo o active
+      const btnHorasExistente = bottomNav.querySelector('a[href="horas-extras.html"]');
+      const estahNaPaginaHoras = window.location.pathname.includes('horas-extras.html');
+
       if (isSuperAdmin || modHorasExtras === 'true') {
-        if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
+        if (!btnHorasExistente) {
           const btnHoras = document.createElement('a');
           btnHoras.href = 'horas-extras.html';
-          const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-          btnHoras.className = isActive;
+          if (estahNaPaginaHoras) {
+            btnHoras.className = 'active';
+          }
           btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-          bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+          
+          // Insere exatamente antes do botão de Configurações para nunca ocultar o Config
+          const btnConfig = bottomNav.querySelector('a[href="configuracao.html"]');
+          if (btnConfig) {
+            bottomNav.insertBefore(btnHoras, btnConfig);
+          } else {
+            bottomNav.appendChild(btnHoras);
+          }
+        } else {
+          btnHorasExistente.style.display = 'flex';
+          if (estahNaPaginaHoras) {
+            btnHorasExistente.classList.add('active');
+          } else {
+            btnHorasExistente.classList.remove('active');
+          }
+        }
+      } else {
+        // Se desativado, oculta o botão de horas caso exista
+        if (btnHorasExistente) {
+          btnHorasExistente.style.display = 'none';
         }
       }
     }
