@@ -1,0 +1,7 @@
+"hosting": {
+  "public": ".",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "**", "destination": "/404.html" }
+  ]
+}
