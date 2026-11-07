@@ -9,16 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "nexos.png",
+      "src": "nexos192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "nexos.png",
+      "src": "nexos512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
