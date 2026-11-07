@@ -270,6 +270,7 @@
       if (!user) {
         window.location.href = 'login.html';
       } else {
+        await aplicarFeatureFlagsCriterios();
         await loadClients();
         gerarCamposDias();
         await verificarModoEdicao();
@@ -288,6 +289,41 @@
     let clientCtx = clientCanvas.getContext('2d');
     let paintingClient = false;
     let tempAnexoBase64 = '';
+
+    // APLICAR RESTRIÇÕES DAS FEATURE FLAGS DE CRITÉRIOS DE COBRANÇA
+    async function aplicarFeatureFlagsCriterios() {
+      try {
+        const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
+        const configDoc = await db.collection('rg_config').doc(tenantId).get();
+        
+        if (configDoc.exists) {
+          const config = configDoc.data();
+
+          if (config.criterioEmpreitada === false) {
+            const el = document.getElementById('selectEmpreitada');
+            if (el && el.closest('div')) el.closest('div').style.display = 'none';
+          }
+          if (config.criterioHoraTrabalhada === false) {
+            const el = document.getElementById('selectHora');
+            if (el && el.closest('div')) el.closest('div').style.display = 'none';
+          }
+          if (config.criterioHoraDeslocamento === false) {
+            const el = document.getElementById('selectDeslocamento');
+            if (el && el.closest('div')) el.closest('div').style.display = 'none';
+          }
+          if (config.criterioHospedagem === false) {
+            const el = document.getElementById('selectHospedagem');
+            if (el && el.closest('div')) el.closest('div').style.display = 'none';
+          }
+          if (config.criterioOutrasDespesas === false) {
+            const el = document.getElementById('selectOutras');
+            if (el && el.closest('div')) el.closest('div').style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao aplicar restrições de critérios:", err);
+      }
+    }
 
     function startClient(e) { paintingClient = true; drawClient(e); }
     function finishClient() { paintingClient = false; clientCtx.beginPath(); }
@@ -330,6 +366,22 @@
       return html;
     }
 
+    window.alternarTipoHorarioDia = function(index) {
+      const selectTipo = document.getElementById(`tipo_registo_${index}`);
+      const boxTurnos = document.getElementById(`box_turnos_${index}`);
+      const boxDireto = document.getElementById(`box_direto_${index}`);
+      
+      if (!selectTipo || !boxTurnos || !boxDireto) return;
+
+      if (selectTipo.value === 'turnos') {
+        boxTurnos.style.display = 'block';
+        boxDireto.style.display = 'none';
+      } else {
+        boxTurnos.style.display = 'none';
+        boxDireto.style.display = 'block';
+      }
+    };
+
     function gerarCamposDias(dadosSalvos = []) {
       let qtd = parseInt(document.getElementById('numDiasTrabalho').value) || 1;
       if (qtd < 1) qtd = 1;
@@ -337,54 +389,116 @@
       
       const container = document.getElementById('containerDiasHorarios');
       const valoresAtuais = [];
-      const atuaisDataIni = container.querySelectorAll('.dia-data-ini');
-      const atuaisHoraIni = container.querySelectorAll('.dia-hora-ini');
-      const atuaisDataFim = container.querySelectorAll('.dia-data-fim');
-      const atuaisHoraFim = container.querySelectorAll('.dia-hora-fim');
+      const cardsAtuais = container.querySelectorAll('.dia-card-flutuante');
       
-      for(let i=0; i<atuaisDataIni.length; i++) {
+      cardsAtuais.forEach((card, idx) => {
+        const tipoRegisto = document.getElementById(`tipo_registo_${idx}`) ? document.getElementById(`tipo_registo_${idx}`).value : 'turnos';
+        
+        let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+        let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+        let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+        let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+
+        let iniDir = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+        let fimDir = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+
+        let dataIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+        let dataFim = card.querySelector('.dia-data-fim') ? card.querySelector('.dia-data-fim').value : '';
+
         valoresAtuais.push({
-          inicio: atuaisDataIni[i] && atuaisHoraIni[i] && atuaisDataIni[i].value ? `${atuaisDataIni[i].value}T${atuaisHoraIni[i].value}` : '',
-          fim: atuaisDataFim[i] && atuaisHoraFim[i] && atuaisDataFim[i].value ? `${atuaisDataFim[i].value}T${atuaisHoraFim[i].value}` : ''
+          tipo: tipoRegisto,
+          dataIni, dataFim,
+          iniM, fimM, iniT, fimT,
+          iniDir, fimDir
         });
-      }
+      });
 
       container.innerHTML = '';
       let hojeStr = new Date().toISOString().split('T')[0];
 
       for (let i = 0; i < qtd; i++) {
         const d = dadosSalvos[i] || valoresAtuais[i] || {};
-        let partsIni = (d.inicio || '').split('T');
-        let dataIniVal = partsIni[0] || hojeStr;
-        let horaIniVal = partsIni[1] || '08:00';
+        
+        let temSubTurnos = d.inicioManha || d.fimManha || d.iniM || (d.inicio && d.fimManha);
+        let tipoVal = d.tipo || (temSubTurnos ? 'turnos' : 'direto');
 
-        let partsFim = (d.fim || '').split('T');
-        let dataFimVal = partsFim[0] || hojeStr;
-        let horaFimVal = partsFim[1] || '17:00';
+        let dataIniVal = d.dataIni || (d.inicio ? d.inicio.split('T')[0] : hojeStr);
+        let dataFimVal = d.dataFim || (d.fim ? d.fim.split('T')[0] : hojeStr);
+
+        let iniM_val = d.iniM || (d.inicioManha ? d.inicioManha.split('T')[1] : '08:00');
+        let fimM_val = d.fimM || (d.fimManha ? d.fimManha.split('T')[1] : '12:00');
+        let iniT_val = d.iniT || (d.inicioTarde ? d.inicioTarde.split('T')[1] : '13:00');
+        let fimT_val = d.fimT || (d.fimTarde ? d.fimTarde.split('T')[1] : '17:00');
+
+        let iniDir_val = d.iniDir || (d.inicio ? d.inicio.split('T')[1] : '08:00');
+        let fimDir_val = d.fimDir || (d.fim ? d.fim.split('T')[1] : '17:00');
 
         container.innerHTML += `
           <div class="dia-card-flutuante">
-            <p style="font-weight: bold; font-size: 0.9rem; color: #0B132B; margin-bottom: 8px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">📅 Dia ${i + 1}</p>
-            
-            <div style="margin-bottom: 8px;">
-              <label style="font-size: 0.8rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Início (Data e Hora):</label>
-              <div class="grid-data-hora">
-                <input type="date" class="dia-data-ini" value="${dataIniVal}" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-                <select class="dia-hora-ini" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-                  ${gerarOpcoesHoras(horaIniVal)}
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 10px;">
+              <p style="font-weight: bold; font-size: 0.9rem; color: #0B132B; margin: 0;">📅 Dia ${i + 1}</p>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <label style="font-size: 0.75rem; font-weight: bold; color: #475569; margin: 0;">Formato:</label>
+                <select id="tipo_registo_${i}" onchange="alternarTipoHorarioDia(${i})" style="padding: 3px 6px; font-size: 0.8rem; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;">
+                  <option value="turnos" ${tipoVal === 'turnos' ? 'selected' : ''}>Com Intervalo (Manhã/Tarde)</option>
+                  <option value="direto" ${tipoVal === 'direto' ? 'selected' : ''}>Direto / Turno Único</option>
                 </select>
               </div>
             </div>
 
-            <div>
-              <label style="font-size: 0.8rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Final (Data e Hora):</label>
-              <div class="grid-data-hora">
-                <input type="date" class="dia-data-fim" value="${dataFimVal}" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-                <select class="dia-hora-fim" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-                  ${gerarOpcoesHoras(horaFimVal)}
+            <div style="margin-bottom: 8px;">
+              <label style="font-size: 0.8rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Data do Atendimento:</label>
+              <input type="date" class="dia-data-ini" value="${dataIniVal}" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+            </div>
+
+            <!-- OPÇÃO 1: TURNOS COM INTERVALO (MANHÃ E TARDE) -->
+            <div id="box_turnos_${i}" style="display: ${tipoVal === 'turnos' ? 'block' : 'none'};">
+              <div style="margin-bottom: 8px;">
+                <label style="font-size: 0.78rem; font-weight: bold; color: #0D9488; display: block; margin-bottom: 2px;">Início Manhã:</label>
+                <select class="dia-ini-manha" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                  ${gerarOpcoesHoras(iniM_val)}
+                </select>
+              </div>
+
+              <div style="margin-bottom: 8px;">
+                <label style="font-size: 0.78rem; font-weight: bold; color: #0D9488; display: block; margin-bottom: 2px;">Final Manhã (Intervalo):</label>
+                <select class="dia-fim-manha" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                  ${gerarOpcoesHoras(fimM_val)}
+                </select>
+              </div>
+
+              <div style="margin-bottom: 8px;">
+                <label style="font-size: 0.78rem; font-weight: bold; color: #1D4ED8; display: block; margin-bottom: 2px;">Início Tarde (Retorno):</label>
+                <select class="dia-ini-tarde" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                  ${gerarOpcoesHoras(iniT_val)}
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.78rem; font-weight: bold; color: #1D4ED8; display: block; margin-bottom: 2px;">Final Tarde (Encerramento):</label>
+                <select class="dia-fim-tarde" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                  ${gerarOpcoesHoras(fimT_val)}
                 </select>
               </div>
             </div>
+
+            <!-- OPÇÃO 2: DIRETO / TURNO ÚNICO -->
+            <div id="box_direto_${i}" style="display: ${tipoVal === 'direto' ? 'block' : 'none'};">
+              <div style="margin-bottom: 8px;">
+                <label style="font-size: 0.78rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Início do Atendimento:</label>
+                <select class="dia-hora-ini-direto" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                  ${gerarOpcoesHoras(iniDir_val)}
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.78rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Final do Atendimento:</label>
+                <select class="dia-hora-fim-direto" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                  ${gerarOpcoesHoras(fimDir_val)}
+                </select>
+              </div>
+            </div>
+
           </div>
         `;
       }
@@ -665,22 +779,37 @@
       const numRsStr = document.getElementById('repNumber').value;
 
       let diasTrabalhoArray = [];
-      const dataInis = document.querySelectorAll('.dia-data-ini');
-      const horaInis = document.querySelectorAll('.dia-hora-ini');
-      const dataFims = document.querySelectorAll('.dia-data-fim');
-      const horaFims = document.querySelectorAll('.dia-hora-fim');
+      const cards = document.querySelectorAll('.dia-card-flutuante');
 
-      for (let i = 0; i < dataInis.length; i++) {
-        let dIni = dataInis[i] ? dataInis[i].value : '';
-        let hIni = horaInis[i] ? horaInis[i].value : '08:00';
-        let dFim = dataFims[i] ? dataFims[i].value : '';
-        let hFim = horaFims[i] ? horaFims[i].value : '17:00';
+      cards.forEach((card, idx) => {
+        let dIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+        const selectTipo = document.getElementById(`tipo_registo_${idx}`);
+        const tipo = selectTipo ? selectTipo.value : 'turnos';
 
-        diasTrabalhoArray.push({
-          inicio: dIni ? `${dIni}T${hIni}` : '',
-          fim: dFim ? `${dFim}T${hFim}` : ''
-        });
-      }
+        if (tipo === 'turnos') {
+          let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+          let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+          let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+          let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+
+          diasTrabalhoArray.push({
+            tipo: 'turnos',
+            inicio: dIni ? `${dIni}T${iniM}` : '',
+            fimManha: dIni ? `${dIni}T${fimM}` : '',
+            inicioTarde: dIni ? `${dIni}T${iniT}` : '',
+            fim: dIni ? `${dIni}T${fimT}` : ''
+          });
+        } else {
+          let hIni = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+          let hFim = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+
+          diasTrabalhoArray.push({
+            tipo: 'direto',
+            inicio: dIni ? `${dIni}T${hIni}` : '',
+            fim: dIni ? `${dIni}T${hFim}` : ''
+          });
+        }
+      });
 
       let cleanAnexos = [];
       if (Array.isArray(anexosList)) {
