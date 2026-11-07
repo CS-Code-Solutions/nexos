@@ -135,6 +135,16 @@
               </label>
             </div>
 
+            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">⏰ Formatos de Registro de Horários</h4>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 15px; background: #FFF; padding: 8px; border: 1px solid #E2E8F0; border-radius: 4px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="criterioHorarioIntervalo" checked style="width: 16px; height: 16px;"> ☀️🌙 Permitir "Com Intervalo" (Manhã / Tarde - 4 campos)
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="criterioHorarioDireto" checked style="width: 16px; height: 16px;"> ⚡ Permitir "Direto / Turno Único" (Início / Fim - 2 campos)
+              </label>
+            </div>
+
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">⚙️ Critérios e Campos Opcionais (Relatórios)</h4>
             <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
@@ -371,6 +381,11 @@
       document.getElementById('pageOrcamentos').checked = t.pageOrcamentos === true;
       document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
+      // Leitura dos Formatos de Horário
+      document.getElementById('criterioHorarioIntervalo').checked = t.criterioHorarioIntervalo !== false;
+      document.getElementById('criterioHorarioDireto').checked = t.criterioHorarioDireto !== false;
+
+      // Leitura dos Critérios Gerais
       document.getElementById('criterioEmpreitada').checked = t.criterioEmpreitada !== false;
       document.getElementById('criterioHoraTrabalhada').checked = t.criterioHoraTrabalhada !== false;
       document.getElementById('criterioHoraDeslocamento').checked = t.criterioHoraDeslocamento !== false;
@@ -407,6 +422,11 @@
         pageOrcamentos: document.getElementById('pageOrcamentos').checked,
         modHorasExtras: document.getElementById('modHorasExtras').checked,
 
+        // Salvamento das Feature Flags de Formatos de Horário
+        criterioHorarioIntervalo: document.getElementById('criterioHorarioIntervalo').checked,
+        criterioHorarioDireto: document.getElementById('criterioHorarioDireto').checked,
+
+        // Salvamento dos Critérios de Cobrança
         criterioEmpreitada: document.getElementById('criterioEmpreitada').checked,
         criterioHoraTrabalhada: document.getElementById('criterioHoraTrabalhada').checked,
         criterioHoraDeslocamento: document.getElementById('criterioHoraDeslocamento').checked,
