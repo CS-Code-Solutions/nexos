@@ -468,7 +468,7 @@
   </script>
 
     <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
-  <nav class="bottom-nav no-print" id="mainBottomNav">
+   <nav class="bottom-nav no-print">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
       <span>Clientes</span>
@@ -481,33 +481,14 @@
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="orcamentos.html" id="nav-item-orcamentos">
+    <a href="orcamentos.html">
       <i class="fa-solid fa-calculator"></i>
       <span>Orçamentos</span>
     </a>
-    <a href="horas.html" id="nav-item-horas" class="active">
-      <i class="fa-solid fa-clock"></i>
-      <span>Horas</span>
-    </a>
-    <a href="configuracao.html" id="nav-item-config">
+    <a href="configuracao.html">
       <i class="fa-solid fa-gear"></i>
       <span>Config</span>
     </a>
   </nav>
-
-  <script>
-    // Apenas oculta se desativado nas definições, mantendo a ordem exata
-    const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
-    const showHoras = localStorage.getItem('rg_mod_horas_extras') === 'true';
-    
-    if (!showOrcamentos) {
-      const el = document.getElementById('nav-item-orcamentos');
-      if (el) el.style.display = 'none';
-    }
-    if (!showHoras) {
-      const el = document.getElementById('nav-item-horas');
-      if (el) el.style.display = 'none';
-    }
-  </script>
 </body>
 </html>
