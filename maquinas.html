@@ -309,5 +309,45 @@
     </a>
   </nav>
 
+  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // 1. Aplica o logótipo personalizado instantaneamente
+      const imgLogo = document.getElementById('logo-cliente');
+      if (imgLogo) {
+        const logoSalva = localStorage.getItem('rg_logo_base64');
+        if (logoSalva && logoSalva.startsWith('data:image')) {
+          imgLogo.src = logoSalva;
+        } else {
+          imgLogo.src = 'marca.png';
+        }
+      }
+
+      // 2. Aplica as permissões da barra inferior para utilizadores comuns / sem permissão
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      const navOrcamentos = document.getElementById('nav-item-orcamentos');
+      const navHoras = document.getElementById('nav-item-horas');
+
+      if (navOrcamentos) {
+        if (!isSuperAdmin && showOrcamentos === 'false') {
+          navOrcamentos.style.display = 'none';
+        } else {
+          navOrcamentos.style.display = 'flex';
+        }
+      }
+
+      if (navHoras) {
+        if (isSuperAdmin || showHoras === 'true') {
+          navHoras.style.display = 'flex';
+        } else {
+          navHoras.style.display = 'none';
+        }
+      }
+    });
+  </script>
 </body>
 </html>
