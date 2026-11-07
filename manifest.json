@@ -9,7 +9,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "nexos192.png",
+      "src": "nexosico192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
