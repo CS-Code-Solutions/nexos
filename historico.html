@@ -554,8 +554,8 @@
     };
   </script>
 
-  <!-- Barra de Navegação Inferior -->
-  <nav class="bottom-nav no-print">
+   <!-- BARRA DE NAVEGAÇÃO INFERIOR ESTRUTURADA -->
+  <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
       <span>Clientes</span>
@@ -568,14 +568,70 @@
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="orcamentos.html">
+    <a href="orcamentos.html" id="nav-item-orcamentos">
       <i class="fa-solid fa-calculator"></i>
       <span>Orçamentos</span>
     </a>
-    <a href="configuracao.html">
+    <a href="horas.html" id="nav-item-horas">
+      <i class="fa-solid fa-clock"></i>
+      <span>Horas</span>
+    </a>
+    <a href="configuracao.html" id="nav-item-config">
       <i class="fa-solid fa-gear"></i>
       <span>Config</span>
     </a>
   </nav>
+
+  <script>
+    // Gerenciador de visibilidade das permissões do Tenant para a Nav Bar
+    function aplicarVisibilidadeNav() {
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
+      const showHoras = localStorage.getItem('rg_mod_horas_extras') === 'true'; // Controle do módulo de horas
+      
+      const navOrcamentos = document.getElementById('nav-item-orcamentos');
+      const navHoras = document.getElementById('nav-item-horas');
+      
+      if (navOrcamentos) navOrcamentos.style.display = showOrcamentos ? 'flex' : 'none';
+      if (navHoras) navHoras.style.display = showHoras ? 'flex' : 'none';
+    }
+    
+    // Executa a visibilidade assim que a barra carrega
+    aplicarVisibilidadeNav();
+
+    // Script de "limpeza" para evitar que o global-modal.js crie botões duplicados
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const nav = document.getElementById('mainBottomNav');
+        if (!nav) return;
+
+        // 1. Limpa Orçamentos Duplicados
+        const orcLinks = nav.querySelectorAll('a[href="orcamentos.html"]');
+        if (orcLinks.length > 1) {
+          for (let i = 1; i < orcLinks.length; i++) orcLinks[i].remove();
+        }
+
+        // 2. Limpa Horas Duplicadas
+        const horasLinks = nav.querySelectorAll('a[href="horas.html"]');
+        if (horasLinks.length > 1) {
+          for (let i = 1; i < horasLinks.length; i++) horasLinks[i].remove();
+        }
+
+        // 3. Garante que Config não foi empurrado para fora e está na última posição
+        const configLink = nav.querySelector('a[href="configuracao.html"]');
+        if (!configLink) {
+          const novoConfig = document.createElement('a');
+          novoConfig.href = 'configuracao.html';
+          novoConfig.innerHTML = '<i class="fa-solid fa-gear"></i><span>Config</span>';
+          nav.appendChild(novoConfig);
+        } else {
+          // Move o Config existente para o final da lista (caso tenha ficado no meio)
+          nav.appendChild(configLink);
+        }
+      }, 300); // Aguarda os scripts globais terminarem
+    });
+  </script>
+</body>
+</html>
+
 </body>
 </html>
