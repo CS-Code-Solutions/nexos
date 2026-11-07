@@ -503,6 +503,37 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+    <script>
+    // Força a correção e limpeza da barra de navegação após os scripts globais
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const nav = document.querySelector('.bottom-nav');
+        if (!nav) return;
+
+        // 1. Remove botões duplicados de Horas (deixa apenas o primeiro)
+        const horasLinks = nav.querySelectorAll('a[href="horas.html"]');
+        if (horasLinks.length > 1) {
+          for (let i = 1; i < horasLinks.length; i++) {
+            horasLinks[i].remove();
+          }
+        }
+
+        // 2. Verifica se o botão "Config" desapareceu e recria-o
+        const configLink = nav.querySelector('a[href="configuracao.html"]');
+        if (!configLink) {
+          const novoConfig = document.createElement('a');
+          novoConfig.href = 'configuracao.html';
+          novoConfig.innerHTML = '<i class="fa-solid fa-gear"></i><span>Config</span>';
+          nav.appendChild(novoConfig);
+        }
+
+        // 3. Garante que o botão de Horas correto está azul (ativo)
+        const horaAtiva = nav.querySelector('a[href="horas.html"]');
+        if (horaAtiva) {
+          horaAtiva.classList.add('active');
+        }
+      }, 300); // Aguarda 300ms para que o global-modal.js termine de rodar
+    });
   </script>
 </body>
 </html>
