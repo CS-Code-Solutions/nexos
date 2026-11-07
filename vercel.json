@@ -3,39 +3,10 @@
   "trailingSlash": false,
   "routes": [
     {
-      "src": "/admin",
-      "dest": "/admin.html"
-    },
-    {
-      "src": "/login",
-      "dest": "/login.html"
-    },
-    {
-      "src": "/historico",
-      "dest": "/historico.html"
-    },
-    {
-      "src": "/maquinas",
-      "dest": "/maquinas.html"
-    },
-    {
-      "src": "/orcamentos",
-      "dest": "/orcamentos.html"
-    },
-    {
-      "src": "/novo-relatorio",
-      "dest": "/novo-relatorio.html"
-    },
-    {
-      "src": "/configuracao",
-      "dest": "/configuracao.html"
-    },
-    {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "status": 404,
       "dest": "/404.html"
     }
   ]
