@@ -28,7 +28,7 @@ body {
 header {
   background-color: var(--deep-navy);
   color: var(--white);
-  padding: 4px 15px; /* Reduzido para remover todo o espaço vertical livre */
+  padding: 4px 15px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   position: sticky;
   top: 0;
@@ -53,16 +53,15 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  line-height: 1; /* Elimina a altura de linha extra */
+  line-height: 1;
   padding: 2px 0;
 }
 
 .logo img {
-  height: 35px; /* Mantém o logótipo visível sem forçar a faixa */
+  height: 35px;
   width: auto;
   object-fit: contain;
 }
-
 
 nav ul {
   list-style: none;
@@ -210,85 +209,62 @@ footer {
   header nav ul {
     display: none !important;
   }
-  /* Mantenha o restante código da .bottom-nav igual */
 }
 
-}
-/* ========================================================
-   ESTILOS DA BARRA DE NAVEGAÇÃO INFERIOR MOBILE 
-   ======================================================== */
-
-/* Esconde a barra inferior no computador por padrão */
-.bottom-nav {
-    display: none; 
-}
-
-/* Regras apenas para Telemóveis (ecrãs até 768px) */
-@media (max-width: 768px) {
-    /* 1. Esconde o menu de texto e links do cabeçalho no mobile */
-    header nav ul {
-        display: none !important;
-    }
-
-    /* 2. Mostra e formata a barra inferior igual à imagem de referência */
-    .bottom-nav {
-        display: flex !important;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background-color: #0B132B; /* Fundo escuro igual ao topo */
-        justify-content: space-around;
-        align-items: center;
-        padding: 8px 0;
-        z-index: 9999;
-        border-top: 1px solid #1e293b;
-        box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
-    }
-
-    .bottom-nav a {
-        color: #94a3b8; /* Cor dos ícones inativos (cinza claro) */
-        text-decoration: none;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        font-size: 0.65rem; /* Texto pequeno como na imagem */
-        gap: 4px;
-        flex: 1;
-        transition: color 0.2s;
-    }
-
-    .bottom-nav a i {
-        font-size: 1.3rem; /* Tamanho do ícone */
-    }
-
-    .bottom-nav a.active {
-        color: #00F5D4; /* Cor ativa (ciano destacado) */
-        font-weight: bold;
-    }
-
-    /* 3. Cria espaço no fundo do ecrã para o conteúdo não ficar escondido pela barra */
-    body {
-        padding-bottom: 70px !important;
-    }
-}
-
-/* Não imprime a barra inferior */
-@media print {
-    .bottom-nav {
-        display: none !important;
-    }
-}
 /* --- BLINDAGEM DA BARRA INFERIOR (FIM DOS PULOS) --- */
 .bottom-nav {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  background-color: #0B132B;
+  display: none; 
 }
 
-/* Oculta instantaneamente itens inativos antes da renderização */
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background-color: #0B132B;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0;
+    z-index: 9999;
+    border-top: 1px solid #1e293b;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
+  }
+
+  .bottom-nav a {
+    color: #94a3b8;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.65rem;
+    gap: 4px;
+    flex: 1;
+    transition: color 0.2s;
+  }
+
+  .bottom-nav a i {
+    font-size: 1.3rem;
+  }
+
+  .bottom-nav a.active {
+    color: #00F5D4;
+    font-weight: bold;
+  }
+
+  body {
+    padding-bottom: 70px !important;
+  }
+}
+
+@media print {
+  .bottom-nav {
+    display: none !important;
+  }
+}
+
 .nav-item-hidden {
   display: none !important;
 }
