@@ -92,84 +92,53 @@ window.DataSync = {
 console.log("[NexOS] Módulo DataSync carregado e pronto a usar com multi-tenant!");
 
 // ============================================================
-// CONTROLO GLOBAL INSTANTÂNEO: LOGÓTIPO + BOTTOM-NAV (SEM PULOS)
+// CONTROLO GLOBAL INSTANTÂNEO: LOGÓTIPO + BOTTOM-NAV (SEM PISCAR)
 // ============================================================
 (function aplicarLayoutGlobalInstantaneo() {
-  function renderizarInterface() {
-    const imgLogo = document.getElementById('logo-cliente');
-    const bottomNav = document.querySelector('.bottom-nav');
-
-    // 1. CARREGAMENTO INSTANTÂNEO DO LOGÓTIPO (SEM PISCADA)
-    if (imgLogo) {
-      const logoSalva = localStorage.getItem('rg_logo_base64');
-      if (logoSalva && logoSalva.startsWith('data:image')) {
-        imgLogo.src = logoSalva;
-      } else {
-        imgLogo.src = 'marca.png';
-      }
-      imgLogo.style.objectFit = 'contain';
-      imgLogo.style.display = 'block';
+  // Executa imediatamente para evitar qualquer atraso visual ou piscada
+  const imgLogo = document.getElementById('logo-cliente');
+  if (imgLogo) {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      imgLogo.src = logoSalva;
+    } else {
+      imgLogo.src = 'marca.png';
     }
-
-    // 2. CARREGAMENTO INSTANTÂNEO DA BARRA INFERIOR (SEM PULOS)
-    if (bottomNav) {
-      const userRole = localStorage.getItem('rg_user_role');
-      const pageOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const modHorasExtras = localStorage.getItem('rg_mod_horas_extras');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      // Trata o botão de Orçamentos
-      const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
-      if (btnOrcamentos) {
-        if (!isSuperAdmin && pageOrcamentos === 'false') {
-          btnOrcamentos.classList.add('nav-item-hidden');
-          btnOrcamentos.style.display = 'none';
-        } else {
-          btnOrcamentos.classList.remove('nav-item-hidden');
-          btnOrcamentos.style.display = 'flex';
-        }
-      }
-
-      // Trata o botão de Horas Extras dinamicamente sem duplicar e garantindo o active
-      const btnHorasExistente = bottomNav.querySelector('a[href="horas-extras.html"]');
-      const estahNaPaginaHoras = window.location.pathname.includes('horas-extras.html');
-
-      if (isSuperAdmin || modHorasExtras === 'true') {
-        if (!btnHorasExistente) {
-          const btnHoras = document.createElement('a');
-          btnHoras.href = 'horas-extras.html';
-          if (estahNaPaginaHoras) {
-            btnHoras.className = 'active';
-          }
-          btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-          
-          // Insere exatamente antes do botão de Configurações para nunca ocultar o Config
-          const btnConfig = bottomNav.querySelector('a[href="configuracao.html"]');
-          if (btnConfig) {
-            bottomNav.insertBefore(btnHoras, btnConfig);
-          } else {
-            bottomNav.appendChild(btnHoras);
-          }
-        } else {
-          btnHorasExistente.style.display = 'flex';
-          if (estahNaPaginaHoras) {
-            btnHorasExistente.classList.add('active');
-          } else {
-            btnHorasExistente.classList.remove('active');
-          }
-        }
-      } else {
-        // Se desativado, oculta o botão de horas caso exista
-        if (btnHorasExistente) {
-          btnHorasExistente.style.display = 'none';
-        }
-      }
-    }
+    imgLogo.style.objectFit = 'contain';
+    imgLogo.style.display = 'block';
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', renderizarInterface);
-  } else {
-    renderizarInterface();
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    const userRole = localStorage.getItem('rg_user_role');
+    const pageOrcamentos = localStorage.getItem('rg_page_orcamentos');
+    const modHorasExtras = localStorage.getItem('rg_mod_horas_extras');
+    const isSuperAdmin = (userRole === 'super_admin');
+
+    // Controlo do botão Orçamentos
+    const btnOrcamentos = document.getElementById('nav-item-orcamentos');
+    if (btnOrcamentos) {
+      if (!isSuperAdmin && pageOrcamentos === 'false') {
+        btnOrcamentos.style.display = 'none';
+      } else {
+        btnOrcamentos.style.display = 'flex';
+      }
+    }
+
+    // Controlo do botão Horas (agora comum, visível se for super admin ou se a mod_horas_extras for true)
+    const btnHoras = document.getElementById('nav-item-horas');
+    if (btnHoras) {
+      if (isSuperAdmin || modHorasExtras === 'true') {
+        btnHoras.style.display = 'flex';
+        // Ativa a classe active se estivermos na página de horas
+        if (window.location.pathname.includes('horas-extras.html')) {
+          btnHoras.classList.add('active');
+        } else {
+          btnHoras.classList.remove('active');
+        }
+      } else {
+        btnHoras.style.display = 'none';
+      }
+    }
   }
 })();
