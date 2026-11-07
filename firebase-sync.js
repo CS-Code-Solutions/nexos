@@ -90,3 +90,42 @@ window.DataSync = {
 };
 
 console.log("[NexOS] Módulo DataSync carregado e pronto a usar com multi-tenant!");
+
+// ============================================================
+// CONTROLO GLOBAL E INSTANTÂNEO DA BOTTOM-NAV (FIM DOS PULOS)
+// ============================================================
+(function aplicarNavGlobalSemPulo() {
+  function ajustarBotoesNav() {
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (!bottomNav) return;
+
+    const userRole = localStorage.getItem('rg_user_role');
+    const pageOrcamentos = localStorage.getItem('rg_page_orcamentos');
+    const modHorasExtras = localStorage.getItem('rg_mod_horas_extras');
+    const isSuperAdmin = (userRole === 'super_admin');
+
+    // 1. Esconde Orçamentos instantaneamente se não for admin e a flag for false
+    if (!isSuperAdmin && pageOrcamentos === 'false') {
+      const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
+      if (btnOrcamentos) btnOrcamentos.classList.add('nav-item-hidden');
+    }
+
+    // 2. Injeta Horas Extras instantaneamente se for admin ou se o módulo estiver ativo
+    if (isSuperAdmin || modHorasExtras === 'true') {
+      if (!bottomNav.querySelector('a[href="horas-extras.html"]')) {
+        const btnHoras = document.createElement('a');
+        btnHoras.href = 'horas-extras.html';
+        const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
+        btnHoras.className = isActive;
+        btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
+        bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
+      }
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ajustarBotoesNav);
+  } else {
+    ajustarBotoesNav();
+  }
+})();
