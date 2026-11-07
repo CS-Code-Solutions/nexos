@@ -18,7 +18,6 @@
 
   <style>
     body {
-      /* Fundo padrão para telemóvel (loginmob.png) como background CSS (impossível de salvar por clique direito) */
       background-image: url('loginmob.png');
       background-size: cover;
       background-position: center;
@@ -31,25 +30,23 @@
       margin: 0;
       font-family: Arial, sans-serif;
       overflow: hidden;
-      /* Impede seleção acidental de texto na tela de login */
       -webkit-user-select: none;
       user-select: none;
     }
 
     .login-card {
-      background: rgba(11, 19, 43, 0.9); /* Fundo escuro levemente translúcido */
+      background: rgba(11, 19, 43, 0.9);
       border: 1px solid rgba(0, 245, 212, 0.3); 
       padding: 35px 25px;
       border-radius: 12px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
-      width: 88%; /* Ajustado para não ocupar de lado a lado no telemóvel */
+      width: 88%;
       max-width: 380px;
       text-align: center;
       transition: box-shadow 0.3s ease, border 0.3s ease;
       box-sizing: border-box;
     }
 
-    /* Efeito de LED estático ao passar o rato */
     .login-card:hover {
       border: 1px solid #00F5D4;
       box-shadow: 0 0 25px rgba(0, 245, 212, 0.5), 0 0 10px rgba(0, 245, 212, 0.2) inset;
@@ -60,7 +57,6 @@
       width: 100%;
       height: auto;
       margin-bottom: 20px;
-      /* Bloqueia arrastar ou menu de contexto na logo principal */
       pointer-events: none; 
     }
     .login-card h2 {
@@ -115,7 +111,6 @@
       border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
-    /* Media Query para Computadores (PC): Altera para loginpc.png */
     @media (min-width: 768px) {
       body {
         background-image: url('loginpc.png');
@@ -146,7 +141,6 @@
   </div>
 
   <script>
-    // Bloqueia o clique direito (Menu de contexto) em toda a página de login
     document.addEventListener('contextmenu', event => event.preventDefault());
 
     function escapeHTML(str) {
@@ -205,6 +199,21 @@
         localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
         localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
         
+        // --- BUSCA PERMISSÕES DE INTERFACE PARA EVITAR PISCADAS ---
+        try {
+          const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
+          if (configDoc.exists) {
+            const cfg = configDoc.data();
+            localStorage.setItem('rg_page_orcamentos', cfg.pageOrcamentos !== false ? 'true' : 'false');
+            localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
+          } else {
+            localStorage.setItem('rg_page_orcamentos', 'true');
+            localStorage.setItem('rg_mod_horas_extras', 'false');
+          }
+        } catch (cErr) {
+          console.warn("Aviso ao carregar permissões visuais:", cErr);
+        }
+
         window.location.href = 'index.html';
 
       } catch (error) {
