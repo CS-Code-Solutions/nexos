@@ -28,7 +28,7 @@
   <!-- CABEÇALHO DO SUPER ADMIN -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
     <div style="display: flex; align-items: center; gap: 10px;">
-      <img id="logo-cliente" alt="NexOS" style="max-height: 35px; width: auto; display: none;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain;">
       <span style="background: #EF4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Super Admin</span>
     </div>
     
@@ -224,7 +224,6 @@
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
                 
-                <!-- BOTÕES DE BACKUP -->
                 <button class="btn" style="background-color: #3B82F6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupJSON('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-code"></i> JSON</button>
                 <button class="btn" style="background-color: #8B5CF6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupCSV('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-csv"></i> CSV</button>
 
@@ -241,7 +240,6 @@
       }
     }
 
-    // Ferramenta de Backup: Exportar em JSON
     window.exportarBackupJSON = async function(uid, nomeEmpresa) {
       try {
         const docRef = await db.collection('rg_reports').doc(uid).get();
@@ -268,7 +266,6 @@
       }
     };
 
-    // Ferramenta de Backup: Exportar em CSV
     window.exportarBackupCSV = async function(uid, nomeEmpresa) {
       try {
         const docRef = await db.collection('rg_reports').doc(uid).get();
@@ -314,14 +311,13 @@
       }
     };
 
-    // PROCESSAMENTO DO LOGÓTIPO SEM COMPACTAÇÃO (Preserva o PNG original integralmente)
     window.processarUploadLogo = function(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const originalBase64 = e.target.result; // Lê exatamente o ficheiro original em Base64 sem reamostragem
+        const originalBase64 = e.target.result;
         document.getElementById('tenantLogoBase64').value = originalBase64;
 
         const preview = document.getElementById('logoPreviewImg');
@@ -461,77 +457,5 @@
         .replace(/'/g, '&#039;');
     }
   </script>
-
-  <!-- Script Universal Corrigido com salvaguarda no UID
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const tenantId = localStorage.getItem('rg_tenant_id') || (firebase.auth().currentUser ? firebase.auth().currentUser.uid : null);
-      const userRole = localStorage.getItem('rg_user_role'); 
-      const isSuperAdmin = (userRole === 'super_admin');
-      
-      const imgLogo = document.getElementById('logo-cliente');
-      const bottomNav = document.querySelector('.bottom-nav');
-
-      const setFallbackLogo = () => {
-        if (imgLogo) {
-          imgLogo.src = 'marca.png';
-          imgLogo.style.objectFit = 'contain';
-          imgLogo.style.display = 'block';
-        }
-      };
-
-      const injectHorasExtras = () => {
-        if (bottomNav && !bottomNav.querySelector('a[href="horas-extras.html"]')) {
-          const btnHoras = document.createElement('a');
-          btnHoras.href = 'horas-extras.html';
-          const isActive = window.location.pathname.includes('horas-extras.html') ? 'active' : '';
-          btnHoras.className = isActive;
-          btnHoras.innerHTML = `<i class="fa-solid fa-clock"></i><span>Horas</span>`;
-          bottomNav.insertBefore(btnHoras, bottomNav.lastElementChild);
-        }
-      };
-
-      if (!tenantId || tenantId === 'undefined' || tenantId === 'null') {
-        setFallbackLogo();
-        if (isSuperAdmin) injectHorasExtras();
-        return;
-      }
-
-      db.collection('rg_config').doc(tenantId).get().then((doc) => {
-        if (doc.exists) {
-          const config = doc.data();
-          
-          if (imgLogo) {
-            if (config.logoBase64 && config.logoBase64.startsWith('data:image')) {
-              imgLogo.src = config.logoBase64;
-            } else {
-              setFallbackLogo();
-            }
-            imgLogo.style.objectFit = 'contain';
-            imgLogo.style.display = 'block';
-          }
-
-          if (bottomNav) {
-            if (!isSuperAdmin && config.pageOrcamentos === false) {
-              const btnOrcamentos = bottomNav.querySelector('a[href="orcamentos.html"]');
-              if (btnOrcamentos) btnOrcamentos.style.display = 'none'; 
-            }
-            
-            if (isSuperAdmin || config.modHorasExtras === true) {
-              injectHorasExtras();
-            }
-          }
-        } else {
-          setFallbackLogo();
-          if (isSuperAdmin) injectHorasExtras();
-        }
-      }).catch(err => {
-        console.error("[NexOS] Erro ao carregar interface visual:", err);
-        setFallbackLogo();
-        if (isSuperAdmin) injectHorasExtras();
-      });
-    });
-  </script>
--->
 </body>
 </html>
