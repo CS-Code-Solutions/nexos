@@ -467,7 +467,7 @@
     }
   </script>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR ESTRUTURADA -->
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
@@ -496,45 +496,18 @@
   </nav>
 
   <script>
-    function aplicarVisibilidadeNav() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
-      const showHoras = localStorage.getItem('rg_mod_horas_extras') === 'true';
-      
-      const navOrcamentos = document.getElementById('nav-item-orcamentos');
-      const navHoras = document.getElementById('nav-item-horas');
-      
-      if (navOrcamentos) navOrcamentos.style.display = showOrcamentos ? 'flex' : 'none';
-      if (navHoras) navHoras.style.display = showHoras ? 'flex' : 'none';
-    }
+    // Apenas oculta se desativado nas definições, mantendo a ordem exata
+    const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
+    const showHoras = localStorage.getItem('rg_mod_horas_extras') === 'true';
     
-    aplicarVisibilidadeNav();
-
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        const nav = document.getElementById('mainBottomNav');
-        if (!nav) return;
-
-        const orcLinks = nav.querySelectorAll('a[href="orcamentos.html"]');
-        if (orcLinks.length > 1) {
-          for (let i = 1; i < orcLinks.length; i++) orcLinks[i].remove();
-        }
-
-        const horasLinks = nav.querySelectorAll('a[href="horas.html"]');
-        if (horasLinks.length > 1) {
-          for (let i = 1; i < horasLinks.length; i++) horasLinks[i].remove();
-        }
-
-        const configLink = nav.querySelector('a[href="configuracao.html"]');
-        if (!configLink) {
-          const novoConfig = document.createElement('a');
-          novoConfig.href = 'configuracao.html';
-          novoConfig.innerHTML = '<i class="fa-solid fa-gear"></i><span>Config</span>';
-          nav.appendChild(novoConfig);
-        } else {
-          nav.appendChild(configLink);
-        }
-      }, 300);
-    });
+    if (!showOrcamentos) {
+      const el = document.getElementById('nav-item-orcamentos');
+      if (el) el.style.display = 'none';
+    }
+    if (!showHoras) {
+      const el = document.getElementById('nav-item-horas');
+      if (el) el.style.display = 'none';
+    }
   </script>
 </body>
 </html>
