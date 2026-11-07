@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <link rel="icon" href="nexosico.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexOS - Acesso Restrito (403)</title>
+  
+  <meta name="theme-color" content="#0B132B">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      background-color: #0B132B;
+      color: #FFFFFF;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .error-container {
+      background: rgba(11, 19, 43, 0.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 40px 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 440px;
+      margin: auto;
+    }
+    .error-code {
+      font-size: 4rem;
+      font-weight: 800;
+      color: #EF4444;
+      margin: 0;
+      text-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+    }
+    .error-icon {
+      font-size: 3rem;
+      color: #F59E0B;
+      margin: 20px 0 10px 0;
+    }
+    .error-title {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+    }
+    .error-desc {
+      font-size: 0.9rem;
+      color: #94A3B8;
+      margin-bottom: 25px;
+      line-height: 1.4;
+    }
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background-color: #1C2541;
+      color: #FFFFFF;
+      font-weight: bold;
+      padding: 12px 24px;
+      border: 1px solid #00F5D4;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .btn-home:hover {
+      background-color: rgba(0, 245, 212, 0.15);
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+    }
+    footer { font-size: 0.8rem; color: #94A3B8; }
+    footer a { color: #00F5D4; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div></div>
+  <main class="error-container">
+    <div class="error-code">403</div>
+    <div class="error-icon">
+      <i class="fa-solid fa-lock"></i>
+    </div>
+    <h1 class="error-title">Acesso Bloqueado</h1>
+    <p class="error-desc">
+      Não possui permissão suficiente para aceder a este recurso. Caso ache que isto é um erro, contacte o Super Admin.
+    </p>
+    <a href="index.html" class="btn-home">
+      <i class="fa-solid fa-house"></i> Voltar ao Início
+    </a>
+  </main>
+  <footer>
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+</body>
+</html>
