@@ -456,16 +456,38 @@
     });
 
     window.excluirTenant = async function(uid) {
-      if (confirm(`Tem a certeza que deseja excluir as configurações do tenant ID: ${uid}?`)) {
-        try {
-          await db.collection('rg_config').doc(uid).delete();
-          alert('Configurações removidas com sucesso.');
-          carregarPainelAdmin();
-        } catch (err) {
-          alert('Erro ao excluir tenant: ' + err.message);
-        }
-      }
-    };
+  // Busca as informações do cliente no cache local para pegar o nome correto
+  const t = tenantsCache.find(item => item.uid === uid);
+  const nomeClienteOriginal = t ? (t.name || '').trim() : '';
+
+  // Solicita ao utilizador a digitação do nome exato do cliente
+  const confirmacaoNome = prompt(
+    `⚠️ ATENÇÃO: Esta ação é irreversível!\n\n` +
+    `Para confirmar a exclusão do cliente (ID: ${uid}), digite exatamente o nome abaixo:\n` +
+    `"${nomeClienteOriginal}"`
+  );
+
+  // Se o utilizador cancelar a caixa de diálogo
+  if (confirmacaoNome === null) {
+    return;
+  }
+
+  // Valida se a digitação bate com o nome exato (removendo espaços extras nas pontas)
+  if (confirmacaoNome.trim() !== nomeClienteOriginal) {
+    alert(`❌ O nome digitado ("${confirmacaoNome.trim()}") não coincide com o nome do cliente ("${nomeClienteOriginal}"). A exclusão foi CANCELADA por segurança.`);
+    return;
+  }
+
+  // Caso o nome esteja correto, procede com a exclusão no Firestore
+  try {
+    await db.collection('rg_config').doc(uid).delete();
+    alert('✅ Configurações e registro do cliente removidos com sucesso.');
+    carregarPainelAdmin();
+  } catch (err) {
+    alert('Erro ao excluir tenant: ' + err.message);
+  }
+};
+
 
     function escapeHTML(str) {
       if (!str) return '';
