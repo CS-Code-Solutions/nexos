@@ -1,6 +1,5 @@
 // Substituição global de Alertas e Confirmações por Modais Elegantes
 (function() {
-    // Cria a estrutura HTML do modal global injetando no body ao carregar a página
     document.addEventListener("DOMContentLoaded", () => {
         if (document.getElementById('globalModalOverlay')) return;
 
@@ -10,14 +9,12 @@
             <h3 id="globalModalTitle" style="margin-top: 0; color: #38bdf8; font-size: 1.2rem; margin-bottom: 12px;">Mensagem</h3>
             <p id="globalModalMessage" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px; word-break: break-word;"></p>
             <div id="globalModalButtons" style="display: flex; gap: 10px; justify-content: center;">
-              <!-- Botões geridos dinamicamente -->
             </div>
           </div>
         </div>`;
         document.body.insertAdjacentHTML('beforeend', modalHTML);
     });
 
-    // Sobrescreve o alert nativo
     window.alert = function(message) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('globalModalOverlay');
@@ -26,7 +23,6 @@
             const titleEl = document.getElementById('globalModalTitle');
 
             if (!overlay) {
-                // Fallback caso o DOM ainda não esteja pronto
                 window.location.reload();
                 return;
             }
@@ -46,7 +42,6 @@
         });
     };
 
-    // Sobrescreve o confirm nativo (ex: excluir cliente)
     window.confirm = function(message) {
         return new Promise((resolve) => {
             const overlay = document.getElementById('globalModalOverlay');
@@ -55,7 +50,7 @@
             const titleEl = document.getElementById('globalModalTitle');
 
             if (!overlay) {
-                resolve(window.confirm(message));
+                resolve(true);
                 return;
             }
 
