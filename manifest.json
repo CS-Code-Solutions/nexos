@@ -1,20 +1,24 @@
 {
-  "name": "NexOS | Gestão de OS",
+  "name": "NexOS - CS Code Solutions",
   "short_name": "NexOS",
-  "start_url": "index.html",
+  "description": "Sistema de Gestão de Relatórios de Serviço",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0B132B",
-  "theme_color": "#00F5D4",
+  "theme_color": "#0B132B",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "nexosivo.png",
+      "src": "nexosico.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "nexosico.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
