@@ -2,6 +2,16 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
+<script>
+  (function() {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      // Cria um estilo temporário para injetar o src logo na tag img assim que ela existir
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+    }
+  })();
+</script>
+
   <!-- Favicon ken PWA Manifest -->
   <link rel="icon" href="nexosico.png" type="image/png">
   <link rel="manifest" href="manifest.json">
