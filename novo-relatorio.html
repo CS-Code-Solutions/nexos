@@ -266,6 +266,8 @@
   </footer>
 
   <script>
+    window.configHorariosTenant = { intervalo: true, direto: true };
+
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         window.location.href = 'login.html';
@@ -290,7 +292,7 @@
     let paintingClient = false;
     let tempAnexoBase64 = '';
 
-    // APLICAR RESTRIÇÕES DAS FEATURE FLAGS DE CRITÉRIOS DE COBRANÇA
+    // APLICAR RESTRIÇÕES DAS FEATURE FLAGS DE CRITÉRIOS DE COBRANÇA E FORMATOS DE HORÁRIO
     async function aplicarFeatureFlagsCriterios() {
       try {
         const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
@@ -319,6 +321,12 @@
             const el = document.getElementById('selectOutras');
             if (el && el.closest('div')) el.closest('div').style.display = 'none';
           }
+
+          // Carrega as chaves do Super Admin para os formatos de horário
+          window.configHorariosTenant = {
+            intervalo: config.criterioHorarioIntervalo !== false,
+            direto: config.criterioHorarioDireto !== false
+          };
         }
       } catch (err) {
         console.error("Erro ao aplicar restrições de critérios:", err);
@@ -416,14 +424,20 @@
       container.innerHTML = '';
       let hojeStr = new Date().toISOString().split('T')[0];
 
+      const permiteIntervalo = window.configHorariosTenant ? window.configHorariosTenant.intervalo : true;
+      const permiteDireto = window.configHorariosTenant ? window.configHorariosTenant.direto : true;
+
       for (let i = 0; i < qtd; i++) {
         const d = dadosSalvos[i] || valoresAtuais[i] || {};
         
         let temSubTurnos = d.inicioManha || d.fimManha || d.iniM || (d.inicio && d.fimManha);
         let tipoVal = d.tipo || (temSubTurnos ? 'turnos' : 'direto');
 
+        // Se uma opção estiver desativada pelo Super Admin, força a opção permitida
+        if (!permiteIntervalo && permiteDireto) tipoVal = 'direto';
+        if (permiteIntervalo && !permiteDireto) tipoVal = 'turnos';
+
         let dataIniVal = d.dataIni || (d.inicio ? d.inicio.split('T')[0] : hojeStr);
-        let dataFimVal = d.dataFim || (d.fim ? d.fim.split('T')[0] : hojeStr);
 
         let iniM_val = d.iniM || (d.inicioManha ? d.inicioManha.split('T')[1] : '08:00');
         let fimM_val = d.fimM || (d.fimManha ? d.fimManha.split('T')[1] : '12:00');
@@ -433,15 +447,24 @@
         let iniDir_val = d.iniDir || (d.inicio ? d.inicio.split('T')[1] : '08:00');
         let fimDir_val = d.fimDir || (d.fim ? d.fim.split('T')[1] : '17:00');
 
+        let opcoesSelectHTML = '';
+        if (permiteIntervalo) {
+          opcoesSelectHTML += `<option value="turnos" ${tipoVal === 'turnos' ? 'selected' : ''}>Com Intervalo (Manhã/Tarde)</option>`;
+        }
+        if (permiteDireto) {
+          opcoesSelectHTML += `<option value="direto" ${tipoVal === 'direto' ? 'selected' : ''}>Direto / Turno Único</option>`;
+        }
+
+        let displaySeletor = (permiteIntervalo && permiteDireto) ? 'flex' : 'none';
+
         container.innerHTML += `
           <div class="dia-card-flutuante">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 10px;">
               <p style="font-weight: bold; font-size: 0.9rem; color: #0B132B; margin: 0;">📅 Dia ${i + 1}</p>
-              <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="display: ${displaySeletor}; align-items: center; gap: 6px;">
                 <label style="font-size: 0.75rem; font-weight: bold; color: #475569; margin: 0;">Formato:</label>
                 <select id="tipo_registo_${i}" onchange="alternarTipoHorarioDia(${i})" style="padding: 3px 6px; font-size: 0.8rem; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;">
-                  <option value="turnos" ${tipoVal === 'turnos' ? 'selected' : ''}>Com Intervalo (Manhã/Tarde)</option>
-                  <option value="direto" ${tipoVal === 'direto' ? 'selected' : ''}>Direto / Turno Único</option>
+                  ${opcoesSelectHTML}
                 </select>
               </div>
             </div>
