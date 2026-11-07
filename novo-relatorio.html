@@ -238,11 +238,19 @@
         </div>
 
         <div style="margin-bottom: 20px;">
-          <h3>📸 Fotografias / Anexos</h3>
-          <div style="margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <input type="text" id="anexoTitulo" placeholder="Título da foto (Ex: Placa de identificação)" style="flex: 2; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
-            <input type="file" id="anexoFile" accept="image/*" style="flex: 2; padding: 6px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;" onchange="converterAnexo(event)">
-            <button type="button" class="btn" style="background-color: #1D4ED8; color: #FFF; padding: 8px 15px;" onclick="adicionarAnexo()">Adicionar Foto</button>
+          <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">📸 Fotografias / Anexos</h3>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label for="anexoTitulo" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Título da Foto:</label>
+              <input type="text" id="anexoTitulo" placeholder="Ex: Placa de identificação" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div>
+              <label for="anexoFile" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Arquivo da Imagem:</label>
+              <input type="file" id="anexoFile" accept="image/*" style="width: 100%; padding: 6px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF; box-sizing: border-box;" onchange="converterAnexo(event)">
+            </div>
+            <button type="button" class="btn" style="background-color: #1D4ED8; color: #FFF; padding: 10px 15px; font-weight: bold; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="adicionarAnexo()">
+              <i class="fa-solid fa-plus"></i> Adicionar Foto
+            </button>
           </div>
           <div id="listaAnexos" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
