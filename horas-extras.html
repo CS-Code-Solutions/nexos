@@ -7,6 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NexOS - Registo de Horas Extras</title>
   
+  <!-- Suporte PWA iOS / Apple Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NexOS">
+  <link rel="apple-touch-icon" href="nexosico.png">
+  <meta name="theme-color" content="#0B132B">
+
   <link rel="stylesheet" href="style.css">
   
   <!-- FontAwesome para os ícones -->
@@ -132,7 +139,8 @@
     </section>
 
   </main>
-  <!-- Barra de Navegação Inferior (com Horas Extras e Config) -->
+
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR ESTRUTURADA -->
   <nav class="bottom-nav no-print">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
@@ -146,11 +154,11 @@
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="orcamentos.html">
+    <a href="orcamentos.html" id="nav-item-orcamentos">
       <i class="fa-solid fa-calculator"></i>
       <span>Orçamentos</span>
     </a>
-    <a href="horas.html" class="active">
+    <a href="horas.html" id="nav-item-horas" class="active">
       <i class="fa-solid fa-clock"></i>
       <span>Horas</span>
     </a>
@@ -161,6 +169,16 @@
   </nav>
 
   <script>
+    // Gerenciador de visibilidade das permissões do Tenant para a Nav Bar
+    function aplicarVisibilidadeNav() {
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
+      const navOrcamentos = document.getElementById('nav-item-orcamentos');
+      if (navOrcamentos) {
+        navOrcamentos.style.display = showOrcamentos ? 'flex' : 'none';
+      }
+    }
+    aplicarVisibilidadeNav();
+
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         window.location.href = 'login.html';
@@ -169,6 +187,12 @@
         DataSync.listen('rg_horas_extras', () => loadHorasExtras());
       }
     });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+      });
+    }
 
     const hoje = new Date();
     document.getElementById('he-date').valueAsDate = hoje;
