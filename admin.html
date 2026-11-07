@@ -176,6 +176,43 @@
     </div>
   </div>
 
+  <!-- MODAL CUSTOMIZADO PARA CONFIRMAÇÃO DE EXCLUSÃO -->
+  <div id="deleteConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2100; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
+    <div style="background: white; width: 100%; max-width: 480px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; margin: auto; border-top: 4px solid #EF4444;">
+      
+      <!-- Cabeçalho -->
+      <div style="background: #FFF; padding: 15px 20px 5px 20px; display: flex; align-items: center; gap: 12px;">
+        <div style="background: #FEE2E2; color: #EF4444; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem; color: #0B132B;">Confirmar Exclusão de Cliente</h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #EF4444; font-weight: bold;">Esta ação é irreversível!</p>
+        </div>
+      </div>
+
+      <!-- Corpo -->
+      <div style="padding: 15px 20px;">
+        <p style="font-size: 0.9rem; color: #475569; margin: 0 0 12px 0;">
+          Para confirmar a exclusão do registro <strong id="deleteTenantUid" style="color: #0B132B;"></strong>, digite exatamente o nome do cliente abaixo:
+        </p>
+        
+        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 8px 12px; border-radius: 4px; font-weight: bold; color: #0B132B; margin-bottom: 12px; font-size: 0.95rem; text-align: center; word-break: break-all;" id="deleteTenantNameTarget"></div>
+
+        <input type="text" id="deleteTenantInputConfirm" autocomplete="off" placeholder="Digite o nome exato aqui..." style="width: 100%; padding: 10px; border: 2px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box;" oninput="validarDigitacaoExclusao()">
+        
+        <small id="deleteErrorMsg" style="color: #EF4444; font-size: 0.8rem; display: none; margin-top: 6px; font-weight: bold;">O nome digitado não coincide.</small>
+      </div>
+
+      <!-- Rodapé com Ações -->
+      <div style="background: #F8FAFC; padding: 12px 20px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
+        <button type="button" class="btn" onclick="fecharModalExclusao()" style="background-color: #64748B; color: white; padding: 8px 16px;">Cancelar</button>
+        <button type="button" id="btnConfirmarExclusaoModal" disabled class="btn" onclick="executarExclusaoTenant()" style="background-color: #EF4444; color: white; font-weight: bold; padding: 8px 18px; opacity: 0.5; cursor: not-allowed;">Excluir Cliente</button>
+      </div>
+
+    </div>
+  </div>
+
   <script>
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
@@ -186,6 +223,7 @@
     });
 
     let tenantsCache = [];
+    let tenantParaExcluir = null;
 
     async function carregarPainelAdmin() {
       const container = document.getElementById('adminTenantList');
@@ -455,39 +493,83 @@
       }
     });
 
-    window.excluirTenant = async function(uid) {
-  // Busca as informações do cliente no cache local para pegar o nome correto
-  const t = tenantsCache.find(item => item.uid === uid);
-  const nomeClienteOriginal = t ? (t.name || '').trim() : '';
+    // 1. Abre o modal elegante de exclusão
+    window.excluirTenant = function(uid) {
+      const t = tenantsCache.find(item => item.uid === uid);
+      const nomeCliente = t ? (t.name || '').trim() : '';
 
-  // Solicita ao utilizador a digitação do nome exato do cliente
-  const confirmacaoNome = prompt(
-    `⚠️ ATENÇÃO: Esta ação é irreversível!\n\n` +
-    `Para confirmar a exclusão do cliente (ID: ${uid}), digite exatamente o nome abaixo:\n` +
-    `"${nomeClienteOriginal}"`
-  );
+      tenantParaExcluir = { uid, nome: nomeCliente };
 
-  // Se o utilizador cancelar a caixa de diálogo
-  if (confirmacaoNome === null) {
-    return;
-  }
+      document.getElementById('deleteTenantUid').textContent = `(ID: ${uid})`;
+      document.getElementById('deleteTenantNameTarget').textContent = nomeCliente;
+      
+      const inputConfirm = document.getElementById('deleteTenantInputConfirm');
+      inputConfirm.value = '';
+      inputConfirm.style.borderColor = '#CBD5E1';
+      
+      document.getElementById('deleteErrorMsg').style.display = 'none';
 
-  // Valida se a digitação bate com o nome exato (removendo espaços extras nas pontas)
-  if (confirmacaoNome.trim() !== nomeClienteOriginal) {
-    alert(`❌ O nome digitado ("${confirmacaoNome.trim()}") não coincide com o nome do cliente ("${nomeClienteOriginal}"). A exclusão foi CANCELADA por segurança.`);
-    return;
-  }
+      const btnConfirmar = document.getElementById('btnConfirmarExclusaoModal');
+      btnConfirmar.disabled = true;
+      btnConfirmar.style.opacity = '0.5';
+      btnConfirmar.style.cursor = 'not-allowed';
 
-  // Caso o nome esteja correto, procede com a exclusão no Firestore
-  try {
-    await db.collection('rg_config').doc(uid).delete();
-    alert('✅ Configurações e registro do cliente removidos com sucesso.');
-    carregarPainelAdmin();
-  } catch (err) {
-    alert('Erro ao excluir tenant: ' + err.message);
-  }
-};
+      document.getElementById('deleteConfirmModal').style.display = 'flex';
+      setTimeout(() => inputConfirm.focus(), 100);
+    };
 
+    // 2. Valida em tempo real se a digitação confere
+    window.validarDigitacaoExclusao = function() {
+      if (!tenantParaExcluir) return;
+
+      const digitado = document.getElementById('deleteTenantInputConfirm').value.trim();
+      const esperado = tenantParaExcluir.nome;
+
+      const btnConfirmar = document.getElementById('btnConfirmarExclusaoModal');
+      const inputConfirm = document.getElementById('deleteTenantInputConfirm');
+      const errorMsg = document.getElementById('deleteErrorMsg');
+
+      if (digitado === esperado && digitado !== '') {
+        btnConfirmar.disabled = false;
+        btnConfirmar.style.opacity = '1';
+        btnConfirmar.style.cursor = 'pointer';
+        inputConfirm.style.borderColor = '#10B981';
+        errorMsg.style.display = 'none';
+      } else {
+        btnConfirmar.disabled = true;
+        btnConfirmar.style.opacity = '0.5';
+        btnConfirmar.style.cursor = 'not-allowed';
+        
+        if (digitado.length >= esperado.length && digitado !== esperado) {
+          inputConfirm.style.borderColor = '#EF4444';
+          errorMsg.style.display = 'block';
+        } else {
+          inputConfirm.style.borderColor = '#CBD5E1';
+          errorMsg.style.display = 'none';
+        }
+      }
+    };
+
+    // 3. Fecha o modal de exclusão
+    window.fecharModalExclusao = function() {
+      document.getElementById('deleteConfirmModal').style.display = 'none';
+      tenantParaExcluir = null;
+    };
+
+    // 4. Executa a exclusão no Firestore
+    window.executarExclusaoTenant = async function() {
+      if (!tenantParaExcluir) return;
+      const uid = tenantParaExcluir.uid;
+
+      try {
+        await db.collection('rg_config').doc(uid).delete();
+        alert('✅ Configurações e registro do cliente removidos com sucesso.');
+        fecharModalExclusao();
+        carregarPainelAdmin();
+      } catch (err) {
+        alert('Erro ao excluir tenant: ' + err.message);
+      }
+    };
 
     function escapeHTML(str) {
       if (!str) return '';
