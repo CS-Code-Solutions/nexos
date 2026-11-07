@@ -279,3 +279,16 @@ footer {
         display: none !important;
     }
 }
+/* --- BLINDAGEM DA BARRA INFERIOR (FIM DOS PULOS) --- */
+.bottom-nav {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: #0B132B;
+}
+
+/* Oculta instantaneamente itens inativos antes da renderização */
+.nav-item-hidden {
+  display: none !important;
+}
