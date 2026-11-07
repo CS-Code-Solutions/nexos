@@ -199,16 +199,23 @@
         localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
         localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
         
-        // --- BUSCA PERMISSÕES DE INTERFACE PARA EVITAR PISCADAS ---
+        // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS E A LOGO PARA NÃO PISCAR ---
         try {
           const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
           if (configDoc.exists) {
             const cfg = configDoc.data();
             localStorage.setItem('rg_page_orcamentos', cfg.pageOrcamentos !== false ? 'true' : 'false');
             localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
+            
+            if (cfg.logoBase64 && cfg.logoBase64.startsWith('data:image')) {
+              localStorage.setItem('rg_logo_base64', cfg.logoBase64);
+            } else {
+              localStorage.removeItem('rg_logo_base64');
+            }
           } else {
             localStorage.setItem('rg_page_orcamentos', 'true');
             localStorage.setItem('rg_mod_horas_extras', 'false');
+            localStorage.removeItem('rg_logo_base64');
           }
         } catch (cErr) {
           console.warn("Aviso ao carregar permissões visuais:", cErr);
