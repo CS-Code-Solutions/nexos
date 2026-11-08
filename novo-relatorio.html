@@ -1,29 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
-<script>
-  (function() {
-    const logoSalva = localStorage.getItem('rg_logo_base64');
-    if (logoSalva && logoSalva.startsWith('data:image')) {
-      // Cria um estilo temporário para injetar o src logo na tag img assim que ela existir
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); background-color: transparent !important; }</style>');
-    }
-  })();
-</script>
-
   <link rel="icon" href="nexosico.png" type="image/png">
   <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NexOS - Novo Relatório de Serviço</title>
-  
+
   <link rel="stylesheet" href="style.css">
-  
+
   <!-- FontAwesome para os ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <script src="global-modal.js"></script>
-  
+
   <!-- Firebase SDKs Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -51,7 +41,7 @@
       display: block;
       margin-bottom: 5px;
     }
-    
+
     .dia-card-flutuante {
       background: #FFFFFF;
       border: 1px solid #E2E8F0;
@@ -82,9 +72,9 @@
   <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
-    
+
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
       <i class="fa-solid fa-power-off"></i>
     </button>
@@ -166,7 +156,7 @@
         <!-- CRITÉRIOS DE COBRANÇA E DESLOCAMENTO -->
         <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
           <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">Critérios de Cobrança</h3>
-          
+
           <div style="margin-bottom: 12px;">
             <label for="selectEmpreitada"><strong>Regime de Empreitada (Valor Fechado)?</strong></label>
             <select id="selectEmpreitada" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleEmpreitadaSelect()">
@@ -198,7 +188,7 @@
               <label for="numDiasTrabalho"><strong>Quantidade de Dias de Atendimento:</strong></label>
               <input type="number" id="numDiasTrabalho" min="1" max="30" value="1" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="gerarCamposDias()">
             </div>
-            
+
             <div id="containerDiasHorarios" style="display: flex; flex-direction: column; gap: 8px;"></div>
           </div>
 
@@ -320,7 +310,7 @@
       try {
         const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
         const configDoc = await db.collection('rg_config').doc(tenantId).get();
-        
+
         if (configDoc.exists) {
           const config = configDoc.data();
 
@@ -401,7 +391,7 @@
       const selectTipo = document.getElementById(`tipo_registo_${index}`);
       const boxTurnos = document.getElementById(`box_turnos_${index}`);
       const boxDireto = document.getElementById(`box_direto_${index}`);
-      
+
       if (!selectTipo || !boxTurnos || !boxDireto) return;
 
       if (selectTipo.value === 'turnos') {
@@ -417,14 +407,14 @@
       let qtd = parseInt(document.getElementById('numDiasTrabalho').value) || 1;
       if (qtd < 1) qtd = 1;
       if (qtd > 30) qtd = 30;
-      
+
       const container = document.getElementById('containerDiasHorarios');
       const valoresAtuais = [];
       const cardsAtuais = container.querySelectorAll('.dia-card-flutuante');
-      
+
       cardsAtuais.forEach((card, idx) => {
         const tipoRegisto = document.getElementById(`tipo_registo_${idx}`) ? document.getElementById(`tipo_registo_${idx}`).value : 'turnos';
-        
+
         let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
         let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
         let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
@@ -452,7 +442,7 @@
 
       for (let i = 0; i < qtd; i++) {
         const d = dadosSalvos[i] || valoresAtuais[i] || {};
-        
+
         let temSubTurnos = d.inicioManha || d.fimManha || d.iniM || (d.inicio && d.fimManha);
         let tipoVal = d.tipo || (temSubTurnos ? 'turnos' : 'direto');
 
@@ -612,7 +602,7 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
 
-          // Mantém o fundo transparente e gera imagem em PNG
+          // Mantém a transparência intacta e exporta como PNG
           ctx.drawImage(img, 0, 0, width, height);
           tempAnexoBase64 = canvas.toDataURL('image/png');
         };
@@ -668,7 +658,7 @@
       try {
         const machines = await DataSync.load('rg_machines') || [];
         clientMachines = machines.filter(m => m.client === clientName || m.cliente === clientName);
-        
+
         clientMachines.forEach((m, idx) => {
           const eqName = m.name || m.equipment || m.nome || `Máquina ${idx+1}`;
           const isSelected = (eqName === selectedEquipment) ? 'selected' : '';
@@ -717,7 +707,7 @@
             document.getElementById('repNumber').value = rep.number || '';
             document.getElementById('repDate').value = rep.date || '';
             document.getElementById('repClient').value = rep.client || '';
-            
+
             await carregarMaquinasDoCliente(rep.client, rep.equipment);
 
             document.getElementById('repBrand').value = rep.brand || '';
@@ -726,7 +716,7 @@
             document.getElementById('repServiceNature').value = rep.serviceNature || 'Corretiva';
             document.getElementById('repServiceArea').value = rep.serviceArea || 'Mecânica';
             document.getElementById('repDesc').value = rep.desc || '';
-            
+
             if (rep.temEmpreitada === 'sim') {
               document.getElementById('selectEmpreitada').value = 'sim';
               toggleEmpreitadaSelect();
@@ -881,7 +871,7 @@
         serviceNature: String(document.getElementById('repServiceNature').value || ''),
         serviceArea: String(document.getElementById('repServiceArea').value || ''),
         desc: String(document.getElementById('repDesc').value || ''),
-        
+
         temEmpreitada: String(document.getElementById('selectEmpreitada').value || 'nao'),
         valorEmpreitada: String(document.getElementById('repValorEmpreitada').value || '0'),
 
@@ -940,8 +930,8 @@
         .replace(/'/g, '&#039;');
     }
   </script>
-  
-  <!-- Barra de Navegação Inferior -->
+
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
@@ -969,48 +959,7 @@
     </a>
   </nav>
 
-  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // 1. Aplica o logótipo personalizado instantaneamente
-      const imgLogo = document.getElementById('logo-cliente');
-      if (imgLogo) {
-        const logoSalva = localStorage.getItem('rg_logo_base64');
-        if (logoSalva && logoSalva.startsWith('data:image')) {
-          imgLogo.src = logoSalva;
-        } else {
-          imgLogo.src = 'marca.png';
-        }
-      }
-
-      // 2. Aplica as permissões da barra inferior para utilizadores comuns / sem permissão
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      const navOrcamentos = document.getElementById('nav-item-orcamentos');
-      const navHoras = document.getElementById('nav-item-horas');
-
-      if (navOrcamentos) {
-        if (!isSuperAdmin && showOrcamentos === 'false') {
-          navOrcamentos.style.display = 'none';
-        } else {
-          navOrcamentos.style.display = 'flex';
-        }
-      }
-
-      if (navHoras) {
-        if (isSuperAdmin || showHoras === 'true') {
-          navHoras.style.display = 'flex';
-        } else {
-          navHoras.style.display = 'none';
-        }
-      }
-    });
-  </script>
-
-  <!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina a piscada dos botões) -->
+  <!-- SCRIPT SÍNCRONO INSTANTÂNEO (Executa durante o parse para eliminar piscada) -->
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
@@ -1025,6 +974,39 @@
         document.write('<style>#nav-item-horas { display: none !important; }</style>');
       }
     })();
+  </script>
+
+  <!-- SCRIPT DOMContentLoaded (Aplicação de estado definitivo) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // 1. Aplica o logótipo personalizado no src do elemento de forma limpa
+      const imgLogo = document.getElementById('logo-cliente');
+      if (imgLogo) {
+        const logoSalva = localStorage.getItem('rg_logo_base64');
+        if (logoSalva && logoSalva.startsWith('data:image')) {
+          imgLogo.src = logoSalva;
+        } else {
+          imgLogo.src = 'marca.png';
+        }
+      }
+
+      // 2. Garante alinhamento final dos botões de navegação
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      const navOrcamentos = document.getElementById('nav-item-orcamentos');
+      const navHoras = document.getElementById('nav-item-horas');
+
+      if (navOrcamentos) {
+        navOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
+      }
+
+      if (navHoras) {
+        navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      }
+    });
   </script>
 </body>
 </html>
