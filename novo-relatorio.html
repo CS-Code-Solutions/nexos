@@ -6,7 +6,7 @@
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
       // Cria um estilo temporário para injetar o src logo na tag img assim que ela existir
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); background-color: transparent !important; }</style>');
     }
   })();
 </script>
@@ -34,6 +34,11 @@
   <script src="firebase-sync.js?v=2"></script>
 
   <style>
+    #logo-cliente {
+      background-color: transparent !important;
+      object-fit: contain;
+    }
+
     .signature-pad {
       border: 2px dashed #CBD5E1;
       background: #FFF;
@@ -606,9 +611,10 @@
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
 
-          tempAnexoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          // Mantém o fundo transparente e gera imagem em PNG
+          ctx.drawImage(img, 0, 0, width, height);
+          tempAnexoBase64 = canvas.toDataURL('image/png');
         };
         img.src = e.target.result;
       };
@@ -936,7 +942,7 @@
   </script>
   
   <!-- Barra de Navegação Inferior -->
-   <nav class="bottom-nav no-print" id="mainBottomNav">
+  <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
       <span>Clientes</span>
@@ -1003,7 +1009,8 @@
       }
     });
   </script>
-<!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina a piscada dos botões) -->
+
+  <!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina a piscada dos botões) -->
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
