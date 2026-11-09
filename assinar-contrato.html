@@ -1,19 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assinatura Digital de Contrato - CS Code Solutions</title>
-
+  <title>Assinatura Digital - CS Code Solutions</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-
-  <!-- Firebase SDKs Compat -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-  <script src="firebase-init.js"></script>
-
   <style>
     :root {
       --bg-dark: #0F172A;
@@ -24,7 +16,6 @@
       --text-sub: #94A3B8;
       --border: #334155;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -36,28 +27,20 @@
       align-items: center;
       padding: 15px;
     }
-
     .container {
       width: 100%;
-      max-width: 850px;
+      max-width: 650px;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 24px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
-
-    .header {
-      text-align: center;
-      padding-bottom: 15px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .header h1 { font-size: 1.4rem; color: var(--accent-blue); margin-bottom: 4px; }
+    .header { text-align: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .header h1 { font-size: 1.3rem; color: var(--accent-blue); margin-bottom: 4px; }
     .header p { font-size: 0.85rem; color: var(--text-sub); }
-
-    .pdf-preview-box {
-      width: 100%;
+    
+    .pdf-box {
       background: #0B0F19;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -65,10 +48,7 @@
       text-align: center;
       margin-bottom: 20px;
     }
-    .pdf-preview-box i { font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px; display: block; }
-    .pdf-preview-box p { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 15px; }
-    
-    .btn-open-pdf {
+    .btn-pdf {
       background: var(--accent-blue);
       color: #0F172A;
       padding: 10px 18px;
@@ -79,26 +59,19 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      margin-top: 10px;
     }
-
     .form-group { margin-bottom: 15px; }
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-sub);
-      margin-bottom: 4px;
-    }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px; }
     .form-group input {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
       border: 1px solid var(--border);
       background: #0F172A;
       color: #FFF;
       font-size: 0.95rem;
     }
-
     .signature-area {
       background: #0F172A;
       border: 2px dashed var(--accent-blue);
@@ -108,7 +81,6 @@
       margin-bottom: 20px;
     }
     .signature-area p { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; }
-    
     .signature-canvas {
       background: #FFFFFF;
       border-radius: 6px;
@@ -120,7 +92,6 @@
       display: block;
       margin: 0 auto;
     }
-
     .btn-group { display: flex; gap: 10px; justify-content: flex-end; }
     .btn {
       padding: 12px 20px;
@@ -134,166 +105,68 @@
       gap: 8px;
     }
     .btn-clear { background: #64748B; color: #FFF; }
-    .btn-submit { background: var(--accent); color: #0F172A; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
-      z-index: 99999;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-    .modal-box {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      padding: 30px;
-      border-radius: 12px;
-      max-width: 420px;
-      width: 90%;
-    }
+    .btn-submit { background: var(--accent); color: #0F172A; width: 100%; justify-content: center; }
   </style>
 </head>
 <body>
 
   <div class="container">
     <div class="header">
-      <h1 id="contractTitle">Assinatura de Contrato Comercial</h1>
-      <p id="contractSubtitle">CS Code Solutions | Plataforma NexOS</p>
+      <h1>Assinatura de Contrato Comercial</h1>
+      <p>Service JLB Ltda | CS Code Solutions</p>
     </div>
 
-    <!-- Botão de Acesso Direto ao PDF -->
-    <div class="pdf-preview-box">
-      <i class="fa-solid fa-file-pdf"></i>
-      <p>Reveja os termos e condições do contrato antes de assinar.</p>
-      <a id="btnViewPdf" href="#" target="_blank" class="btn-open-pdf">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Contrato em PDF
+    <div class="pdf-box">
+      <p style="color: #94A3B8; font-size: 0.9rem; margin-bottom: 5px;">Consulte os valores e termos acordados:</p>
+      <a id="linkPdf" href="#" target="_blank" class="btn-pdf">
+        <i class="fa-solid fa-file-pdf"></i> Abrir Contrato / Proposta em PDF
       </a>
     </div>
 
-    <!-- Nome do Responsável -->
     <div class="form-group">
       <label for="signerName">Nome Completo do Responsável:</label>
-      <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard" required>
+      <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard">
     </div>
 
-    <!-- Campo de Desenho da Assinatura -->
     <div class="signature-area">
       <p><i class="fa-solid fa-pen-nib"></i> Desenhe a sua assinatura no quadro abaixo:</p>
       <canvas id="signatureCanvas" class="signature-canvas" width="450" height="150"></canvas>
     </div>
 
-    <div class="btn-group">
-      <button type="button" class="btn btn-clear" onclick="clearSignature()">
-        <i class="fa-solid fa-eraser"></i> Limpar
-      </button>
-      <button type="button" id="btnSign" class="btn btn-submit" onclick="processarAssinatura()">
-        <i class="fa-solid fa-check-double"></i> Confirmar e Assinar Contrato
+    <div class="btn-group" style="margin-bottom: 10px;">
+      <button type="button" class="btn btn-clear" onclick="clearSignature()" style="width: 100%; justify-content: center;">
+        <i class="fa-solid fa-eraser"></i> Limpar Quadro
       </button>
     </div>
-  </div>
 
-  <!-- Modal de Carregamento -->
-  <div id="statusOverlay" class="overlay">
-    <div class="modal-box">
-      <i id="statusIcon" class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 15px;"></i>
-      <h3 id="statusTitle" style="margin-bottom: 10px; color: #FFF;">A processar assinatura...</h3>
-      <p id="statusMsg" style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 15px;">A gravar o documento assinado na nuvem.</p>
-      <div id="statusActions" style="display: none;">
-        <a id="btnDownloadSigned" href="#" target="_blank" class="btn btn-submit" style="text-decoration: none; display: inline-flex;">
-          <i class="fa-solid fa-file-pdf"></i> Descarregar PDF Assinado
-        </a>
-      </div>
-    </div>
+    <button type="button" class="btn btn-submit" onclick="processarAssinatura()">
+      <i class="fa-solid fa-check-double"></i> Confirmar e Descarregar Contrato Assinado
+    </button>
   </div>
 
   <script>
-    let db = null;
-    let storage = null;
-    try {
-      if (typeof firebase !== 'undefined') {
-        db = firebase.firestore();
-        storage = firebase.storage();
-      }
-    } catch (e) {
-      console.warn("Firebase em modo offline/indisponível:", e);
-    }
-
-    let contractId = 'CONTRATO_JLB_2026';
     let pdfOriginalUrl = '';
     let isSigned = false;
-    let clientIpAddress = 'Não identificado';
-
     const canvas = document.getElementById('signatureCanvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      // 1. Inicializa o painel de assinatura imediatamente (evita travar se a nuvem falhar)
+    document.addEventListener("DOMContentLoaded", () => {
       initCanvas();
       
-      // 2. Obtém parâmetros da URL
+      // Define a rota do PDF de forma totalmente segura na raiz
       const urlParams = new URLSearchParams(window.location.search);
-      const idParam = urlParams.get('id');
-      if (idParam) contractId = idParam;
-
-      // 3. Define rota padrão absoluta do PDF base
+      const contractId = urlParams.get('id') || 'CONTRATO_JLB_2026';
+      
       pdfOriginalUrl = new URL(`./contratos/${contractId}.pdf`, window.location.href).href;
-      document.getElementById('btnViewPdf').href = pdfOriginalUrl;
-
-      // 4. Tenta buscar IP e dados complementares no Firestore de forma segura
-      await capturarIpCliente();
-      if (db) {
-        await carregarDadosContrato(contractId);
-      }
+      document.getElementById('linkPdf').href = pdfOriginalUrl;
     });
-
-    async function capturarIpCliente() {
-      try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        clientIpAddress = data.ip || 'Não identificado';
-      } catch (e) {
-        console.warn("IP não obtido:", e);
-      }
-    }
-
-    async function carregarDadosContrato(id) {
-      try {
-        const doc = await db.collection('rg_contracts').doc(id).get();
-        if (doc.exists) {
-          const data = doc.data();
-          if (data.pdfUrl) pdfOriginalUrl = data.pdfUrl;
-
-          document.getElementById('contractTitle').textContent = data.titulo || "Proposta Comercial & Contrato";
-          document.getElementById('contractSubtitle').textContent = `Cliente: ${data.clienteNome || 'Service JLB Ltda'}`;
-          if (data.responsavelNome) document.getElementById('signerName').value = data.responsavelNome;
-
-          document.getElementById('btnViewPdf').href = pdfOriginalUrl;
-
-          if (data.status === 'assinado') {
-            bloquearFormularioAssinado(data.pdfAssinadoUrl || pdfOriginalUrl);
-          }
-        }
-      } catch (err) {
-        console.warn("Aviso ao carregar do Firestore (usando padrão local):", err);
-      }
-    }
 
     function initCanvas() {
       function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        let clientX = e.clientX;
-        let clientY = e.clientY;
-
-        if (e.touches && e.touches.length > 0) {
-          clientX = e.touches[0].clientX;
-          clientY = e.touches[0].clientY;
-        }
-
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         return {
           x: (clientX - rect.left) * (canvas.width / rect.width),
           y: (clientY - rect.top) * (canvas.height / rect.height)
@@ -325,13 +198,11 @@
         isDrawing = false; 
       }
 
-      // Eventos Mouse
       canvas.addEventListener('mousedown', startDraw);
       canvas.addEventListener('mousemove', moveDraw);
       canvas.addEventListener('mouseup', stopDraw);
       canvas.addEventListener('mouseout', stopDraw);
 
-      // Eventos Toque Mobile
       canvas.addEventListener('touchstart', startDraw, { passive: false });
       canvas.addEventListener('touchmove', moveDraw, { passive: false });
       canvas.addEventListener('touchend', stopDraw, { passive: false });
@@ -356,21 +227,21 @@
         return;
       }
 
-      mostrarModalLoading(true, "A carimbar o PDF...", "A integrar assinatura e registo de auditoria.");
-
       try {
+        alert("A gerar documento assinado, aguarde um instante...");
+        
         const response = await fetch(pdfOriginalUrl);
         if (!response.ok) throw new Error("Não foi possível transferir o PDF base.");
         const pdfArrayBuffer = await response.arrayBuffer();
         
         const pdfDoc = await PDFLib.PDFDocument.load(pdfArrayBuffer);
-
         const signatureBase64 = canvas.toDataURL('image/png');
         const signatureImage = await pdfDoc.embedPng(signatureBase64);
 
         const pages = pdfDoc.getPages();
         const lastPage = pages[pages.length - 1];
 
+        // Posiciona a assinatura na última página
         lastPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
@@ -379,7 +250,7 @@
         });
 
         const dataHoraStr = new Date().toLocaleString('pt-BR');
-        const textoAuditoria = `Assinado digitalmente por: ${nome}\nData/Hora: ${dataHoraStr} | IP: ${clientIpAddress}\nPlataforma NexOS - CS Code Solutions`;
+        const textoAuditoria = `Assinado digitalmente por: ${nome}\nData/Hora: ${dataHoraStr}\nPlataforma NexOS - CS Code Solutions`;
 
         const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         lastPage.drawText(textoAuditoria, {
@@ -393,85 +264,20 @@
 
         const pdfAssinadoBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfAssinadoBytes], { type: 'application/pdf' });
+        
+        // Dispara o download automático do PDF assinado
         const downloadUrl = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Contrato_Service_JLB_Assinado.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
 
-        let finalPdfUrl = downloadUrl;
-
-        if (storage) {
-          try {
-            const refStorage = storage.ref(`contratos_assinados/contrato_${contractId}_assinado.pdf`);
-            await refStorage.put(pdfBlob);
-            finalPdfUrl = await refStorage.getDownloadURL();
-          } catch (storageErr) {
-            console.warn("Storage em falha, usando blob local:", storageErr);
-          }
-        }
-
-        if (db) {
-          try {
-            await db.collection('rg_contracts').doc(contractId).set({
-              status: 'assinado',
-              responsavelNome: nome,
-              pdfAssinadoUrl: finalPdfUrl,
-              assinaturaBase64: signatureBase64,
-              assinadoEm: firebase.firestore.FieldValue.serverTimestamp(),
-              ipAssinatura: clientIpAddress
-            }, { merge: true });
-          } catch (dbErr) {
-            console.warn("Registo no Firestore ignorado:", dbErr);
-          }
-        }
-
-        exibirSucessoAssinatura(downloadUrl);
+        alert("Contrato assinado e descarregado com sucesso!");
       } catch (err) {
-        mostrarModalLoading(false);
         alert("Erro ao processar assinatura: " + err.message);
       }
-    }
-
-    function dispararDownloadDireto(url, fileName) {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function mostrarModalLoading(exibir, titulo = '', msg = '') {
-      const overlay = document.getElementById('statusOverlay');
-      if (exibir) {
-        document.getElementById('statusTitle').textContent = titulo;
-        document.getElementById('statusMsg').textContent = msg;
-        document.getElementById('statusActions').style.display = 'none';
-        document.getElementById('statusIcon').className = "fa-solid fa-circle-notch fa-spin";
-        overlay.style.display = 'flex';
-      } else {
-        overlay.style.display = 'none';
-      }
-    }
-
-    function exibirSucessoAssinatura(urlPdfAssinado) {
-      document.getElementById('statusIcon').className = "fa-solid fa-circle-check";
-      document.getElementById('statusIcon').style.color = "#22C55E";
-      document.getElementById('statusTitle').textContent = "Contrato Assinado com Sucesso!";
-      document.getElementById('statusMsg').textContent = "O seu contrato foi assinado e descarregado com segurança.";
-      
-      const btnDl = document.getElementById('btnDownloadSigned');
-      btnDl.href = urlPdfAssinado;
-      btnDl.download = `Contrato_${contractId}_Assinado.pdf`;
-      document.getElementById('statusActions').style.display = 'block';
-
-      // Dispara o download automático do PDF assinado para o cliente
-      dispararDownloadDireto(urlPdfAssinado, `Contrato_${contractId}_Assinado.pdf`);
-      bloquearFormularioAssinado(urlPdfAssinado);
-    }
-
-    function bloquearFormularioAssinado(urlPdf) {
-      document.getElementById('signerName').disabled = true;
-      document.getElementById('btnSign').disabled = true;
-      canvas.style.pointerEvents = 'none';
-      canvas.style.opacity = '0.6';
     }
   </script>
 </body>
