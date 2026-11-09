@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -66,6 +66,16 @@
       overflow: hidden;
     }
     .pdf-preview-box iframe { width: 100%; height: 100%; border: none; }
+
+    .fallback-link {
+      display: block;
+      text-align: right;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+    .fallback-link:hover { text-decoration: underline; }
 
     .form-group { margin-bottom: 15px; }
     .form-group label {
@@ -150,7 +160,12 @@
       <p id="contractSubtitle">CS Code Solutions | Plataforma NexOS</p>
     </div>
 
-    <!-- Visualizador do Contrato (PDF) -->
+    <!-- Link de Segurança caso o celular bloqueie o visualizador -->
+    <a id="btnViewPdf" href="#" target="_blank" class="fallback-link">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i> O PDF não carregou? Clique aqui para abrir
+    </a>
+
+    <!-- Visualizador do Contrato Nativo -->
     <div class="pdf-preview-box">
       <iframe id="pdfFrame" src="about:blank"></iframe>
     </div>
@@ -232,7 +247,7 @@
 
     async function carregarDadosContrato(id) {
       try {
-        // Caminho relativo padrão apontando para a pasta /contratos/ no GitHub
+        // Caminho padrão
         pdfOriginalUrl = `./contratos/${id}.pdf`;
 
         const doc = await db.collection('rg_contracts').doc(id).get();
@@ -253,17 +268,17 @@
           document.getElementById('contractSubtitle').textContent = "Cliente: Service JLB Ltda";
         }
 
-        // Converte URL relativa em URL absoluta completa para o leitor
+        // Converte para URL absoluta e carrega nativamente
         const fullPdfUrl = new URL(pdfOriginalUrl, window.location.href).href;
         
-        // Utiliza o Mozilla PDF.js Viewer para garantir renderização contínua sem depender do cache do Google Docs
-        const pdfViewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fullPdfUrl)}`;
-        document.getElementById('pdfFrame').src = pdfViewerUrl;
+        document.getElementById('pdfFrame').src = fullPdfUrl;
+        document.getElementById('btnViewPdf').href = fullPdfUrl;
 
       } catch (err) {
         console.warn("Erro ao carregar dados do Firestore. Usando arquivo local:", err);
         const fullPdfUrl = new URL(`./contratos/${id}.pdf`, window.location.href).href;
-        document.getElementById('pdfFrame').src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fullPdfUrl)}`;
+        document.getElementById('pdfFrame').src = fullPdfUrl;
+        document.getElementById('btnViewPdf').href = fullPdfUrl;
       }
     }
 
@@ -320,7 +335,7 @@
         const pages = pdfDoc.getPages();
         const lastPage = pages[pages.length - 1];
 
-        // Desenha a assinatura no rodapé do documento
+        // Desenha a assinatura
         lastPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
@@ -347,7 +362,7 @@
 
         let finalPdfUrl = downloadUrl;
 
-        // Tenta upload no Firebase Storage; se não disponível, aciona o download direto
+        // Tenta upload
         if (storage) {
           try {
             const refStorage = storage.ref(`contratos_assinados/contrato_${contractId}_assinado.pdf`);
@@ -361,7 +376,7 @@
           dispararDownloadDireto(downloadUrl, `Contrato_${contractId}_Assinado.pdf`);
         }
 
-        // Atualiza os registros de auditoria no Firestore
+        // Atualiza os registros no Firestore
         await db.collection('rg_contracts').doc(contractId).set({
           status: 'assinado',
           responsavelNome: nome,
@@ -422,8 +437,8 @@
       
       if (urlPdf) {
         const fullPdfUrl = urlPdf.startsWith('http') ? urlPdf : new URL(urlPdf, window.location.href).href;
-        const pdfViewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fullPdfUrl)}`;
-        document.getElementById('pdfFrame').src = pdfViewerUrl;
+        document.getElementById('pdfFrame').src = fullPdfUrl;
+        document.getElementById('btnViewPdf').href = fullPdfUrl;
       }
     }
   </script>
