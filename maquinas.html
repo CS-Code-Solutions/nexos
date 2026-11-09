@@ -5,7 +5,6 @@
   (function() {
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
-      // Cria um estilo temporário para injetar o src logo na tag img assim que ela existir
       document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
     }
   })();
@@ -31,10 +30,43 @@
   
   <script src="firebase-init.js?v=2"></script>
   <script src="firebase-sync.js?v=2"></script>
+
+  <style>
+    /* Estilos do Menu Desktop e Responsividade */
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .desktop-nav a {
+      color: #94A3B8;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.2s;
+    }
+    .desktop-nav a:hover, 
+    .desktop-nav a.active {
+      color: #00F5D4;
+    }
+    @media (max-width: 768px) {
+      .desktop-nav {
+        display: none !important;
+      }
+    }
+    @media (min-width: 769px) {
+      #mainBottomNav {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<!-- CABEÇALHO -->
+  <!-- CABEÇALHO COM MENU DESKTOP E MOBILE INTEGRADO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     
     <!-- LADO ESQUERDO: LOGO -->
@@ -42,11 +74,10 @@
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
-    <!-- CENTRO: MENU DESKTOP -->
+    <!-- CENTRO: MENU DESKTOP (Aparece no PC) -->
     <nav class="desktop-nav">
-      <!-- Mude a class="active" dependendo da página em que estiver -->
-      <a href="index.html" ><i class="fa-solid fa-users"></i> Clientes</a>
-      <a href="maquinas.html"class="active"><i class="fa-solid fa-gears"></i> Máquinas</a>
+      <a href="index.html"><i class="fa-solid fa-users"></i> Clientes</a>
+      <a href="maquinas.html" class="active"><i class="fa-solid fa-gears"></i> Máquinas</a>
       <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
@@ -59,7 +90,7 @@
     </button>
   </header>
 
-  <main style="padding-top: 20px;">
+  <main style="padding-top: 20px; padding-bottom: 80px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
       <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Gestão de Máquinas</h2>
       <button type="button" class="btn" onclick="toggleMachineForm()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 18px;">
@@ -124,189 +155,8 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-  <script>
-    firebase.auth().onAuthStateChanged(async (user) => {
-      if (!user) {
-        window.location.href = 'login.html';
-      } else {
-        await loadDropdownClients();
-        renderMachines();
-        DataSync.listen('rg_machines', () => { renderMachines(); });
-        DataSync.listen('rg_clients', () => { loadDropdownClients(); });
-      }
-    });
-
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
-      });
-    }
-
-    function escapeHTML(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    const clientSelect = document.getElementById('machineClient');
-    const machineForm = document.getElementById('machineForm');
-    const formSection = document.getElementById('machineFormSection');
-    const machineCardsContainer = document.getElementById('machineCardsContainer');
-    
-    let machines = [];
-    let clients = [];
-
-    window.toggleMachineForm = function(forceShow = false) {
-      if (forceShow || formSection.style.display === 'none') {
-        formSection.style.display = 'block';
-        window.scrollTo({ top: formSection.offsetTop - 80, behavior: 'smooth' });
-      } else {
-        formSection.style.display = 'none';
-        resetForm();
-      }
-    }
-
-    async function loadDropdownClients() {
-      try {
-        clients = await DataSync.load('rg_clients') || [];
-        clientSelect.innerHTML = '<option value="">Selecione o cliente...</option>';
-        clients.forEach(c => {
-          const option = document.createElement('option');
-          option.value = c.name;
-          option.textContent = c.name;
-          clientSelect.appendChild(option);
-        });
-      } catch (e) {
-        console.error("Erro ao carregar clientes para o select", e);
-      }
-    }
-
-    async function renderMachines() {
-      try {
-        machines = await DataSync.load('rg_machines') || [];
-        if (!Array.isArray(machines)) machines = [];
-
-        machineCardsContainer.innerHTML = '';
-        if (machines.length === 0) {
-          machineCardsContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 30px; border-radius: 8px; border: 1px dashed #CBD5E1;"><p style="color: #64748B; margin-bottom: 10px;">Nenhuma máquina cadastrada.</p><button class="btn" style="background-color: #0B132B; color: #FFF; padding: 8px 16px;" onclick="toggleMachineForm(true)">+ Cadastrar primeira máquina</button></div>';
-          return;
-        }
-
-        let htmlCards = '';
-        machines.forEach((m, index) => {
-          const safeClient = escapeHTML(m.client || 'Sem cliente vinculado');
-          const safeName = escapeHTML(m.name);
-          const safeBrand = escapeHTML(m.brand || '-');
-          const safeModel = escapeHTML(m.model || '-');
-          const safeSerial = escapeHTML(m.serial || '-');
-
-          htmlCards += `
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue, #2563EB); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 160px; overflow: hidden;">
-              <div style="overflow: hidden;">
-                <h3 style="margin: 0 0 10px 0; color: #0B132B; font-size: 1.05rem; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeName}">${safeName}</h3>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
-                  <i class="fa-solid fa-building" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
-                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeClient}">${safeClient}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
-                  <i class="fa-solid fa-tag" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
-                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeBrand} / ${safeModel}">${safeBrand} / ${safeModel}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 0.85rem; color: #475569;">
-                  <i class="fa-solid fa-barcode" style="color: #94A3B8; width: 14px; text-align: center; flex-shrink: 0;"></i>
-                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeSerial}">${safeSerial}</span>
-                </div>
-              </div>
-              <div style="display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
-                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="editMachine(${index})">Editar</button>
-                <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="deleteMachine(${index})">Excluir</button>
-              </div>
-            </div>
-          `;
-        });
-        machineCardsContainer.innerHTML = htmlCards;
-      } catch (err) {
-        console.error(err);
-        machineCardsContainer.innerHTML = `<p style="grid-column: 1 / -1; text-align: center; color: red; font-weight: bold;">Erro: ${err.message || 'Falha ao processar os dados.'}</p>`;
-      }
-    }
-
-    machineForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const editIndex = document.getElementById('editIndex').value;
-      const machineData = {
-        client: clientSelect.value,
-        name: document.getElementById('machineName').value.trim(),
-        brand: document.getElementById('machineBrand').value.trim(),
-        model: document.getElementById('machineModel').value.trim(),
-        serial: document.getElementById('machineSerial').value.trim()
-      };
-
-      try {
-        machines = await DataSync.load('rg_machines') || [];
-        if (!Array.isArray(machines)) machines = [];
-        if (editIndex !== '') {
-          machines[editIndex] = machineData;
-        } else {
-          machines.push(machineData);
-        }
-        await DataSync.save('rg_machines', machines);
-        resetForm();
-        renderMachines();
-        alert('Máquina salva e sincronizada com sucesso!');
-      } catch (err) {
-        alert('Erro ao salvar máquina: ' + err.message);
-      }
-    });
-
-    window.editMachine = async function(index) {
-      try {
-        machines = await DataSync.load('rg_machines') || [];
-        const m = machines[index];
-        if (!m) return;
-        document.getElementById('editIndex').value = index;
-        document.getElementById('formTitle').textContent = 'Editar Máquina';
-        document.getElementById('submitBtn').textContent = 'Atualizar Máquina';
-        document.getElementById('machineClient').value = m.client || '';
-        document.getElementById('machineName').value = m.name || '';
-        document.getElementById('machineBrand').value = m.brand || '';
-        document.getElementById('machineModel').value = m.model || '';
-        document.getElementById('machineSerial').value = m.serial || '';
-        toggleMachineForm(true);
-      } catch (err) {
-        alert('Erro ao carregar máquina para edição.');
-      }
-    };
-
-    window.resetForm = function() {
-      machineForm.reset();
-      document.getElementById('editIndex').value = '';
-      document.getElementById('formTitle').textContent = 'Adicionar Máquina';
-      document.getElementById('submitBtn').textContent = 'Salvar Máquina';
-      formSection.style.display = 'none';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    window.deleteMachine = async function(index) {
-      if (confirm('Deseja realmente excluir esta máquina?')) {
-        try {
-          machines = await DataSync.load('rg_machines') || [];
-          machines.splice(index, 1);
-          await DataSync.save('rg_machines', machines);
-          renderMachines();
-        } catch (err) {
-          alert('Erro ao excluir máquina.');
-        }
-      }
-    };
-  </script>
-
-  <!-- Barra de Navegação Inferior -->
-   <nav class="bottom-nav no-print" id="mainBottomNav">
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR (Apenas Mobile) -->
+  <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
       <span>Clientes</span>
@@ -333,10 +183,12 @@
     </a>
   </nav>
 
+  <!-- SCRIPT EXTERNO SEPARADO PARA OTIMIZAR A VELOCIDADE -->
+  <script src="maquinas.js?v=2"></script>
+
   <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // 1. Aplica o logótipo personalizado instantaneamente
       const imgLogo = document.getElementById('logo-cliente');
       if (imgLogo) {
         const logoSalva = localStorage.getItem('rg_logo_base64');
@@ -347,7 +199,6 @@
         }
       }
 
-      // 2. Aplica as permissões da barra inferior para utilizadores comuns / sem permissão
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
@@ -355,25 +206,17 @@
 
       const navOrcamentos = document.getElementById('nav-item-orcamentos');
       const navHoras = document.getElementById('nav-item-horas');
+      const dNavOrcamentos = document.getElementById('d-nav-orcamentos');
+      const dNavHoras = document.getElementById('d-nav-horas');
 
-      if (navOrcamentos) {
-        if (!isSuperAdmin && showOrcamentos === 'false') {
-          navOrcamentos.style.display = 'none';
-        } else {
-          navOrcamentos.style.display = 'flex';
-        }
-      }
-
-      if (navHoras) {
-        if (isSuperAdmin || showHoras === 'true') {
-          navHoras.style.display = 'flex';
-        } else {
-          navHoras.style.display = 'none';
-        }
-      }
+      if (navOrcamentos) navOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
+      if (navHoras) navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      if (dNavOrcamentos) dNavOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
+      if (dNavHoras) dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
     });
   </script>
-<!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina a piscada dos botões) -->
+
+  <!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina piscada dos botões) -->
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
@@ -382,10 +225,10 @@
       const isSuperAdmin = (userRole === 'super_admin');
 
       if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos { display: none !important; }</style>');
+        document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
       }
       if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas { display: none !important; }</style>');
+        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
       }
     })();
   </script>
