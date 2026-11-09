@@ -6,16 +6,12 @@
   <title>Assinatura Digital de Contrato - CS Code Solutions</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <!-- PDF-Lib para carimbar a assinatura e dados jurídicos no PDF -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <!-- Firebase SDKs Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-
-  <!-- Inicialização do Firebase do seu projeto -->
   <script src="firebase-init.js"></script>
 
   <style>
@@ -57,15 +53,8 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 20px;
     }
-    .header h1 {
-      font-size: 1.4rem;
-      color: var(--accent-blue);
-      margin-bottom: 4px;
-    }
-    .header p {
-      font-size: 0.85rem;
-      color: var(--text-sub);
-    }
+    .header h1 { font-size: 1.4rem; color: var(--accent-blue); margin-bottom: 4px; }
+    .header p { font-size: 0.85rem; color: var(--text-sub); }
 
     .pdf-preview-box {
       width: 100%;
@@ -76,22 +65,9 @@
       margin-bottom: 20px;
       overflow: hidden;
     }
-    .pdf-preview-box iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+    .pdf-preview-box iframe { width: 100%; height: 100%; border: none; }
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 15px;
-    }
-    @media (max-width: 600px) {
-      .form-grid { grid-template-columns: 1fr; }
-    }
-
+    .form-group { margin-bottom: 15px; }
     .form-group label {
       display: block;
       font-size: 0.85rem;
@@ -117,11 +93,7 @@
       text-align: center;
       margin-bottom: 20px;
     }
-    .signature-area p {
-      font-size: 0.8rem;
-      color: var(--text-sub);
-      margin-bottom: 8px;
-    }
+    .signature-area p { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; }
     .signature-canvas {
       background: #FFFFFF;
       border-radius: 6px;
@@ -134,11 +106,7 @@
       margin: 0 auto;
     }
 
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
+    .btn-group { display: flex; gap: 10px; justify-content: flex-end; }
     .btn {
       padding: 12px 20px;
       border-radius: 6px;
@@ -149,13 +117,11 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.2s;
     }
     .btn-clear { background: #64748B; color: #FFF; }
     .btn-submit { background: var(--accent); color: #0F172A; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Modal de Estado */
     .overlay {
       display: none;
       position: fixed;
@@ -189,16 +155,10 @@
       <iframe id="pdfFrame" src="about:blank"></iframe>
     </div>
 
-    <!-- Formulário do Signatário -->
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="signerName">Nome Completo do Responsável:</label>
-        <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard" required>
-      </div>
-      <div class="form-group">
-        <label for="signerDoc">CPF ou CNPJ:</label>
-        <input type="text" id="signerDoc" placeholder="Ex: 00.000.000/0001-00" required>
-      </div>
+    <!-- Apenas Nome do Responsável (Sem CNPJ/CPF) -->
+    <div class="form-group">
+      <label for="signerName">Nome Completo do Responsável:</label>
+      <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard" required>
     </div>
 
     <!-- Campo de Desenho da Assinatura -->
@@ -217,12 +177,12 @@
     </div>
   </div>
 
-  <!-- Modal de Progresso e Sucesso -->
+  <!-- Modal de Carregamento -->
   <div id="statusOverlay" class="overlay">
     <div class="modal-box">
       <i id="statusIcon" class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 15px;"></i>
       <h3 id="statusTitle" style="margin-bottom: 10px; color: #FFF;">A processar assinatura...</h3>
-      <p id="statusMsg" style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 15px;">Estamos a validar a assinatura e a gravar o documento assinado na nuvem.</p>
+      <p id="statusMsg" style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 15px;">A gravar o documento assinado na nuvem.</p>
       <div id="statusActions" style="display: none;">
         <a id="btnDownloadSigned" href="#" target="_blank" class="btn btn-submit" style="text-decoration: none; display: inline-flex;">
           <i class="fa-solid fa-file-pdf"></i> Descarregar PDF Assinado
@@ -240,12 +200,10 @@
     let isSigned = false;
     let clientIpAddress = 'Não identificado';
 
-    // Captura de Elementos do Canvas
     const canvas = document.getElementById('signatureCanvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
 
-    // Inicialização da Página
     document.addEventListener("DOMContentLoaded", async () => {
       initCanvas();
       await capturarIpCliente();
@@ -254,30 +212,28 @@
       contractId = urlParams.get('id');
 
       if (!contractId) {
-        alert("ID de contrato inválido ou não especificado.");
+        alert("ID de contrato inválido.");
         return;
       }
 
       await carregarDadosContrato(contractId);
     });
 
-    // Captura o IP para Auditoria Jurídica Simples
     async function capturarIpCliente() {
       try {
         const res = await fetch('https://api.ipify.org?format=json');
         const data = await res.json();
         clientIpAddress = data.ip || 'Não identificado';
       } catch (e) {
-        console.warn("Não foi possível obter o IP do cliente:", e);
+        console.warn("Não foi possível obter IP:", e);
       }
     }
 
-    // Carrega o Contrato do Firebase Firestore
     async function carregarDadosContrato(id) {
       try {
         const doc = await db.collection('rg_contracts').doc(id).get();
         if (!doc.exists) {
-          alert("Contrato não encontrado no sistema.");
+          alert("Contrato não encontrado.");
           return;
         }
 
@@ -286,22 +242,20 @@
 
         document.getElementById('contractTitle').textContent = data.titulo || "Proposta Comercial / Contrato";
         document.getElementById('contractSubtitle').textContent = `Cliente: ${data.clienteNome || 'Service JLB Ltda'}`;
-        
         if (data.responsavelNome) document.getElementById('signerName').value = data.responsavelNome;
-        if (data.responsavelDoc) document.getElementById('signerDoc').value = data.responsavelDoc;
 
-        // Carrega PDF no iframe
-        document.getElementById('pdfFrame').src = pdfOriginalUrl;
+        // Renderiza no iframe usando Google Docs Viewer para evitar tela preta no celular
+        const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfOriginalUrl)}&embedded=true`;
+        document.getElementById('pdfFrame').src = pdfViewerUrl;
 
         if (data.status === 'assinado') {
           bloquearFormularioAssinado(data.pdfAssinadoUrl);
         }
       } catch (err) {
-        alert("Erro ao carregar dados do contrato: " + err.message);
+        alert("Erro ao carregar contrato: " + err.message);
       }
     }
 
-    // Controlo de Desenho do Canvas (Touch e Rato)
     function initCanvas() {
       function getPos(e) {
         const rect = canvas.getBoundingClientRect();
@@ -330,40 +284,32 @@
       isSigned = false;
     }
 
-    // Processamento da Assinatura no PDF
     async function processarAssinatura() {
       const nome = document.getElementById('signerName').value.trim();
-      const doc = document.getElementById('signerDoc').value.trim();
 
-      if (!nome || !doc) {
-        alert("Por favor, preencha o Nome e o Documento (CPF/CNPJ).");
+      if (!nome) {
+        alert("Por favor, preencha o Nome do Responsável.");
         return;
       }
 
       if (!isSigned) {
-        alert("Por favor, desenhe a sua assinatura no campo indicado.");
+        alert("Por favor, desenhe a sua assinatura.");
         return;
       }
 
-      mostrarModalLoading(true, "A carimbar o PDF...", "Estamos a integrar a sua assinatura e dados de segurança ao documento.");
+      mostrarModalLoading(true, "A carimbar o PDF...", "A integrar assinatura e registro de segurança.");
 
       try {
-        // 1. Descarrega os bytes do PDF original
         const pdfArrayBuffer = await fetch(pdfOriginalUrl).then(res => res.arrayBuffer());
-
-        // 2. Carrega o PDF via PDF-Lib
         const pdfDoc = await PDFLib.PDFDocument.load(pdfArrayBuffer);
 
-        // 3. Converte o canvas da assinatura para PNG e adiciona ao PDF
         const signatureBase64 = canvas.toDataURL('image/png');
         const signatureImage = await pdfDoc.embedPng(signatureBase64);
 
-        // 4. Seleciona a última página do contrato
         const pages = pdfDoc.getPages();
         const lastPage = pages[pages.length - 1];
-        const { width, height } = lastPage.getSize();
 
-        // 5. Desenha a imagem da assinatura no PDF (Coordenadas ajustadas para o rodapé)
+        // Desenha a assinatura no rodapé
         lastPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
@@ -371,9 +317,8 @@
           height: 60,
         });
 
-        // 6. Carimba o texto de auditoria jurídica e timestamp abaixo da assinatura
         const dataHoraStr = new Date().toLocaleString('pt-BR');
-        const textoAuditoria = `Assinado digitalmente por: ${nome} (${doc})\nData/Hora: ${dataHoraStr} | IP: ${clientIpAddress}\nPlataforma NexOS - CS Code Solutions`;
+        const textoAuditoria = `Assinado digitalmente por: ${nome}\nData/Hora: ${dataHoraStr} | IP: ${clientIpAddress}\nPlataforma NexOS - CS Code Solutions`;
 
         const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         lastPage.drawText(textoAuditoria, {
@@ -385,32 +330,25 @@
           lineHeight: 9
         });
 
-        // 7. Salva o PDF assinado
         const pdfAssinadoBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfAssinadoBytes], { type: 'application/pdf' });
 
-        // 8. Upload para o Firebase Storage
         const refStorage = storage.ref(`contratos_assinados/contrato_${contractId}_assinado.pdf`);
         await refStorage.put(pdfBlob);
         const pdfAssinadoUrl = await refStorage.getDownloadURL();
 
-        // 9. Atualiza o registo no Firestore
         await db.collection('rg_contracts').doc(contractId).update({
           status: 'assinado',
           responsavelNome: nome,
-          responsavelDoc: doc,
           pdfAssinadoUrl: pdfAssinadoUrl,
           assinadoEm: firebase.firestore.FieldValue.serverTimestamp(),
           ipAssinatura: clientIpAddress
         });
 
-        // 10. Atualiza interface com link de sucesso
         exibirSucessoAssinatura(pdfAssinadoUrl);
-
       } catch (err) {
-        console.error("Erro ao assinar PDF:", err);
         mostrarModalLoading(false);
-        alert("Ocorreu um erro ao assinar o contrato: " + err.message);
+        alert("Erro ao assinar contrato: " + err.message);
       }
     }
 
@@ -421,7 +359,6 @@
         document.getElementById('statusMsg').textContent = msg;
         document.getElementById('statusActions').style.display = 'none';
         document.getElementById('statusIcon').className = "fa-solid fa-circle-notch fa-spin";
-        document.getElementById('statusIcon').style.color = "var(--accent)";
         overlay.style.display = 'flex';
       } else {
         overlay.style.display = 'none';
@@ -432,7 +369,7 @@
       document.getElementById('statusIcon').className = "fa-solid fa-circle-check";
       document.getElementById('statusIcon').style.color = "#22C55E";
       document.getElementById('statusTitle').textContent = "Contrato Assinado com Sucesso!";
-      document.getElementById('statusMsg').textContent = "A sua assinatura foi validada e o documento final foi guardado com segurança na nuvem.";
+      document.getElementById('statusMsg').textContent = "A sua assinatura foi gravada com segurança na nuvem.";
       
       const btnDl = document.getElementById('btnDownloadSigned');
       btnDl.href = urlPdfAssinado;
@@ -443,13 +380,13 @@
 
     function bloquearFormularioAssinado(urlPdf) {
       document.getElementById('signerName').disabled = true;
-      document.getElementById('signerDoc').disabled = true;
       document.getElementById('btnSign').disabled = true;
       canvas.style.pointerEvents = 'none';
       canvas.style.opacity = '0.6';
       
       if (urlPdf) {
-        document.getElementById('pdfFrame').src = urlPdf;
+        const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(urlPdf)}&embedded=true`;
+        document.getElementById('pdfFrame').src = pdfViewerUrl;
       }
     }
   </script>
