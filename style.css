@@ -268,3 +268,41 @@ footer {
 .nav-item-hidden {
   display: none !important;
 }
+/* ========================================= */
+/* MENU DESKTOP NO CABEÇALHO                 */
+/* ========================================= */
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.desktop-nav a {
+  color: #94A3B8;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+}
+
+.desktop-nav a:hover, 
+.desktop-nav a.active {
+  color: #00F5D4; /* Cor ciano quando selecionado */
+}
+
+/* Ocultar Menu Desktop em Telemóveis */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none !important;
+  }
+}
+
+/* Ocultar Barra Inferior em Computadores */
+@media (min-width: 769px) {
+  #mainBottomNav {
+    display: none !important;
+  }
+}
