@@ -155,7 +155,7 @@
       <iframe id="pdfFrame" src="about:blank"></iframe>
     </div>
 
-    <!-- Apenas Nome do Responsável (Sem CNPJ/CPF) -->
+    <!-- Apenas Nome do Responsável -->
     <div class="form-group">
       <label for="signerName">Nome Completo do Responsável:</label>
       <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard" required>
@@ -232,7 +232,7 @@
 
     async function carregarDadosContrato(id) {
       try {
-        // Caminho relativo padrão para a pasta /contratos/ no GitHub
+        // Caminho relativo padrão apontando para a pasta /contratos/ no GitHub
         pdfOriginalUrl = `./contratos/${id}.pdf`;
 
         const doc = await db.collection('rg_contracts').doc(id).get();
@@ -253,15 +253,17 @@
           document.getElementById('contractSubtitle').textContent = "Cliente: Service JLB Ltda";
         }
 
-        // Converte URL relativa para absoluta para renderização correta no Google Docs Viewer
+        // Converte URL relativa em URL absoluta completa para o leitor
         const fullPdfUrl = new URL(pdfOriginalUrl, window.location.href).href;
-        const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullPdfUrl)}&embedded=true`;
+        
+        // Utiliza o Mozilla PDF.js Viewer para garantir renderização contínua sem depender do cache do Google Docs
+        const pdfViewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fullPdfUrl)}`;
         document.getElementById('pdfFrame').src = pdfViewerUrl;
 
       } catch (err) {
         console.warn("Erro ao carregar dados do Firestore. Usando arquivo local:", err);
         const fullPdfUrl = new URL(`./contratos/${id}.pdf`, window.location.href).href;
-        document.getElementById('pdfFrame').src = `https://docs.google.com/viewer?url=${encodeURIComponent(fullPdfUrl)}&embedded=true`;
+        document.getElementById('pdfFrame').src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fullPdfUrl)}`;
       }
     }
 
@@ -345,7 +347,7 @@
 
         let finalPdfUrl = downloadUrl;
 
-        // Tenta upload no Firebase Storage; se não disponível, faz download direto no navegador
+        // Tenta upload no Firebase Storage; se não disponível, aciona o download direto
         if (storage) {
           try {
             const refStorage = storage.ref(`contratos_assinados/contrato_${contractId}_assinado.pdf`);
@@ -418,8 +420,9 @@
       canvas.style.pointerEvents = 'none';
       canvas.style.opacity = '0.6';
       
-      if (urlPdf && urlPdf.startsWith('http')) {
-        const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(urlPdf)}&embedded=true`;
+      if (urlPdf) {
+        const fullPdfUrl = urlPdf.startsWith('http') ? urlPdf : new URL(urlPdf, window.location.href).href;
+        const pdfViewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fullPdfUrl)}`;
         document.getElementById('pdfFrame').src = pdfViewerUrl;
       }
     }
