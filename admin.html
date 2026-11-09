@@ -5,7 +5,6 @@
   (function() {
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
-      // Cria um estilo temporário para injetar o src logo na tag img assim que ela existir
       document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
     }
   })();
@@ -252,7 +251,32 @@
         for (const doc of configSnapshot.docs) {
           const data = doc.data();
           const uid = doc.id;
+          const emailEmpresa = (data.email || '').trim().toLowerCase();
+          const nomeEmpresaStr = (data.name || '').trim();
+
+          // =========================================================================
+          // FILTRO INTELIGENTE: OCULTA REGISTROS ÓRFÃOS OU FANTASMAS AUTOMÁTICOS
+          // =========================================================================
+          const ehMaster = (uid === 'cs_master');
+          const semNome = (nomeEmpresaStr === "" || nomeEmpresaStr === "Empresa Sem Nome");
+          const semEmail = (emailEmpresa === "" || emailEmpresa.includes("não informado") || emailEmpresa === " e-mail não informado");
+
+          if (!ehMaster && semNome && semEmail) {
+            continue; // Oculta o lixo da base de dados
+          }
+
           tenantsCache.push({ uid, ...data });
+
+          // Verifica no Firestore se existe contrato assinado para este UID / Cliente
+          let contratoAssinadoUrl = null;
+          try {
+            const contractDoc = await db.collection('rg_contracts').doc(uid).get();
+            if (contractDoc.exists && contractDoc.data().status === 'assinado') {
+              contratoAssinadoUrl = contractDoc.data().pdfAssinadoUrl;
+            }
+          } catch (e) {
+            // Tenta buscar por ID genérico ou padrão JLB se necessário
+          }
 
           let totalBytes = 0;
           const colecoes = ['rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos', 'rg_config'];
@@ -267,19 +291,30 @@
           const tamanhoKb = (totalBytes / 1024).toFixed(1);
 
           const nomeEmpresa = data.name || 'Empresa Sem Nome';
-          const emailEmpresa = data.email || 'E-mail não informado';
+          const exibeEmail = data.email || 'E-mail não informado';
           const temLogo = data.logoBase64 ? 'Sim (Personalizado)' : 'Padrão (marca.png)';
           const statusHE = data.modHorasExtras ? 'Ativo' : 'Inativo';
+
+          // Botão de Contrato Dinâmico
+          let botaoContratoHtml = '';
+          if (contratoAssinadoUrl) {
+            botaoContratoHtml = `<a href="${contratoAssinadoUrl}" target="_blank" class="btn" style="background-color: #10B981; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pdf"></i> Contrato Assinado</a>`;
+          } else {
+            // Link direto para a página de assinatura com o ID do tenant
+            const linkAssinatura = `assinar-contrato.html?id=${uid}`;
+            botaoContratoHtml = `<a href="${linkAssinatura}" target="_blank" class="btn" style="background-color: #64748B; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pen"></i> Assinar Contrato</a>`;
+          }
 
           html += `
             <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
               <div style="flex: 1; min-width: 250px;">
                 <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
-                <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(emailEmpresa)}</span><br>
+                <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(exibeEmail)}</span><br>
                 <span style="font-size: 0.85rem; color: #0D9488;"><strong>Logótipo:</strong> ${temLogo} | <strong>Horas Extras:</strong> ${statusHE}</span><br>
                 <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
               </div>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                ${botaoContratoHtml}
                 <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
                 
                 <button class="btn" style="background-color: #3B82F6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupJSON('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-code"></i> JSON</button>
@@ -291,7 +326,11 @@
           `;
         }
 
-        container.innerHTML = html;
+        if (html === '') {
+          container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum cliente válido registado.</p>';
+        } else {
+          container.innerHTML = html;
+        }
       } catch (err) {
         console.error(err);
         container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar dados do painel administrativo.</p>';
@@ -429,11 +468,9 @@
       document.getElementById('pageOrcamentos').checked = t.pageOrcamentos === true;
       document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
-      // Leitura dos Formatos de Horário
       document.getElementById('criterioHorarioIntervalo').checked = t.criterioHorarioIntervalo !== false;
       document.getElementById('criterioHorarioDireto').checked = t.criterioHorarioDireto !== false;
 
-      // Leitura dos Critérios Gerais
       document.getElementById('criterioEmpreitada').checked = t.criterioEmpreitada !== false;
       document.getElementById('criterioHoraTrabalhada').checked = t.criterioHoraTrabalhada !== false;
       document.getElementById('criterioHoraDeslocamento').checked = t.criterioHoraDeslocamento !== false;
@@ -470,11 +507,9 @@
         pageOrcamentos: document.getElementById('pageOrcamentos').checked,
         modHorasExtras: document.getElementById('modHorasExtras').checked,
 
-        // Salvamento das Feature Flags de Formatos de Horário
         criterioHorarioIntervalo: document.getElementById('criterioHorarioIntervalo').checked,
         criterioHorarioDireto: document.getElementById('criterioHorarioDireto').checked,
 
-        // Salvamento dos Critérios de Cobrança
         criterioEmpreitada: document.getElementById('criterioEmpreitada').checked,
         criterioHoraTrabalhada: document.getElementById('criterioHoraTrabalhada').checked,
         criterioHoraDeslocamento: document.getElementById('criterioHoraDeslocamento').checked,
@@ -503,7 +538,6 @@
       }
     });
 
-    // 1. Abre o modal elegante de exclusão
     window.excluirTenant = function(uid) {
       const t = tenantsCache.find(item => item.uid === uid);
       const nomeCliente = t ? (t.name || '').trim() : '';
@@ -528,7 +562,6 @@
       setTimeout(() => inputConfirm.focus(), 100);
     };
 
-    // 2. Valida em tempo real se a digitação confere
     window.validarDigitacaoExclusao = function() {
       if (!tenantParaExcluir) return;
 
@@ -560,13 +593,11 @@
       }
     };
 
-    // 3. Fecha o modal de exclusão
     window.fecharModalExclusao = function() {
       document.getElementById('deleteConfirmModal').style.display = 'none';
       tenantParaExcluir = null;
     };
 
-    // 4. Executa a exclusão no Firestore
     window.executarExclusaoTenant = async function() {
       if (!tenantParaExcluir) return;
       const uid = tenantParaExcluir.uid;
@@ -591,8 +622,9 @@
         .replace(/'/g, '&#039;');
     }
   </script>
-   <!-- Barra de Navegação Inferior -->
-    <nav class="bottom-nav no-print" id="mainBottomNav">
+
+  <!-- Barra de Navegação Inferior -->
+  <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
       <span>Clientes</span>
@@ -604,8 +636,8 @@
     <a href="historico.html">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
-  </a>
-    <a href="orcamentos.html"  id="nav-item-orcamentos">
+    </a>
+    <a href="orcamentos.html" id="nav-item-orcamentos">
       <i class="fa-solid fa-calculator"></i>
       <span>Orçamentos</span>
     </a>
@@ -613,7 +645,7 @@
       <i class="fa-solid fa-clock"></i>
       <span>Horas</span>
     </a>
-    <a href="configuracao.html"class="active" id="nav-item-config">
+    <a href="configuracao.html" class="active" id="nav-item-config">
       <i class="fa-solid fa-gear"></i>
       <span>Config</span>
     </a>
@@ -622,7 +654,6 @@
   <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // 1. Aplica o logótipo personalizado instantaneamente
       const imgLogo = document.getElementById('logo-cliente');
       if (imgLogo) {
         const logoSalva = localStorage.getItem('rg_logo_base64');
@@ -633,7 +664,6 @@
         }
       }
 
-      // 2. Aplica as permissões da barra inferior para utilizadores comuns / sem permissão
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
@@ -659,7 +689,7 @@
       }
     });
   </script>
-<!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina a piscada dos botões) -->
+
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
