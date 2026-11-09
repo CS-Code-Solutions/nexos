@@ -1,0 +1,405 @@
+/**
+ * NexOS - Módulo de Painel Super Admin (admin.js)
+ */
+
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+  } else {
+    await carregarPainelAdmin();
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((err) => console.log('Falha ao registar SW:', err));
+  });
+}
+
+let tenantsCache = [];
+let tenantParaExcluir = null;
+
+async function carregarPainelAdmin() {
+  const container = document.getElementById('adminTenantList');
+  if (!container) return;
+
+  try {
+    const configSnapshot = await db.collection('rg_config').get();
+    
+    container.innerHTML = '';
+    if (configSnapshot.empty) {
+      container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na base de dados.</p>';
+      return;
+    }
+
+    tenantsCache = [];
+    let html = '';
+
+    for (const doc of configSnapshot.docs) {
+      const data = doc.data();
+      const uid = doc.id;
+      const emailEmpresa = (data.email || '').trim().toLowerCase();
+      const nomeEmpresaStr = (data.name || '').trim();
+
+      const ehMaster = (uid === 'cs_master');
+      const semNome = (nomeEmpresaStr === "" || nomeEmpresaStr === "Empresa Sem Nome");
+      const semEmail = (emailEmpresa === "" || emailEmpresa.includes("não informado") || emailEmpresa === " e-mail não informado");
+
+      if (!ehMaster && semNome && semEmail) {
+        continue;
+      }
+
+      tenantsCache.push({ uid, ...data });
+
+      let contratoAssinadoUrl = null;
+      try {
+        const contractDoc = await db.collection('rg_contracts').doc(uid).get();
+        if (contractDoc.exists && contractDoc.data().status === 'assinado') {
+          contratoAssinadoUrl = contractDoc.data().pdfAssinadoUrl;
+        }
+      } catch (e) {}
+
+      let totalBytes = 0;
+      const colecoes = ['rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos', 'rg_config'];
+      for (const col of colecoes) {
+        try {
+          const dSnap = await db.collection(col).doc(uid).get();
+          if (dSnap.exists) {
+            totalBytes += JSON.stringify(dSnap.data()).length;
+          }
+        } catch (e) {}
+      }
+      const tamanhoKb = (totalBytes / 1024).toFixed(1);
+
+      const nomeEmpresa = data.name || 'Empresa Sem Nome';
+      const exibeEmail = data.email || 'E-mail não informado';
+      const temLogo = data.logoBase64 ? 'Sim (Personalizado)' : 'Padrão (marca.png)';
+      const statusHE = data.modHorasExtras ? 'Ativo' : 'Inativo';
+
+      let botaoContratoHtml = '';
+      if (contratoAssinadoUrl) {
+        botaoContratoHtml = `<a href="${contratoAssinadoUrl}" target="_blank" class="btn" style="background-color: #10B981; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pdf"></i> Contrato Assinado</a>`;
+      } else {
+        const linkAssinatura = `assinar-contrato.html?id=${uid}`;
+        botaoContratoHtml = `<a href="${linkAssinatura}" target="_blank" class="btn" style="background-color: #64748B; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pen"></i> Assinar Contrato</a>`;
+      }
+
+      html += `
+        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+          <div style="flex: 1; min-width: 250px;">
+            <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
+            <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(exibeEmail)}</span><br>
+            <span style="font-size: 0.85rem; color: #0D9488;"><strong>Logótipo:</strong> ${temLogo} | <strong>Horas Extras:</strong> ${statusHE}</span><br>
+            <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            ${botaoContratoHtml}
+            <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
+            
+            <button class="btn" style="background-color: #3B82F6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupJSON('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-code"></i> JSON</button>
+            <button class="btn" style="background-color: #8B5CF6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupCSV('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-csv"></i> CSV</button>
+
+            <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
+          </div>
+        </div>
+      `;
+    }
+
+    if (html === '') {
+      container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum cliente válido registado.</p>';
+    } else {
+      container.innerHTML = html;
+    }
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar dados do painel administrativo.</p>';
+  }
+}
+
+window.exportarBackupJSON = async function(uid, nomeEmpresa) {
+  try {
+    const docRef = await db.collection('rg_reports').doc(uid).get();
+    if (!docRef.exists) {
+      alert(`Nenhum histórico de relatórios encontrado para o cliente: ${nomeEmpresa}`);
+      return;
+    }
+
+    const dados = docRef.data();
+    const jsonStr = JSON.stringify(dados, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_relatorios_${uid}_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Erro ao exportar JSON:", err);
+    alert("Erro ao descarregar backup em JSON.");
+  }
+};
+
+window.exportarBackupCSV = async function(uid, nomeEmpresa) {
+  try {
+    const docRef = await db.collection('rg_reports').doc(uid).get();
+    if (!docRef.exists) {
+      alert(`Nenhum histórico de relatórios encontrado para o cliente: ${nomeEmpresa}`);
+      return;
+    }
+
+    const dados = docRef.data();
+    const listaRelatorios = dados.items || dados.reports || (Array.isArray(dados) ? dados : [dados]);
+
+    if (!listaRelatorios.length) {
+      alert("O documento existe, mas a lista de relatórios está vazia.");
+      return;
+    }
+
+    const chaves = Object.keys(listaRelatorios[0]);
+    let csvContent = chaves.join(';') + '\n';
+
+    listaRelatorios.forEach(row => {
+      const valores = chaves.map(key => {
+        let val = row[key];
+        if (val === null || val === undefined) val = '';
+        val = String(val).replace(/;/g, ',').replace(/\n/g, ' ');
+        return `"${val}"`;
+      });
+      csvContent += valores.join(';') + '\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_relatorios_${uid}_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Erro ao exportar CSV:", err);
+    alert("Erro ao descarregar backup em CSV.");
+  }
+};
+
+window.processarUploadLogo = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const originalBase64 = e.target.result;
+    document.getElementById('tenantLogoBase64').value = originalBase64;
+
+    const preview = document.getElementById('logoPreviewImg');
+    preview.src = originalBase64;
+    document.getElementById('logoPreviewContainer').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.abrirModalCliente = function() {
+  document.getElementById('tenantForm').reset();
+  const inputUid = document.getElementById('tenantUid');
+  inputUid.value = '';
+  inputUid.readOnly = false;
+  inputUid.style.background = '#F8FAFC';
+  
+  document.getElementById('tenantLogoBase64').value = '';
+  document.getElementById('logoPreviewContainer').style.display = 'none';
+  document.getElementById('modalTenantTitle').textContent = 'Adicionar Novo Cliente / Tenant';
+  document.getElementById('tenantModal').style.display = 'flex';
+};
+
+window.fecharModalCliente = function() {
+  document.getElementById('tenantModal').style.display = 'none';
+};
+
+window.editarTenant = function(uid) {
+  const t = tenantsCache.find(item => item.uid === uid);
+  if (!t) return;
+
+  const inputUid = document.getElementById('tenantUid');
+  inputUid.value = t.uid;
+  inputUid.readOnly = true;
+  inputUid.style.background = '#F1F5F9';
+
+  document.getElementById('tenantNome').value = t.name || '';
+  document.getElementById('tenantEmail').value = t.email || '';
+  document.getElementById('tenantWatermark').value = t.watermark || '';
+  
+  document.getElementById('tenantLogoBase64').value = t.logoBase64 || '';
+  if (t.logoBase64) {
+    document.getElementById('logoPreviewImg').src = t.logoBase64;
+    document.getElementById('logoPreviewContainer').style.display = 'block';
+  } else {
+    document.getElementById('logoPreviewContainer').style.display = 'none';
+  }
+
+  document.getElementById('pageClientes').checked = t.pageClientes !== false;
+  document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
+  document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
+  document.getElementById('pageOrcamentos').checked = t.pageOrcamentos === true;
+  document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
+
+  document.getElementById('criterioHorarioIntervalo').checked = t.criterioHorarioIntervalo !== false;
+  document.getElementById('criterioHorarioDireto').checked = t.criterioHorarioDireto !== false;
+
+  document.getElementById('criterioEmpreitada').checked = t.criterioEmpreitada !== false;
+  document.getElementById('criterioHoraTrabalhada').checked = t.criterioHoraTrabalhada !== false;
+  document.getElementById('criterioHoraDeslocamento').checked = t.criterioHoraDeslocamento !== false;
+  document.getElementById('criterioHospedagem').checked = t.criterioHospedagem !== false;
+  document.getElementById('criterioOutrasDespesas').checked = t.criterioOutrasDespesas !== false;
+
+  document.getElementById('modalTenantTitle').textContent = `Editar Configurações - ${t.name || uid}`;
+  document.getElementById('tenantModal').style.display = 'flex';
+};
+
+const tenantFormEl = document.getElementById('tenantForm');
+if (tenantFormEl) {
+  tenantFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let uid = document.getElementById('tenantUid').value.trim();
+    const emailCliente = document.getElementById('tenantEmail').value.trim();
+    
+    if (!uid) {
+      uid = 'tenant_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    }
+
+    if (!emailCliente) {
+      alert('Por favor, informe o e-mail de acesso.');
+      return;
+    }
+
+    const tenantData = {
+      name: document.getElementById('tenantNome').value.trim(),
+      email: emailCliente,
+      logoBase64: document.getElementById('tenantLogoBase64').value.trim(),
+      watermark: document.getElementById('tenantWatermark').value.trim(),
+      
+      pageClientes: document.getElementById('pageClientes').checked,
+      pageMaquinas: document.getElementById('pageMaquinas').checked,
+      pageRelatorios: document.getElementById('pageRelatorios').checked,
+      pageOrcamentos: document.getElementById('pageOrcamentos').checked,
+      modHorasExtras: document.getElementById('modHorasExtras').checked,
+
+      criterioHorarioIntervalo: document.getElementById('criterioHorarioIntervalo').checked,
+      criterioHorarioDireto: document.getElementById('criterioHorarioDireto').checked,
+
+      criterioEmpreitada: document.getElementById('criterioEmpreitada').checked,
+      criterioHoraTrabalhada: document.getElementById('criterioHoraTrabalhada').checked,
+      criterioHoraDeslocamento: document.getElementById('criterioHoraDeslocamento').checked,
+      criterioHospedagem: document.getElementById('criterioHospedagem').checked,
+      criterioOutrasDespesas: document.getElementById('criterioOutrasDespesas').checked,
+
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+      await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
+
+      await db.collection('saas_users').doc(emailCliente).set({
+        role: "client",
+        status: "ativo",
+        tenant_id: uid,
+        email: emailCliente,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      alert('Configurações salvas com sucesso!');
+      fecharModalCliente();
+      carregarPainelAdmin();
+    } catch (err) {
+      alert('Erro ao salvar tenant e permissões: ' + err.message);
+    }
+  });
+}
+
+window.excluirTenant = function(uid) {
+  const t = tenantsCache.find(item => item.uid === uid);
+  const nomeCliente = t ? (t.name || '').trim() : '';
+
+  tenantParaExcluir = { uid, nome: nomeCliente };
+
+  document.getElementById('deleteTenantUid').textContent = `(ID: ${uid})`;
+  document.getElementById('deleteTenantNameTarget').textContent = nomeCliente;
+  
+  const inputConfirm = document.getElementById('deleteTenantInputConfirm');
+  inputConfirm.value = '';
+  inputConfirm.style.borderColor = '#CBD5E1';
+  
+  document.getElementById('deleteErrorMsg').style.display = 'none';
+
+  const btnConfirmar = document.getElementById('btnConfirmarExclusaoModal');
+  btnConfirmar.disabled = true;
+  btnConfirmar.style.opacity = '0.5';
+  btnConfirmar.style.cursor = 'not-allowed';
+
+  document.getElementById('deleteConfirmModal').style.display = 'flex';
+  setTimeout(() => inputConfirm.focus(), 100);
+};
+
+window.validarDigitacaoExclusao = function() {
+  if (!tenantParaExcluir) return;
+
+  const digitado = document.getElementById('deleteTenantInputConfirm').value.trim();
+  const esperado = tenantParaExcluir.nome;
+
+  const btnConfirmar = document.getElementById('btnConfirmarExclusaoModal');
+  const inputConfirm = document.getElementById('deleteTenantInputConfirm');
+  const errorMsg = document.getElementById('deleteErrorMsg');
+
+  if (digitado === esperado && digitado !== '') {
+    btnConfirmar.disabled = false;
+    btnConfirmar.style.opacity = '1';
+    btnConfirmar.style.cursor = 'pointer';
+    inputConfirm.style.borderColor = '#10B981';
+    errorMsg.style.display = 'none';
+  } else {
+    btnConfirmar.disabled = true;
+    btnConfirmar.style.opacity = '0.5';
+    btnConfirmar.style.cursor = 'not-allowed';
+    
+    if (digitado.length >= esperado.length && digitado !== esperado) {
+      inputConfirm.style.borderColor = '#EF4444';
+      errorMsg.style.display = 'block';
+    } else {
+      inputConfirm.style.borderColor = '#CBD5E1';
+      errorMsg.style.display = 'none';
+    }
+  }
+};
+
+window.fecharModalExclusao = function() {
+  document.getElementById('deleteConfirmModal').style.display = 'none';
+  tenantParaExcluir = null;
+};
+
+window.executarExclusaoTenant = async function() {
+  if (!tenantParaExcluir) return;
+  const uid = tenantParaExcluir.uid;
+
+  try {
+    await db.collection('rg_config').doc(uid).delete();
+    alert('✅ Configurações e registro do cliente removidos com sucesso.');
+    fecharModalExclusao();
+    carregarPainelAdmin();
+  } catch (err) {
+    alert('Erro ao excluir tenant: ' + err.message);
+  }
+};
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
