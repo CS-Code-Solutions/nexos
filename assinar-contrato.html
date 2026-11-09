@@ -193,7 +193,8 @@
 
   <script>
     const db = firebase.firestore();
-    const storage = firebase.storage();
+    let storage = null;
+    try { storage = firebase.storage(); } catch (e) { console.warn("Firebase Storage não inicializado:", e); }
 
     let contractId = '';
     let pdfOriginalUrl = '';
@@ -231,28 +232,36 @@
 
     async function carregarDadosContrato(id) {
       try {
+        // Caminho relativo padrão para a pasta /contratos/ no GitHub
+        pdfOriginalUrl = `./contratos/${id}.pdf`;
+
         const doc = await db.collection('rg_contracts').doc(id).get();
-        if (!doc.exists) {
-          alert("Contrato não encontrado.");
-          return;
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.pdfUrl) pdfOriginalUrl = data.pdfUrl;
+
+          document.getElementById('contractTitle').textContent = data.titulo || "Proposta Comercial & Contrato";
+          document.getElementById('contractSubtitle').textContent = `Cliente: ${data.clienteNome || 'Service JLB Ltda'}`;
+          if (data.responsavelNome) document.getElementById('signerName').value = data.responsavelNome;
+
+          if (data.status === 'assinado') {
+            bloquearFormularioAssinado(data.pdfAssinadoUrl || pdfOriginalUrl);
+            return;
+          }
+        } else {
+          document.getElementById('contractTitle').textContent = "Proposta Comercial & Contrato Anual";
+          document.getElementById('contractSubtitle').textContent = "Cliente: Service JLB Ltda";
         }
 
-        const data = doc.data();
-        pdfOriginalUrl = data.pdfUrl;
-
-        document.getElementById('contractTitle').textContent = data.titulo || "Proposta Comercial / Contrato";
-        document.getElementById('contractSubtitle').textContent = `Cliente: ${data.clienteNome || 'Service JLB Ltda'}`;
-        if (data.responsavelNome) document.getElementById('signerName').value = data.responsavelNome;
-
-        // Renderiza no iframe usando Google Docs Viewer para evitar tela preta no celular
-        const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfOriginalUrl)}&embedded=true`;
+        // Converte URL relativa para absoluta para renderização correta no Google Docs Viewer
+        const fullPdfUrl = new URL(pdfOriginalUrl, window.location.href).href;
+        const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullPdfUrl)}&embedded=true`;
         document.getElementById('pdfFrame').src = pdfViewerUrl;
 
-        if (data.status === 'assinado') {
-          bloquearFormularioAssinado(data.pdfAssinadoUrl);
-        }
       } catch (err) {
-        alert("Erro ao carregar contrato: " + err.message);
+        console.warn("Erro ao carregar dados do Firestore. Usando arquivo local:", err);
+        const fullPdfUrl = new URL(`./contratos/${id}.pdf`, window.location.href).href;
+        document.getElementById('pdfFrame').src = `https://docs.google.com/viewer?url=${encodeURIComponent(fullPdfUrl)}&embedded=true`;
       }
     }
 
@@ -309,7 +318,7 @@
         const pages = pdfDoc.getPages();
         const lastPage = pages[pages.length - 1];
 
-        // Desenha a assinatura no rodapé
+        // Desenha a assinatura no rodapé do documento
         lastPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
@@ -332,24 +341,48 @@
 
         const pdfAssinadoBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfAssinadoBytes], { type: 'application/pdf' });
+        const downloadUrl = URL.createObjectURL(pdfBlob);
 
-        const refStorage = storage.ref(`contratos_assinados/contrato_${contractId}_assinado.pdf`);
-        await refStorage.put(pdfBlob);
-        const pdfAssinadoUrl = await refStorage.getDownloadURL();
+        let finalPdfUrl = downloadUrl;
 
-        await db.collection('rg_contracts').doc(contractId).update({
+        // Tenta upload no Firebase Storage; se não disponível, faz download direto no navegador
+        if (storage) {
+          try {
+            const refStorage = storage.ref(`contratos_assinados/contrato_${contractId}_assinado.pdf`);
+            await refStorage.put(pdfBlob);
+            finalPdfUrl = await refStorage.getDownloadURL();
+          } catch (storageErr) {
+            console.warn("Storage indisponível. Acionando download direto:", storageErr);
+            dispararDownloadDireto(downloadUrl, `Contrato_${contractId}_Assinado.pdf`);
+          }
+        } else {
+          dispararDownloadDireto(downloadUrl, `Contrato_${contractId}_Assinado.pdf`);
+        }
+
+        // Atualiza os registros de auditoria no Firestore
+        await db.collection('rg_contracts').doc(contractId).set({
           status: 'assinado',
           responsavelNome: nome,
-          pdfAssinadoUrl: pdfAssinadoUrl,
+          pdfAssinadoUrl: finalPdfUrl,
+          assinaturaBase64: signatureBase64,
           assinadoEm: firebase.firestore.FieldValue.serverTimestamp(),
           ipAssinatura: clientIpAddress
-        });
+        }, { merge: true });
 
-        exibirSucessoAssinatura(pdfAssinadoUrl);
+        exibirSucessoAssinatura(downloadUrl);
       } catch (err) {
         mostrarModalLoading(false);
         alert("Erro ao assinar contrato: " + err.message);
       }
+    }
+
+    function dispararDownloadDireto(url, fileName) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
 
     function mostrarModalLoading(exibir, titulo = '', msg = '') {
@@ -369,10 +402,11 @@
       document.getElementById('statusIcon').className = "fa-solid fa-circle-check";
       document.getElementById('statusIcon').style.color = "#22C55E";
       document.getElementById('statusTitle').textContent = "Contrato Assinado com Sucesso!";
-      document.getElementById('statusMsg').textContent = "A sua assinatura foi gravada com segurança na nuvem.";
+      document.getElementById('statusMsg').textContent = "A sua assinatura e o registro de auditoria foram salvos.";
       
       const btnDl = document.getElementById('btnDownloadSigned');
       btnDl.href = urlPdfAssinado;
+      btnDl.download = `Contrato_${contractId}_Assinado.pdf`;
       document.getElementById('statusActions').style.display = 'block';
 
       bloquearFormularioAssinado(urlPdfAssinado);
@@ -384,7 +418,7 @@
       canvas.style.pointerEvents = 'none';
       canvas.style.opacity = '0.6';
       
-      if (urlPdf) {
+      if (urlPdf && urlPdf.startsWith('http')) {
         const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(urlPdf)}&embedded=true`;
         document.getElementById('pdfFrame').src = pdfViewerUrl;
       }
