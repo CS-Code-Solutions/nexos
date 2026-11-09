@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
 <script>
   (function() {
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
-      // Cria um estilo temporário para injetar o src logo na tag img assim que ela existir
       document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
     }
   })();
@@ -32,6 +31,38 @@
   <!-- Inicialização do Firebase e Sincronização -->
   <script src="firebase-init.js?v=2"></script>
   <script src="firebase-sync.js?v=2"></script>
+
+  <style>
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .desktop-nav a {
+      color: #94A3B8;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.2s;
+    }
+    .desktop-nav a:hover, 
+    .desktop-nav a.active {
+      color: #00F5D4;
+    }
+    @media (max-width: 768px) {
+      .desktop-nav {
+        display: none !important;
+      }
+    }
+    @media (min-width: 769px) {
+      #mainBottomNav {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -45,7 +76,6 @@
 
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
-      <!-- Mude a class="active" dependendo da página em que estiver -->
       <a href="index.html"><i class="fa-solid fa-users"></i> Clientes</a>
       <a href="maquinas.html"><i class="fa-solid fa-gears"></i> Máquinas</a>
       <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
@@ -60,7 +90,7 @@
     </button>
   </header>
 
-  <main style="padding-top: 20px;">
+  <main style="padding-top: 20px; padding-bottom: 80px;">
     
     <!-- SECÇÃO EXCLUSIVA DO SUPER ADMIN -->
     <div id="superAdminCard" class="card" style="display: none; border-top: 4px solid #EF4444; margin-bottom: 20px; background: #FFF5F5;">
@@ -231,351 +261,8 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-  <script>
-    firebase.auth().onAuthStateChanged(async (user) => {
-      if (!user) {
-        window.location.href = 'login.html';
-      } else {
-        const statusText = document.getElementById('statusText');
-        statusText.innerHTML = "🟢 Conectado à Nuvem (Sessão Segura)";
-        statusText.style.color = "#10B981";
-
-        try {
-          const userDoc = await db.collection('saas_users').doc(user.email).get();
-          if (userDoc.exists) {
-            const data = userDoc.data();
-            if (data.role === 'super_admin' && data.status === 'ativo') {
-              const adminCard = document.getElementById('superAdminCard');
-              if (adminCard) adminCard.style.display = 'block';
-            }
-          }
-        } catch (err) {
-          console.error("Erro ao verificar privilégios de administrador:", err);
-        }
-
-        await carregarConfiguracoesIniciais();
-      }
-    });
-
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch((err) => console.log('Falha ao registar SW:', err));
-      });
-    }
-
-    let deferredPrompt;
-    const btnInstall = document.getElementById('btnInstall');
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-    });
-
-    if (btnInstall) {
-      btnInstall.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          deferredPrompt = null;
-        } else {
-          alert('Para instalar a aplicação no seu dispositivo:\n\n1. Toque nos 3 pontos (menu) no canto superior direito do seu navegador.\n2. Selecione "Adicionar ao ecrã principal" ou "Instalar aplicação".');
-        }
-      });
-    }
-
-    const canvas = document.getElementById('techSignatureCanvas');
-    const ctx = canvas.getContext('2d');
-    let painting = false;
-    let hasDrawn = false;
-    let currentTechSignature = '';
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    function startPosition(e) { painting = true; draw(e); }
-    
-    function finishedPosition() { 
-      if (painting) {
-        painting = false; 
-        ctx.beginPath(); 
-        if (hasDrawn) {
-          currentTechSignature = canvas.toDataURL('image/png');
-          atualizarPreviewAssinatura(currentTechSignature);
-        }
-      }
-    }
-    
-    function draw(e) {
-      if (!painting) return;
-      hasDrawn = true;
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#0B132B';
-      
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    }
-
-    canvas.addEventListener('mousedown', startPosition);
-    canvas.addEventListener('mouseup', finishedPosition);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('touchstart', startPosition);
-    canvas.addEventListener('touchend', finishedPosition);
-    canvas.addEventListener('touchmove', draw);
-
-    function atualizarPreviewAssinatura(dataUrl) {
-      const boxPreview = document.getElementById('containerPreviewAssinatura');
-      const imgPreview = document.getElementById('imgPreviewAssinatura');
-      if (dataUrl && dataUrl.length > 100) {
-        imgPreview.src = dataUrl;
-        boxPreview.style.display = 'block';
-      } else {
-        boxPreview.style.display = 'none';
-      }
-    }
-
-    window.limparAssinaturaTech = async function() {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      hasDrawn = false;
-      currentTechSignature = '';
-      atualizarPreviewAssinatura('');
-      
-      try {
-        let configAtual = await DataSync.load('rg_config') || {};
-        configAtual.techSignature = '';
-        await DataSync.save('rg_config', configAtual);
-      } catch (err) {
-        console.error("Erro ao limpar assinatura:", err);
-      }
-    };
-
-    window.salvarAssinaturaTech = async function() {
-      try {
-        if (hasDrawn) { currentTechSignature = canvas.toDataURL('image/png'); }
-        
-        let configAtual = await DataSync.load('rg_config') || {};
-        configAtual.techSignature = currentTechSignature;
-        
-        await DataSync.save('rg_config', configAtual);
-        atualizarPreviewAssinatura(currentTechSignature);
-        alert('Assinatura salva com sucesso!');
-        hasDrawn = false;
-      } catch (err) {
-        alert('Erro ao guardar assinatura: ' + err.message);
-      }
-    };
-
-    let dadosPendentesSalvar = null;
-
-    async function carregarConfiguracoesIniciais() {
-      try {
-        let config = await DataSync.load('rg_config') || {};
-        
-        document.getElementById('configName').value = config.name || '';
-        document.getElementById('configTech').value = config.tech || '';
-        document.getElementById('configDoc').value = config.doc || '';
-        document.getElementById('configEmail').value = config.email || '';
-        document.getElementById('configContact').value = config.contact || '';
-        document.getElementById('configLocation').value = config.location || '';
-        
-        document.getElementById('configNomeConta1').value = config.nomeConta1 || '';
-        document.getElementById('configBank1').value = config.bank1 || '';
-        document.getElementById('configAgency1').value = config.agency1 || '';
-        document.getElementById('configAccount1').value = config.account1 || '';
-
-        document.getElementById('configNomeConta2').value = config.nomeConta2 || '';
-        document.getElementById('configBank2').value = config.bank2 || '';
-        document.getElementById('configAgency2').value = config.agency2 || '';
-        document.getElementById('configAccount2').value = config.account2 || '';
-
-        document.getElementById('configNextRs').value = config.nextRsNumber || '1000';
-
-        if (config.techSignature && config.techSignature.length > 100) {
-          currentTechSignature = config.techSignature;
-          const img = new Image();
-          img.onload = () => {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            atualizarPreviewAssinatura(config.techSignature);
-            hasDrawn = false;
-          };
-          img.src = config.techSignature;
-        }
-      } catch (err) {
-        console.error("Erro ao carregar configurações:", err);
-      }
-    }
-
-    document.getElementById('configForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      const txtAntigo = btn.innerHTML;
-      btn.innerHTML = 'A GUARDAR DADOS...';
-      btn.disabled = true;
-
-      try {
-        let configAtual = {};
-        try { configAtual = await DataSync.load('rg_config') || {}; } 
-        catch (loadErr) { console.warn("Aviso (Normal em contas novas): Sem configuração prévia.", loadErr); }
-
-        if (hasDrawn) {
-          currentTechSignature = canvas.toDataURL('image/png');
-        } else {
-          currentTechSignature = currentTechSignature || configAtual.techSignature || '';
-        }
-
-        dadosPendentesSalvar = {
-          ...configAtual,
-          name: document.getElementById('configName').value || '',
-          tech: document.getElementById('configTech').value || '',
-          techSignature: currentTechSignature,
-          doc: document.getElementById('configDoc').value || '',
-          email: document.getElementById('configEmail').value || '',
-          contact: document.getElementById('configContact').value || '',
-          location: document.getElementById('configLocation').value || '',
-          nomeConta1: document.getElementById('configNomeConta1').value || '',
-          bank1: document.getElementById('configBank1').value || '',
-          agency1: document.getElementById('configAgency1').value || '',
-          account1: document.getElementById('configAccount1').value || '',
-          nomeConta2: document.getElementById('configNomeConta2').value || '',
-          bank2: document.getElementById('configBank2').value || '',
-          agency2: document.getElementById('configAgency2').value || '',
-          account2: document.getElementById('configAccount2').value || '',
-          nextRsNumber: document.getElementById('configNextRs').value || '1000',
-          lgpdConsent: true
-        };
-
-        const lgpdAceitoLocal = localStorage.getItem('rg_lgpd_consent');
-        
-        if (lgpdAceitoLocal === 'true' || configAtual.lgpdConsent === true) {
-          await executarSalvamentoConfiguracoes();
-        } else {
-          document.getElementById('lgpdModal').style.display = 'flex';
-        }
-      } catch (err) {
-        console.error("Erro geral no submit:", err);
-        alert("Ocorreu um erro ao preparar os dados: " + err.message);
-      } finally {
-        btn.innerHTML = txtAntigo;
-        btn.disabled = false;
-      }
-    });
-
-    async function executarSalvamentoConfiguracoes() {
-      if (!dadosPendentesSalvar) return;
-      try {
-        await DataSync.save('rg_config', dadosPendentesSalvar);
-        
-        const tenantId = localStorage.getItem('rg_tenant_id');
-        if (tenantId) {
-           await db.collection('rg_config').doc(tenantId).set(dadosPendentesSalvar, { merge: true });
-        }
-
-        localStorage.setItem('rg_lgpd_consent', 'true');
-        alert('Todas as configurações da empresa foram salvas com sucesso!');
-        hasDrawn = false;
-        dadosPendentesSalvar = null;
-      } catch (err) {
-        console.error("Erro no DataSync.save:", err);
-        alert('Erro ao guardar na nuvem: ' + err.message);
-      }
-    }
-
-    window.aceitarLgpd = async function() {
-      document.getElementById('lgpdModal').style.display = 'none';
-      localStorage.setItem('rg_lgpd_consent', 'true');
-      await executarSalvamentoConfiguracoes();
-    };
-
-    window.recusarLgpd = function() {
-      document.getElementById('lgpdModal').style.display = 'none';
-      dadosPendentesSalvar = null;
-      alert('Erro: Consentimento negado. Operação cancelada.');
-    };
-
-    window.fazerBackup = async function() {
-      try {
-        const keys = ['rg_config', 'rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos'];
-        const backupData = {};
-        for (const key of keys) {
-          backupData[key] = await DataSync.load(key) || [];
-        }
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-        const downloadAnchor = document.createElement('a');
-        const dataAtual = new Date().toISOString().split('T')[0];
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `nexos_backup_${dataAtual}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-        alert('Backup gerado com sucesso!');
-      } catch (err) {
-        alert('Erro ao gerar backup: ' + err.message);
-      }
-    };
-
-    window.restaurarBackup = async function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      if (!file.name.endsWith('.json') && file.type !== 'application/json') {
-        alert('Erro: Por favor, selecione um ficheiro JSON válido.');
-        event.target.value = '';
-        return;
-      }
-      if (!confirm('Atenção: A restauração irá substituir os dados atuais. Deseja continuar?')) {
-        event.target.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        try {
-          const backupData = JSON.parse(e.target.result);
-          if (!backupData || typeof backupData !== 'object') throw new Error('Formato JSON inválido.');
-          const validKeysMap = {
-            'rg_config': 'rg_config',
-            'rg_clients': 'rg_clients',
-            'rg_machines': 'rg_machines',
-            'rg_reports': 'rg_reports',
-            'rg_orcamentos': 'rg_orcamentos'
-          };
-          let restoredAny = false;
-          for (const [fileKey, targetKey] of Object.entries(validKeysMap)) {
-            if (backupData[fileKey] !== undefined) {
-              const dataToSave = backupData[fileKey];
-              if (targetKey === 'rg_config' && (typeof dataToSave !== 'object' || Array.isArray(dataToSave))) continue;
-              if (targetKey !== 'rg_config' && !Array.isArray(dataToSave)) continue;
-              await DataSync.save(targetKey, dataToSave);
-              restoredAny = true;
-            }
-          }
-          if (!restoredAny) {
-            alert('Aviso: O ficheiro não contém dados compatíveis.');
-            return;
-          }
-          alert('Dados restaurados com sucesso!');
-          location.reload();
-        } catch (err) {
-          alert('Erro ao processar ficheiro de backup.');
-          console.error(err);
-        } finally {
-          event.target.value = '';
-        }
-      };
-      reader.readAsText(file);
-    };
-  </script>
-
-  <!-- Barra de Navegação Inferior -->
-    <nav class="bottom-nav no-print" id="mainBottomNav">
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
+   <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
       <span>Clientes</span>
@@ -588,7 +275,7 @@
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
   </a>
-    <a href="orcamentos.html"  id="nav-item-orcamentos">
+    <a href="orcamentos.html" id="nav-item-orcamentos">
       <i class="fa-solid fa-calculator"></i>
       <span>Orçamentos</span>
     </a>
@@ -596,15 +283,18 @@
       <i class="fa-solid fa-clock"></i>
       <span>Horas</span>
     </a>
-    <a href="configuracao.html"class="active" id="nav-item-config">
+    <a href="configuracao.html" class="active" id="nav-item-config">
       <i class="fa-solid fa-gear"></i>
       <span>Config</span>
     </a>
   </nav>
+
+  <!-- SCRIPT EXTERNO SEPARADO -->
+  <script src="configuracao.js?v=2"></script>
+
   <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // 1. Aplica o logótipo personalizado instantaneamente
       const imgLogo = document.getElementById('logo-cliente');
       if (imgLogo) {
         const logoSalva = localStorage.getItem('rg_logo_base64');
@@ -615,7 +305,6 @@
         }
       }
 
-      // 2. Aplica as permissões da barra inferior para utilizadores comuns / sem permissão
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
@@ -625,24 +314,15 @@
       const navHoras = document.getElementById('nav-item-horas');
 
       if (navOrcamentos) {
-        if (!isSuperAdmin && showOrcamentos === 'false') {
-          navOrcamentos.style.display = 'none';
-        } else {
-          navOrcamentos.style.display = 'flex';
-        }
+        navOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
       }
-
       if (navHoras) {
-        if (isSuperAdmin || showHoras === 'true') {
-          navHoras.style.display = 'flex';
-        } else {
-          navHoras.style.display = 'none';
-        }
+        navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
       }
     });
   </script>
 
-<!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina a piscada dos botões) -->
+  <!-- SCRIPT SÍNCRONO INSTANTÂNEO -->
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
@@ -657,38 +337,6 @@
         document.write('<style>#nav-item-horas { display: none !important; }</style>');
       }
     })();
-  </script>
-  <!-- O SEU CÓDIGO HTML ANTERIOR DO LOGIN FICA AQUI -->
-
-  <!-- SCRIPT DO PROMPT NATIVO PWA -->
-  <script>
-    let deferredPrompt;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      console.log("[PWA] O navegador está pronto para instalar a aplicação nativamente.");
-      
-      // Se tiver um botão no seu HTML de login com o id="btnInstalarNativo", descomente a linha abaixo:
-      /*
-      const btnInstalar = document.getElementById('btnInstalarNativo');
-      if (btnInstalar) {
-        btnInstalar.style.display = 'block';
-        btnInstalar.addEventListener('click', async () => {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`[PWA] Resposta do utilizador: ${outcome}`);
-          deferredPrompt = null;
-          btnInstalar.style.display = 'none';
-        });
-      }
-      */
-    });
-
-    window.addEventListener('appinstalled', () => {
-      console.log('[PWA] Aplicação instalada nativamente com sucesso!');
-      deferredPrompt = null;
-    });
   </script>
 </body>
 </html>
