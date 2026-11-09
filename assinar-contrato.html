@@ -3,9 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assinatura Digital - CS Code Solutions</title>
+  <title>Assinatura Digital de Contrato - CS Code Solutions</title>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Bibliotecas PDF-Lib e PDF.js para renderização nativa -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
   <style>
     :root {
       --bg-dark: #0F172A;
@@ -16,6 +23,7 @@
       --text-sub: #94A3B8;
       --border: #334155;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -27,42 +35,75 @@
       align-items: center;
       padding: 15px;
     }
+
     .container {
       width: 100%;
-      max-width: 650px;
+      max-width: 750px;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 24px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
-    .header { text-align: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+
+    .header {
+      text-align: center;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
     .header h1 { font-size: 1.3rem; color: var(--accent-blue); margin-bottom: 4px; }
     .header p { font-size: 0.85rem; color: var(--text-sub); }
-    
-    .pdf-box {
+
+    /* Caixa de pré-visualização direta via PDF.js */
+    .pdf-container {
+      width: 100%;
       background: #0B0F19;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 20px;
+      padding: 10px;
+      margin-bottom: 15px;
       text-align: center;
-      margin-bottom: 20px;
+      max-height: 450px;
+      overflow-y: auto;
     }
-    .btn-pdf {
-      background: var(--accent-blue);
-      color: #0F172A;
-      padding: 10px 18px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 0.85rem;
-      display: inline-flex;
+    #pdfCanvas {
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 4px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .pdf-controls {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      margin-top: 10px;
+      margin-bottom: 15px;
+      background: #0F172A;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: var(--text-sub);
     }
+    .btn-page {
+      background: var(--border);
+      color: #FFF;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-page:hover { background: var(--accent-blue); color: #0F172A; }
+
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px; }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
     .form-group input {
       width: 100%;
       padding: 12px;
@@ -72,6 +113,7 @@
       color: #FFF;
       font-size: 0.95rem;
     }
+
     .signature-area {
       background: #0F172A;
       border: 2px dashed var(--accent-blue);
@@ -92,6 +134,7 @@
       display: block;
       margin: 0 auto;
     }
+
     .btn-group { display: flex; gap: 10px; justify-content: flex-end; }
     .btn {
       padding: 12px 20px;
@@ -106,6 +149,25 @@
     }
     .btn-clear { background: #64748B; color: #FFF; }
     .btn-submit { background: var(--accent); color: #0F172A; width: 100%; justify-content: center; }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 99999;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .modal-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 420px;
+      width: 90%;
+    }
   </style>
 </head>
 <body>
@@ -116,18 +178,24 @@
       <p>Service JLB Ltda | CS Code Solutions</p>
     </div>
 
-    <div class="pdf-box">
-      <p style="color: #94A3B8; font-size: 0.9rem; margin-bottom: 5px;">Consulte os valores e termos acordados:</p>
-      <a id="linkPdf" href="#" target="_blank" class="btn-pdf">
-        <i class="fa-solid fa-file-pdf"></i> Abrir Contrato / Proposta em PDF
-      </a>
+    <!-- Pré-visualização Direta do PDF na Página -->
+    <div class="pdf-controls" id="pdfControls" style="display: none;">
+      <button type="button" class="btn-page" onclick="mudarPagina(-1)"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+      <span>Página <span id="pageNum">1</span> de <span id="pageCount">?</span></span>
+      <button type="button" class="btn-page" onclick="mudarPagina(1)">Seguinte <i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
+    <div class="pdf-container">
+      <canvas id="pdfCanvas"></canvas>
+    </div>
+
+    <!-- Nome do Responsável -->
     <div class="form-group">
       <label for="signerName">Nome Completo do Responsável:</label>
       <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard">
     </div>
 
+    <!-- Quadro de Assinatura -->
     <div class="signature-area">
       <p><i class="fa-solid fa-pen-nib"></i> Desenhe a sua assinatura no quadro abaixo:</p>
       <canvas id="signatureCanvas" class="signature-canvas" width="450" height="150"></canvas>
@@ -144,32 +212,89 @@
     </button>
   </div>
 
+  <!-- Modal de Carregamento -->
+  <div id="statusOverlay" class="overlay">
+    <div class="modal-box">
+      <i id="statusIcon" class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 15px;"></i>
+      <h3 id="statusTitle" style="margin-bottom: 10px; color: #FFF;">A processar assinatura...</h3>
+      <p id="statusMsg" style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 15px;">A carimbar o documento de segurança.</p>
+    </div>
+  </div>
+
   <script>
+    let pdfDocGlobal = null;
+    let paginaAtual = 1;
+    let totalPaginas = 0;
     let pdfOriginalUrl = '';
     let isSigned = false;
-    const canvas = document.getElementById('signatureCanvas');
-    const ctx = canvas.getContext('2d');
+
+    const canvasSig = document.getElementById('signatureCanvas');
+    const ctxSig = canvasSig.getContext('2d');
     let isDrawing = false;
 
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       initCanvas();
       
-      // Define a rota do PDF de forma totalmente segura na raiz
       const urlParams = new URLSearchParams(window.location.search);
       const contractId = urlParams.get('id') || 'CONTRATO_JLB_2026';
       
       pdfOriginalUrl = new URL(`./contratos/${contractId}.pdf`, window.location.href).href;
-      document.getElementById('linkPdf').href = pdfOriginalUrl;
+      
+      // Carrega e desenha o PDF diretamente na página
+      await carregarEVisualizarPdf(pdfOriginalUrl);
     });
+
+    async function carregarEVisualizarPdf(url) {
+      try {
+        const loadingTask = pdfjsLib.getDocument(url);
+        pdfDocGlobal = await loadingTask.promise;
+        totalPaginas = pdfDocGlobal.numPages;
+        
+        document.getElementById('pageCount').textContent = totalPaginas;
+        if (totalPaginas > 1) {
+          document.getElementById('pdfControls').style.display = 'flex';
+        }
+
+        renderizarPaginaPdf(paginaAtual);
+      } catch (err) {
+        console.error("Erro ao carregar pré-visualização do PDF:", err);
+      }
+    }
+
+    async function renderizarPaginaPdf(num) {
+      const page = await pdfDocGlobal.getPage(num);
+      const viewport = page.getViewport({ scale: 1.2 });
+      const canvas = document.getElementById('pdfCanvas');
+      const context = canvas.getContext('2d');
+
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+      await page.render(renderContext).promise;
+      document.getElementById('pageNum').textContent = num;
+    }
+
+    function mudarPagina(direcao) {
+      if (!pdfDocGlobal) return;
+      const novaPagina = paginaAtual + direcao;
+      if (novaPagina >= 1 && novaPagina <= totalPaginas) {
+        paginaAtual = novaPagina;
+        renderizarPaginaPdf(paginaAtual);
+      }
+    }
 
     function initCanvas() {
       function getPos(e) {
-        const rect = canvas.getBoundingClientRect();
+        const rect = canvasSig.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         return {
-          x: (clientX - rect.left) * (canvas.width / rect.width),
-          y: (clientY - rect.top) * (canvas.height / rect.height)
+          x: (clientX - rect.left) * (canvasSig.width / rect.width),
+          y: (clientY - rect.top) * (canvasSig.height / rect.height)
         };
       }
 
@@ -178,19 +303,19 @@
         isDrawing = true; 
         isSigned = true; 
         const p = getPos(e); 
-        ctx.beginPath(); 
-        ctx.moveTo(p.x, p.y); 
+        ctxSig.beginPath(); 
+        ctxSig.moveTo(p.x, p.y); 
       }
 
       function moveDraw(e) { 
         if (e.cancelable) e.preventDefault();
         if (!isDrawing) return; 
         const p = getPos(e); 
-        ctx.lineWidth = 3; 
-        ctx.lineCap = 'round'; 
-        ctx.strokeStyle = '#0F172A'; 
-        ctx.lineTo(p.x, p.y); 
-        ctx.stroke(); 
+        ctxSig.lineWidth = 3; 
+        ctxSig.lineCap = 'round'; 
+        ctxSig.strokeStyle = '#0F172A'; 
+        ctxSig.lineTo(p.x, p.y); 
+        ctxSig.stroke(); 
       }
 
       function stopDraw(e) { 
@@ -198,19 +323,19 @@
         isDrawing = false; 
       }
 
-      canvas.addEventListener('mousedown', startDraw);
-      canvas.addEventListener('mousemove', moveDraw);
-      canvas.addEventListener('mouseup', stopDraw);
-      canvas.addEventListener('mouseout', stopDraw);
+      canvasSig.addEventListener('mousedown', startDraw);
+      canvasSig.addEventListener('mousemove', moveDraw);
+      canvasSig.addEventListener('mouseup', stopDraw);
+      canvasSig.addEventListener('mouseout', stopDraw);
 
-      canvas.addEventListener('touchstart', startDraw, { passive: false });
-      canvas.addEventListener('touchmove', moveDraw, { passive: false });
-      canvas.addEventListener('touchend', stopDraw, { passive: false });
-      canvas.addEventListener('touchcancel', stopDraw, { passive: false });
+      canvasSig.addEventListener('touchstart', startDraw, { passive: false });
+      canvasSig.addEventListener('touchmove', moveDraw, { passive: false });
+      canvasSig.addEventListener('touchend', stopDraw, { passive: false });
+      canvasSig.addEventListener('touchcancel', stopDraw, { passive: false });
     }
 
     function clearSignature() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctxSig.clearRect(0, 0, canvasSig.width, canvasSig.height);
       isSigned = false;
     }
 
@@ -227,21 +352,19 @@
         return;
       }
 
+      document.getElementById('statusOverlay').style.display = 'flex';
+
       try {
-        alert("A gerar documento assinado, aguarde um instante...");
-        
         const response = await fetch(pdfOriginalUrl);
-        if (!response.ok) throw new Error("Não foi possível transferir o PDF base.");
         const pdfArrayBuffer = await response.arrayBuffer();
         
         const pdfDoc = await PDFLib.PDFDocument.load(pdfArrayBuffer);
-        const signatureBase64 = canvas.toDataURL('image/png');
+        const signatureBase64 = canvasSig.toDataURL('image/png');
         const signatureImage = await pdfDoc.embedPng(signatureBase64);
 
         const pages = pdfDoc.getPages();
         const lastPage = pages[pages.length - 1];
 
-        // Posiciona a assinatura na última página
         lastPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
@@ -265,7 +388,6 @@
         const pdfAssinadoBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfAssinadoBytes], { type: 'application/pdf' });
         
-        // Dispara o download automático do PDF assinado
         const downloadUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = downloadUrl;
@@ -274,8 +396,10 @@
         a.click();
         document.body.removeChild(a);
 
+        document.getElementById('statusOverlay').style.display = 'none';
         alert("Contrato assinado e descarregado com sucesso!");
       } catch (err) {
+        document.getElementById('statusOverlay').style.display = 'none';
         alert("Erro ao processar assinatura: " + err.message);
       }
     }
