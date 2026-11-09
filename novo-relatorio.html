@@ -60,6 +60,28 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
+    
+    /* Indicador de Passos */
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding: 10px 0;
+      border-bottom: 2px solid #E2E8F0;
+    }
+    .step-item {
+      flex: 1;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #94A3B8;
+    }
+    .step-item.active {
+      color: #0D9488;
+      border-bottom: 3px solid #0D9488;
+      padding-bottom: 5px;
+    }
+
     @media (max-width: 768px) {
       .grid-data-hora {
         grid-template-columns: 1fr;
@@ -82,194 +104,258 @@
 
   <main style="padding-top: 20px;">
     <section class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
         <h2 id="formTitle" style="margin-bottom: 0; color: #0B132B; font-size: 1.5rem;">Novo Relatório de Serviço (RS)</h2>
+      </div>
+
+      <!-- Indicador de Passos Visuais -->
+      <div class="step-indicator">
+        <div class="step-item active" id="ind-step1">1. Preenchimento</div>
+        <div class="step-item" id="ind-step2">2. Assinatura</div>
+        <div class="step-item" id="ind-step3">3. Cobrança</div>
       </div>
 
       <form id="reportForm">
         <input type="hidden" id="editIndex" value="">
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-          <div>
-            <label for="repNumber"><strong>Nº do Relatório (RS):</strong></label>
-            <input type="text" id="repNumber" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-          <div>
-            <label for="repDate"><strong>Data do Atendimento:</strong></label>
-            <input type="date" id="repDate" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-          <label for="repClient"><strong>Cliente:</strong></label>
-          <select id="repClient" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;"></select>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-          <label for="repEquipment"><strong>Equipamento / Máquina:</strong></label>
-          <select id="repEquipment" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-            <option value="">Selecione primeiro um cliente...</option>
-          </select>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-          <div>
-            <label for="repBrand"><strong>Marca:</strong></label>
-            <input type="text" id="repBrand" placeholder="Ex: Trumpf / Bystronic" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-          <div>
-            <label for="repModel"><strong>Modelo:</strong></label>
-            <input type="text" id="repModel" placeholder="Ex: TruLaser 3030" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-          <label for="repSerialNumber"><strong>Número de Série / Tag:</strong></label>
-          <input type="text" id="repSerialNumber" placeholder="Ex: SN-99823" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-          <div>
-            <label for="repServiceNature"><strong>Tipo de Manutenção:</strong></label>
-            <select id="repServiceNature" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-              <option value="Corretiva">Corretiva</option>
-              <option value="Preventiva">Preventiva</option>
-              <option value="Instalação">Instalação</option>
-              <option value="Treinamento">Treinamento</option>
-              <option value="Garantia">Garantia</option>
-            </select>
-          </div>
-          <div>
-            <label for="repServiceArea"><strong>Área de Serviço:</strong></label>
-            <select id="repServiceArea" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-              <option value="Mecânica">Mecânica</option>
-              <option value="Elétrica">Elétrica</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-          <label for="repDesc"><strong>Descrição Detalhada do Serviço Realizado:</strong></label>
-          <textarea id="repDesc" rows="5" placeholder="Descreva detalhadamente o que foi executado..." required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit;"></textarea>
-        </div>
-
-        <!-- CRITÉRIOS DE COBRANÇA E DESLOCAMENTO -->
-        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-          <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">Critérios de Cobrança</h3>
-
-          <div style="margin-bottom: 12px;">
-            <label for="selectEmpreitada"><strong>Regime de Empreitada (Valor Fechado)?</strong></label>
-            <select id="selectEmpreitada" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleEmpreitadaSelect()">
-              <option value="nao">Não</option>
-              <option value="sim">Sim</option>
-            </select>
-          </div>
-
-          <div id="boxEmpreitadaDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-            <label for="repValorEmpreitada">Valor Total da Empreitada (R$):</label>
-            <input type="number" step="0.01" id="repValorEmpreitada" value="0.00" placeholder="Ex: 1500.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
-          </div>
-
-          <div style="margin-bottom: 12px;">
-            <label for="selectHora"><strong>Cobrar Hora Trabalhada?</strong></label>
-            <select id="selectHora" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleHoraSelect()">
-              <option value="nao">Não</option>
-              <option value="sim">Sim</option>
-            </select>
-          </div>
-
-          <div id="boxHoraDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-            <div style="margin-bottom: 10px;">
-              <label for="repValorHora"><strong>Valor da Hora (R$):</strong></label>
-              <input type="number" step="0.01" id="repValorHora" value="200.00" placeholder="Ex: 200.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
-            </div>
-
-            <div style="margin-bottom: 10px;">
-              <label for="numDiasTrabalho"><strong>Quantidade de Dias de Atendimento:</strong></label>
-              <input type="number" id="numDiasTrabalho" min="1" max="30" value="1" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="gerarCamposDias()">
-            </div>
-
-            <div id="containerDiasHorarios" style="display: flex; flex-direction: column; gap: 8px;"></div>
-          </div>
-
-          <div style="margin-bottom: 12px;">
-            <label for="selectDeslocamento"><strong>Cobrar Hora de Deslocamento?</strong></label>
-            <select id="selectDeslocamento" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleDeslocamentoSelect()">
-              <option value="nao">Não</option>
-              <option value="sim">Sim</option>
-            </select>
-          </div>
-
-          <div id="boxDeslocamentoDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-            <div style="margin-bottom: 8px;">
-              <label for="valorHoraDeslocamento">Valor da hora de deslocamento (R$):</label>
-              <input type="number" step="0.01" id="valorHoraDeslocamento" value="260.00" placeholder="Ex: 260" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="calcularTotalDeslocamento()">
-            </div>
-            <div style="margin-bottom: 8px;">
-              <label for="tempoDeslocamentoHoras">Tempo de deslocamento ida e volta (hs):</label>
-              <input type="number" step="0.5" id="tempoDeslocamentoHoras" value="0" placeholder="Ex: 5" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="calcularTotalDeslocamento()">
+        <!-- ============================================== -->
+        <!-- PASSO 1: DADOS TÉCNICOS E PREENCHIMENTO -->
+        <!-- ============================================== -->
+        <div id="step1">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label for="repNumber"><strong>Nº do Relatório (RS):</strong></label>
+              <input type="text" id="repNumber" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
             </div>
             <div>
-              <label><strong>Total de deslocamento (R$):</strong></label>
-              <input type="text" id="totalDeslocamentoCalculado" value="0,00" readonly style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#F1F5F9; font-weight:bold; color:#0D9488; margin-top: 2px;">
+              <label for="repDate"><strong>Data do Atendimento:</strong></label>
+              <input type="date" id="repDate" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
             </div>
           </div>
 
           <div style="margin-bottom: 12px;">
-            <label for="selectHospedagem"><strong>Adicionar Hospedagem?</strong></label>
-            <select id="selectHospedagem" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleHospedagemSelect()">
-              <option value="nao">Não</option>
-              <option value="sim">Sim</option>
+            <label for="repClient"><strong>Cliente:</strong></label>
+            <select id="repClient" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;"></select>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <label for="repEquipment"><strong>Equipamento / Máquina:</strong></label>
+            <select id="repEquipment" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              <option value="">Selecione primeiro um cliente...</option>
             </select>
           </div>
 
-          <div id="boxHospedagemDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-            <label for="valorHospedagem">Valor da Hospedagem (R$):</label>
-            <input type="number" step="0.01" id="valorHospedagem" value="0.00" placeholder="Ex: 150.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label for="repBrand"><strong>Marca:</strong></label>
+              <input type="text" id="repBrand" placeholder="Ex: Trumpf / Bystronic" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+            </div>
+            <div>
+              <label for="repModel"><strong>Modelo:</strong></label>
+              <input type="text" id="repModel" placeholder="Ex: TruLaser 3030" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+            </div>
           </div>
 
-          <div style="margin-bottom: 4px;">
-            <label for="selectOutras"><strong>Adicionar Outras Despesas / Alimentação?</strong></label>
-            <select id="selectOutras" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleOutrasSelect()">
-              <option value="nao">Não</option>
-              <option value="sim">Sim</option>
-            </select>
+          <div style="margin-bottom: 12px;">
+            <label for="repSerialNumber"><strong>Número de Série / Tag:</strong></label>
+            <input type="text" id="repSerialNumber" placeholder="Ex: SN-99823" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
           </div>
 
-          <div id="boxOutrasDetalhes" style="display: none; margin-top: 10px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-            <label for="valorOutras">Valor Adicional (R$):</label>
-            <input type="number" step="0.01" id="valorOutras" value="0.00" placeholder="Ex: 50.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label for="repServiceNature"><strong>Tipo de Manutenção:</strong></label>
+              <select id="repServiceNature" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                <option value="Corretiva">Corretiva</option>
+                <option value="Preventiva">Preventiva</option>
+                <option value="Instalação">Instalação</option>
+                <option value="Treinamento">Treinamento</option>
+                <option value="Garantia">Garantia</option>
+              </select>
+            </div>
+            <div>
+              <label for="repServiceArea"><strong>Área de Serviço:</strong></label>
+              <select id="repServiceArea" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+                <option value="Mecânica">Mecânica</option>
+                <option value="Elétrica">Elétrica</option>
+              </select>
+            </div>
           </div>
+
+          <div style="margin-bottom: 15px;">
+            <label for="repDesc"><strong>Descrição Detalhada do Serviço Realizado:</strong></label>
+            <textarea id="repDesc" rows="5" placeholder="Descreva detalhadamente o que foi executado..." required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit;"></textarea>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">📸 Fotografias / Anexos</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+              <div>
+                <label for="anexoTitulo" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Título da Foto:</label>
+                <input type="text" id="anexoTitulo" placeholder="Ex: Placa de identificação" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box;">
+              </div>
+              <div>
+                <label for="anexoFile" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Arquivo da Imagem:</label>
+                <input type="file" id="anexoFile" accept="image/*" style="width: 100%; padding: 6px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF; box-sizing: border-box;" onchange="converterAnexo(event)">
+              </div>
+              <button type="button" class="btn" style="background-color: #1D4ED8; color: #FFF; padding: 10px 15px; font-weight: bold; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="adicionarAnexo()">
+                <i class="fa-solid fa-plus"></i> Adicionar Foto
+              </button>
+            </div>
+            <div id="listaAnexos" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <button type="button" class="btn" style="background-color: #10B981; color: #FFF; padding: 12px; font-weight: bold; width: 100%;" onclick="avancarParaStep2()">
+            Avançar para Assinatura do Cliente <i class="fa-solid fa-arrow-right"></i>
+          </button>
+          
+          <button type="button" class="btn" style="background-color: transparent; color: #64748B; padding: 10px; width: 100%; margin-top: 5px;" onclick="resetForm()">
+            Cancelar Relatório
+          </button>
         </div>
 
-        <div style="margin-bottom: 20px;">
-          <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">📸 Fotografias / Anexos</h3>
-          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
-            <div>
-              <label for="anexoTitulo" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Título da Foto:</label>
-              <input type="text" id="anexoTitulo" placeholder="Ex: Placa de identificação" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box;">
+        <!-- ============================================== -->
+        <!-- PASSO 2: ASSINATURA DO CLIENTE (Resumo Oculto) -->
+        <!-- ============================================== -->
+        <div id="step2" style="display: none;">
+          <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--deep-navy);">Resumo do Atendimento</h3>
+          
+          <div style="background: #F8FAFC; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #CBD5E1; font-size: 0.9rem; color: #334155;">
+            <p style="margin-bottom: 6px;"><strong>Cliente:</strong> <span id="resumoCliente" style="color: #0F172A;"></span></p>
+            <p style="margin-bottom: 6px;"><strong>Equipamento/Máquina:</strong> <span id="resumoMaquina" style="color: #0F172A;"></span></p>
+            <p style="margin-bottom: 6px;"><strong>Tipo de Manutenção:</strong> <span id="resumoManutencao" style="color: #0F172A;"></span></p>
+            <p style="margin-bottom: 0;"><strong>Serviço Realizado:</strong> <br><span id="resumoServico" style="color: #0F172A; display: block; margin-top: 4px; white-space: pre-wrap;"></span></p>
+          </div>
+
+          <div id="areaAssinatura" style="margin-bottom: 15px;">
+            <label><strong>Assinatura do Cliente / Responsável:</strong></label>
+            <canvas id="clientCanvas" class="signature-pad" width="400" height="150"></canvas>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 10px; flex: 1;" onclick="clearClientSig()">Limpar</button>
+              <button type="button" class="btn" style="background-color: #10B981; color: #FFF; padding: 10px; flex: 2; font-weight: bold;" onclick="confirmarAssinatura()">Guardar Assinatura</button>
             </div>
-            <div>
-              <label for="anexoFile" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Arquivo da Imagem:</label>
-              <input type="file" id="anexoFile" accept="image/*" style="width: 100%; padding: 6px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF; box-sizing: border-box;" onchange="converterAnexo(event)">
-            </div>
-            <button type="button" class="btn" style="background-color: #1D4ED8; color: #FFF; padding: 10px 15px; font-weight: bold; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="adicionarAnexo()">
-              <i class="fa-solid fa-plus"></i> Adicionar Foto
+          </div>
+
+          <!-- MENSAGEM DE SUCESSO PÓS ASSINATURA -->
+          <div id="msgAssinaturaSucesso" style="display: none; background: #D1FAE5; color: #065F46; padding: 20px; border-radius: 6px; border: 1px solid #10B981; margin-bottom: 20px; text-align: center;">
+            <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; margin-bottom: 10px;"></i><br>
+            <strong style="font-size: 1.1rem; display: block; margin-bottom: 5px;">Assinatura registrada com sucesso!</strong>
+            Por favor, devolver o aparelho ao técnico.
+          </div>
+
+          <div id="btnAvancarStep3" style="display: none; margin-bottom: 10px;">
+            <button type="button" class="btn" style="background-color: #3B82F6; color: #FFF; padding: 12px; font-weight: bold; width: 100%;" onclick="avancarParaStep3()">
+              Avançar para Cobrança e Encerramento <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
-          <div id="listaAnexos" style="display: flex; flex-direction: column; gap: 8px;"></div>
+
+          <button type="button" id="btnVoltarStep1" class="btn" style="background-color: transparent; border: 1px solid #CBD5E1; color: #475569; padding: 8px 15px; width: 100%; margin-top: 10px;" onclick="voltarParaStep1()">
+            <i class="fa-solid fa-arrow-left"></i> Voltar e Editar Dados Técnicos
+          </button>
         </div>
 
-        <div style="margin-bottom: 15px;">
-          <label><strong>Assinatura do Cliente:</strong></label>
-          <canvas id="clientCanvas" class="signature-pad" width="400" height="150"></canvas>
-          <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 4px 10px; font-size: 0.8rem;" onclick="clearClientSig()">Limpar Assinatura do Cliente</button>
+        <!-- ============================================== -->
+        <!-- PASSO 3: CRITÉRIOS DE COBRANÇA E ENCERRAMENTO -->
+        <!-- ============================================== -->
+        <div id="step3" style="display: none;">
+          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">Critérios de Cobrança Internos</h3>
+
+            <div style="margin-bottom: 12px;">
+              <label for="selectEmpreitada"><strong>Regime de Empreitada (Valor Fechado)?</strong></label>
+              <select id="selectEmpreitada" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleEmpreitadaSelect()">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
+
+            <div id="boxEmpreitadaDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
+              <label for="repValorEmpreitada">Valor Total da Empreitada (R$):</label>
+              <input type="number" step="0.01" id="repValorEmpreitada" value="0.00" placeholder="Ex: 1500.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <label for="selectHora"><strong>Cobrar Hora Trabalhada?</strong></label>
+              <select id="selectHora" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleHoraSelect()">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
+
+            <div id="boxHoraDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
+              <div style="margin-bottom: 10px;">
+                <label for="repValorHora"><strong>Valor da Hora (R$):</strong></label>
+                <input type="number" step="0.01" id="repValorHora" value="200.00" placeholder="Ex: 200.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
+              </div>
+
+              <div style="margin-bottom: 10px;">
+                <label for="numDiasTrabalho"><strong>Quantidade de Dias de Atendimento:</strong></label>
+                <input type="number" id="numDiasTrabalho" min="1" max="30" value="1" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="gerarCamposDias()">
+              </div>
+
+              <div id="containerDiasHorarios" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <label for="selectDeslocamento"><strong>Cobrar Hora de Deslocamento?</strong></label>
+              <select id="selectDeslocamento" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleDeslocamentoSelect()">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
+
+            <div id="boxDeslocamentoDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
+              <div style="margin-bottom: 8px;">
+                <label for="valorHoraDeslocamento">Valor da hora de deslocamento (R$):</label>
+                <input type="number" step="0.01" id="valorHoraDeslocamento" value="260.00" placeholder="Ex: 260" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="calcularTotalDeslocamento()">
+              </div>
+              <div style="margin-bottom: 8px;">
+                <label for="tempoDeslocamentoHoras">Tempo de deslocamento ida e volta (hs):</label>
+                <input type="number" step="0.5" id="tempoDeslocamentoHoras" value="0" placeholder="Ex: 5" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="calcularTotalDeslocamento()">
+              </div>
+              <div>
+                <label><strong>Total de deslocamento (R$):</strong></label>
+                <input type="text" id="totalDeslocamentoCalculado" value="0,00" readonly style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#F1F5F9; font-weight:bold; color:#0D9488; margin-top: 2px;">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <label for="selectHospedagem"><strong>Adicionar Hospedagem?</strong></label>
+              <select id="selectHospedagem" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleHospedagemSelect()">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
+
+            <div id="boxHospedagemDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
+              <label for="valorHospedagem">Valor da Hospedagem (R$):</label>
+              <input type="number" step="0.01" id="valorHospedagem" value="0.00" placeholder="Ex: 150.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
+            </div>
+
+            <div style="margin-bottom: 4px;">
+              <label for="selectOutras"><strong>Adicionar Outras Despesas / Alimentação?</strong></label>
+              <select id="selectOutras" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleOutrasSelect()">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
+
+            <div id="boxOutrasDetalhes" style="display: none; margin-top: 10px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
+              <label for="valorOutras">Valor Adicional (R$):</label>
+              <input type="number" step="0.01" id="valorOutras" value="0.00" placeholder="Ex: 50.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn" style="background-color: transparent; border: 1px solid #CBD5E1; color: #475569; padding: 10px 15px;" onclick="voltarParaStep2()">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 12px; flex: 1;">
+              Salvar e Encerrar Relatório
+            </button>
+          </div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-          <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 20px;">Salvar Relatório de Serviço</button>
-          <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 10px 20px;" onclick="resetForm()">Cancelar</button>
-        </div>
       </form>
     </section>
   </main>
@@ -303,9 +389,89 @@
     let clientCanvas = document.getElementById('clientCanvas');
     let clientCtx = clientCanvas.getContext('2d');
     let paintingClient = false;
+    let hasSignature = false;
     let tempAnexoBase64 = '';
 
-    // APLICAR RESTRIÇÕES DAS FEATURE FLAGS DE CRITÉRIOS DE COBRANÇA E FORMATOS DE HORÁRIO
+    // ==============================================
+    // CONTROLE DE NAVEGAÇÃO ENTRE PASSOS (WIZARD)
+    // ==============================================
+    
+    window.avancarParaStep2 = function() {
+      // Validar campos obrigatórios do Passo 1 antes de prosseguir
+      const reqFields = document.querySelectorAll('#step1 [required]');
+      let isValid = true;
+      reqFields.forEach(f => {
+        if(!f.value) { 
+          isValid = false; 
+          f.style.borderColor = '#EF4444'; // Fica vermelho se faltar
+        } else { 
+          f.style.borderColor = '#CBD5E1'; 
+        }
+      });
+      
+      if(!isValid) {
+        alert('Por favor, preencha todos os campos obrigatórios no Passo 1.');
+        return;
+      }
+
+      // Preenche o resumo para o cliente ler
+      document.getElementById('resumoCliente').textContent = document.getElementById('repClient').value;
+      document.getElementById('resumoMaquina').textContent = document.getElementById('repEquipment').value;
+      document.getElementById('resumoManutencao').textContent = document.getElementById('repServiceNature').value;
+      document.getElementById('resumoServico').textContent = document.getElementById('repDesc').value;
+
+      // Troca de ecrã
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+      
+      // Atualiza Indicador
+      document.getElementById('ind-step1').classList.remove('active');
+      document.getElementById('ind-step2').classList.add('active');
+    };
+
+    window.confirmarAssinatura = function() {
+      const editIndex = document.getElementById('editIndex').value;
+      
+      // Valida se assinou (em modo de criação nova precisa assinar, na edição pode já ter assinatura carregada)
+      if(!hasSignature && !editIndex) {
+        alert('O cliente/responsável precisa desenhar a assinatura antes de guardar.');
+        return;
+      }
+
+      // Oculta área de assinatura e mostra mensagem verde de sucesso + botão avançar
+      document.getElementById('areaAssinatura').style.display = 'none';
+      document.getElementById('btnVoltarStep1').style.display = 'none'; // Esconde botão de voltar para não confundir o cliente
+      document.getElementById('msgAssinaturaSucesso').style.display = 'block';
+      document.getElementById('btnAvancarStep3').style.display = 'block';
+    };
+
+    window.avancarParaStep3 = function() {
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'block';
+      
+      // Atualiza Indicador
+      document.getElementById('ind-step2').classList.remove('active');
+      document.getElementById('ind-step3').classList.add('active');
+    };
+
+    window.voltarParaStep1 = function() {
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step1').style.display = 'block';
+      
+      document.getElementById('ind-step2').classList.remove('active');
+      document.getElementById('ind-step1').classList.add('active');
+    };
+
+    window.voltarParaStep2 = function() {
+      document.getElementById('step3').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+      
+      document.getElementById('ind-step3').classList.remove('active');
+      document.getElementById('ind-step2').classList.add('active');
+    };
+
+    // ==============================================
+
     async function aplicarFeatureFlagsCriterios() {
       try {
         const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
@@ -335,7 +501,6 @@
             if (el && el.closest('div')) el.closest('div').style.display = 'none';
           }
 
-          // Carrega as chaves do Super Admin para os formatos de horário
           window.configHorariosTenant = {
             intervalo: config.criterioHorarioIntervalo !== false,
             direto: config.criterioHorarioDireto !== false
@@ -346,16 +511,18 @@
       }
     }
 
-    function startClient(e) { paintingClient = true; drawClient(e); }
+    // Assinatura Canvas Logic
+    function startClient(e) { paintingClient = true; hasSignature = true; drawClient(e); }
     function finishClient() { paintingClient = false; clientCtx.beginPath(); }
     function drawClient(e) {
       if (!paintingClient) return;
+      e.preventDefault(); // Evita scroll ao assinar no telemóvel
       clientCtx.lineWidth = 2;
       clientCtx.lineCap = 'round';
       clientCtx.strokeStyle = '#0B132B';
       const rect = clientCanvas.getBoundingClientRect();
-      const x = (e.clientX || e.touches[0].clientX) - rect.left;
-      const y = (e.clientY || e.touches[0].clientY) - rect.top;
+      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+      const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
       clientCtx.lineTo(x, y);
       clientCtx.stroke();
       clientCtx.beginPath();
@@ -365,12 +532,13 @@
     clientCanvas.addEventListener('mousedown', startClient);
     clientCanvas.addEventListener('mouseup', finishClient);
     clientCanvas.addEventListener('mousemove', drawClient);
-    clientCanvas.addEventListener('touchstart', startClient);
+    clientCanvas.addEventListener('touchstart', startClient, {passive: false});
     clientCanvas.addEventListener('touchend', finishClient);
-    clientCanvas.addEventListener('touchmove', drawClient);
+    clientCanvas.addEventListener('touchmove', drawClient, {passive: false});
 
     window.clearClientSig = function() {
       clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
+      hasSignature = false;
     };
 
     function gerarOpcoesHoras(selecionado = '08:00') {
@@ -446,7 +614,6 @@
         let temSubTurnos = d.inicioManha || d.fimManha || d.iniM || (d.inicio && d.fimManha);
         let tipoVal = d.tipo || (temSubTurnos ? 'turnos' : 'direto');
 
-        // Se uma opção estiver desativada pelo Super Admin, força a opção permitida
         if (!permiteIntervalo && permiteDireto) tipoVal = 'direto';
         if (permiteIntervalo && !permiteDireto) tipoVal = 'turnos';
 
@@ -487,7 +654,6 @@
               <input type="date" class="dia-data-ini" value="${dataIniVal}" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
             </div>
 
-            <!-- OPÇÃO 1: TURNOS COM INTERVALO (MANHÃ E TARDE) -->
             <div id="box_turnos_${i}" style="display: ${tipoVal === 'turnos' ? 'block' : 'none'};">
               <div style="margin-bottom: 8px;">
                 <label style="font-size: 0.78rem; font-weight: bold; color: #0D9488; display: block; margin-bottom: 2px;">Início Manhã:</label>
@@ -518,7 +684,6 @@
               </div>
             </div>
 
-            <!-- OPÇÃO 2: DIRETO / TURNO ÚNICO -->
             <div id="box_direto_${i}" style="display: ${tipoVal === 'direto' ? 'block' : 'none'};">
               <div style="margin-bottom: 8px;">
                 <label style="font-size: 0.78rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Início do Atendimento:</label>
@@ -602,7 +767,6 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
 
-          // Mantém a transparência intacta e exporta como PNG
           ctx.drawImage(img, 0, 0, width, height);
           tempAnexoBase64 = canvas.toDataURL('image/png');
         };
@@ -770,7 +934,10 @@
 
             if (rep.signature) {
               const img = new Image();
-              img.onload = () => { clientCtx.drawImage(img, 0, 0); };
+              img.onload = () => { 
+                clientCtx.drawImage(img, 0, 0); 
+                hasSignature = true; // Define que já tem assinatura ao editar
+              };
               img.src = rep.signature;
             }
             if (rep.anexos && Array.isArray(rep.anexos)) {
@@ -959,7 +1126,7 @@
     </a>
   </nav>
 
-  <!-- SCRIPT SÍNCRONO INSTANTÂNEO (Executa durante o parse para eliminar piscada) -->
+  <!-- SCRIPT SÍNCRONO INSTANTÂNEO -->
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
@@ -979,7 +1146,6 @@
   <!-- SCRIPT DOMContentLoaded (Aplicação de estado definitivo) -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // 1. Aplica o logótipo personalizado no src do elemento de forma limpa
       const imgLogo = document.getElementById('logo-cliente');
       if (imgLogo) {
         const logoSalva = localStorage.getItem('rg_logo_base64');
@@ -990,7 +1156,6 @@
         }
       }
 
-      // 2. Garante alinhamento final dos botões de navegação
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
