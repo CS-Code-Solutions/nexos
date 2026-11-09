@@ -34,25 +34,28 @@
 </head>
 <body>
 
-  <!-- CABEÇALHO DO SUPER ADMIN -->
+<!-- CABEÇALHO DO SUPER ADMIN COM MENU DESKTOP -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
+    
+    <!-- LADO ESQUERDO: LOGO + SELO SUPER ADMIN -->
     <div style="display: flex; align-items: center; gap: 10px;">
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain;">
       <span style="background: #EF4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Super Admin</span>
     </div>
     
-    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
-      <i class="fa-solid fa-power-off"></i>
-      <!-- CENTRO: MENU DESKTOP -->
+    <!-- CENTRO: MENU DESKTOP (Aparece apenas em PC/Portátil) -->
     <nav class="desktop-nav">
-      <!-- Mude a class="active" dependendo da página em que estiver -->
       <a href="index.html"><i class="fa-solid fa-users"></i> Clientes</a>
       <a href="maquinas.html"><i class="fa-solid fa-gears"></i> Máquinas</a>
       <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
+
+    <!-- LADO DIREITO: BOTÃO SAIR -->
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
+      <i class="fa-solid fa-power-off"></i>
     </button>
   </header>
 
