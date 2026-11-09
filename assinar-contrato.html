@@ -247,7 +247,6 @@
 
     async function carregarDadosContrato(id) {
       try {
-        // Caminho padrão
         pdfOriginalUrl = `./contratos/${id}.pdf`;
 
         const doc = await db.collection('rg_contracts').doc(id).get();
@@ -268,7 +267,6 @@
           document.getElementById('contractSubtitle').textContent = "Cliente: Service JLB Ltda";
         }
 
-        // Converte para URL absoluta e carrega nativamente
         const fullPdfUrl = new URL(pdfOriginalUrl, window.location.href).href;
         
         document.getElementById('pdfFrame').src = fullPdfUrl;
@@ -285,24 +283,56 @@
     function initCanvas() {
       function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+
+        if (e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        }
+
         return {
           x: (clientX - rect.left) * (canvas.width / rect.width),
           y: (clientY - rect.top) * (canvas.height / rect.height)
         };
       }
 
-      function startDraw(e) { isDrawing = true; isSigned = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
-      function moveDraw(e) { if (!isDrawing) return; const p = getPos(e); ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#0F172A'; ctx.lineTo(p.x, p.y); ctx.stroke(); }
-      function stopDraw() { isDrawing = false; }
+      function startDraw(e) { 
+        if (e.cancelable) e.preventDefault();
+        isDrawing = true; 
+        isSigned = true; 
+        const p = getPos(e); 
+        ctx.beginPath(); 
+        ctx.moveTo(p.x, p.y); 
+      }
 
+      function moveDraw(e) { 
+        if (e.cancelable) e.preventDefault();
+        if (!isDrawing) return; 
+        const p = getPos(e); 
+        ctx.lineWidth = 3; 
+        ctx.lineCap = 'round'; 
+        ctx.strokeStyle = '#0F172A'; 
+        ctx.lineTo(p.x, p.y); 
+        ctx.stroke(); 
+      }
+
+      function stopDraw(e) { 
+        if (e.cancelable) e.preventDefault();
+        isDrawing = false; 
+      }
+
+      // Eventos de Mouse (Computador)
       canvas.addEventListener('mousedown', startDraw);
       canvas.addEventListener('mousemove', moveDraw);
       canvas.addEventListener('mouseup', stopDraw);
-      canvas.addEventListener('touchstart', startDraw);
-      canvas.addEventListener('touchmove', moveDraw);
-      canvas.addEventListener('touchend', stopDraw);
+      canvas.addEventListener('mouseout', stopDraw);
+
+      // Eventos de Toque (Celular/Tablet) com { passive: false } para bloquear rolagem da tela
+      canvas.addEventListener('touchstart', startDraw, { passive: false });
+      canvas.addEventListener('touchmove', moveDraw, { passive: false });
+      canvas.addEventListener('touchend', stopDraw, { passive: false });
+      canvas.addEventListener('touchcancel', stopDraw, { passive: false });
     }
 
     function clearSignature() {
@@ -335,7 +365,6 @@
         const pages = pdfDoc.getPages();
         const lastPage = pages[pages.length - 1];
 
-        // Desenha a assinatura
         lastPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
@@ -362,7 +391,6 @@
 
         let finalPdfUrl = downloadUrl;
 
-        // Tenta upload
         if (storage) {
           try {
             const refStorage = storage.ref(`contratos_assinados/contrato_${contractId}_assinado.pdf`);
@@ -376,7 +404,6 @@
           dispararDownloadDireto(downloadUrl, `Contrato_${contractId}_Assinado.pdf`);
         }
 
-        // Atualiza os registros no Firestore
         await db.collection('rg_contracts').doc(contractId).set({
           status: 'assinado',
           responsavelNome: nome,
