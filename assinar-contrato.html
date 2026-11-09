@@ -56,26 +56,36 @@
     .header h1 { font-size: 1.4rem; color: var(--accent-blue); margin-bottom: 4px; }
     .header p { font-size: 0.85rem; color: var(--text-sub); }
 
+    /* Caixa de Visualização Otimizada com Botão de Acesso Direto */
     .pdf-preview-box {
       width: 100%;
-      height: 480px;
+      height: 380px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: #000;
+      background: #0B0F19;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 20px;
-      overflow: hidden;
+      padding: 20px;
+      text-align: center;
     }
-    .pdf-preview-box iframe { width: 100%; height: 100%; border: none; }
-
-    .fallback-link {
-      display: block;
-      text-align: right;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      color: var(--accent-blue);
+    .pdf-preview-box i { font-size: 3rem; color: var(--accent-blue); margin-bottom: 10px; }
+    .pdf-preview-box p { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 15px; }
+    
+    .btn-open-pdf {
+      background: var(--accent-blue);
+      color: #0F172A;
+      padding: 10px 20px;
+      border-radius: 6px;
       text-decoration: none;
+      font-weight: bold;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
-    .fallback-link:hover { text-decoration: underline; }
 
     .form-group { margin-bottom: 15px; }
     .form-group label {
@@ -104,6 +114,8 @@
       margin-bottom: 20px;
     }
     .signature-area p { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; }
+    
+    /* Canvas corrigido sem distorção em dispositivos móveis */
     .signature-canvas {
       background: #FFFFFF;
       border-radius: 6px;
@@ -160,23 +172,22 @@
       <p id="contractSubtitle">CS Code Solutions | Plataforma NexOS</p>
     </div>
 
-    <!-- Link de Segurança caso o celular bloqueie o visualizador -->
-    <a id="btnViewPdf" href="#" target="_blank" class="fallback-link">
-      <i class="fa-solid fa-arrow-up-right-from-square"></i> O PDF não carregou? Clique aqui para abrir
-    </a>
-
-    <!-- Visualizador do Contrato Nativo -->
+    <!-- Visualizador Centralizado por Botão (Garantia Universal Mobile & Desktop) -->
     <div class="pdf-preview-box">
-      <iframe id="pdfFrame" src="about:blank"></iframe>
+      <i class="fa-solid fa-file-pdf"></i>
+      <p>O documento oficial da proposta encontra-se pronto para verificação e aceite digital.</p>
+      <a id="btnViewPdf" href="#" target="_blank" class="btn-open-pdf">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Contrato / Proposta em PDF
+      </a>
     </div>
 
-    <!-- Apenas Nome do Responsável -->
+    <!-- Nome do Responsável -->
     <div class="form-group">
       <label for="signerName">Nome Completo do Responsável:</label>
       <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard" required>
     </div>
 
-    <!-- Campo de Desenho da Assinatura -->
+    <!-- Campo de Desenho da Assinatura Corrigido -->
     <div class="signature-area">
       <p><i class="fa-solid fa-pen-nib"></i> Desenhe a sua assinatura no quadro abaixo:</p>
       <canvas id="signatureCanvas" class="signature-canvas" width="450" height="150"></canvas>
@@ -228,7 +239,7 @@
       contractId = urlParams.get('id');
 
       if (!contractId) {
-        alert("ID de contrato inválido.");
+        alert("ID de contrato inválido na URL.");
         return;
       }
 
@@ -247,7 +258,8 @@
 
     async function carregarDadosContrato(id) {
       try {
-        pdfOriginalUrl = `./contratos/${id}.pdf`;
+        // Constrói URL absoluta correta para o arquivo na pasta /contratos/
+        pdfOriginalUrl = new URL(`./contratos/${id}.pdf`, window.location.href).href;
 
         const doc = await db.collection('rg_contracts').doc(id).get();
         if (doc.exists) {
@@ -267,16 +279,13 @@
           document.getElementById('contractSubtitle').textContent = "Cliente: Service JLB Ltda";
         }
 
-        const fullPdfUrl = new URL(pdfOriginalUrl, window.location.href).href;
-        
-        document.getElementById('pdfFrame').src = fullPdfUrl;
-        document.getElementById('btnViewPdf').href = fullPdfUrl;
+        // Atribui o link absoluto ao botão de visualização
+        document.getElementById('btnViewPdf').href = pdfOriginalUrl;
 
       } catch (err) {
-        console.warn("Erro ao carregar dados do Firestore. Usando arquivo local:", err);
-        const fullPdfUrl = new URL(`./contratos/${id}.pdf`, window.location.href).href;
-        document.getElementById('pdfFrame').src = fullPdfUrl;
-        document.getElementById('btnViewPdf').href = fullPdfUrl;
+        console.warn("Erro ao carregar do Firestore. Usando rota local padrão:", err);
+        pdfOriginalUrl = new URL(`./contratos/${id}.pdf`, window.location.href).href;
+        document.getElementById('btnViewPdf').href = pdfOriginalUrl;
       }
     }
 
@@ -291,6 +300,7 @@
           clientY = e.touches[0].clientY;
         }
 
+        // Conversão exata proporcional baseada na resolução real do canvas
         return {
           x: (clientX - rect.left) * (canvas.width / rect.width),
           y: (clientY - rect.top) * (canvas.height / rect.height)
@@ -328,7 +338,7 @@
       canvas.addEventListener('mouseup', stopDraw);
       canvas.addEventListener('mouseout', stopDraw);
 
-      // Eventos de Toque (Celular/Tablet) com { passive: false } para bloquear rolagem da tela
+      // Eventos de Toque (Celular/Tablet)
       canvas.addEventListener('touchstart', startDraw, { passive: false });
       canvas.addEventListener('touchmove', moveDraw, { passive: false });
       canvas.addEventListener('touchend', stopDraw, { passive: false });
@@ -356,7 +366,11 @@
       mostrarModalLoading(true, "A carimbar o PDF...", "A integrar assinatura e registro de segurança.");
 
       try {
-        const pdfArrayBuffer = await fetch(pdfOriginalUrl).then(res => res.arrayBuffer());
+        const pdfArrayBuffer = await fetch(pdfOriginalUrl).then(res => {
+          if (!res.ok) throw new Error("Não foi possível transferir o arquivo PDF original.");
+          return res.arrayBuffer();
+        });
+        
         const pdfDoc = await PDFLib.PDFDocument.load(pdfArrayBuffer);
 
         const signatureBase64 = canvas.toDataURL('image/png');
@@ -365,6 +379,7 @@
         const pages = pdfDoc.getPages();
         const lastPage = pages[pages.length - 1];
 
+        // Desenha a assinatura nas coordenadas finais do PDF
         lastPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
@@ -464,7 +479,6 @@
       
       if (urlPdf) {
         const fullPdfUrl = urlPdf.startsWith('http') ? urlPdf : new URL(urlPdf, window.location.href).href;
-        document.getElementById('pdfFrame').src = fullPdfUrl;
         document.getElementById('btnViewPdf').href = fullPdfUrl;
       }
     }
