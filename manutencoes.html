@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+  (function() {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+    }
+  })();
+</script>
+
+  <link rel="icon" href="nexosico.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexOS - Manutenções Planeadas</title>
+  
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="global-modal.js"></script>
+  
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script src="firebase-init.js?v=2"></script>
+  <script src="firebase-sync.js?v=2"></script>
+
+  <style>
+    .desktop-nav { display: flex; align-items: center; gap: 20px; }
+    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
+    .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
+    @media (max-width: 768px) { .desktop-nav { display: none !important; } }
+    @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
+  </style>
+</head>
+<body>
+
+  <!-- CABEÇALHO -->
+  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
+    </a>
+
+    <nav class="desktop-nav">
+      <a href="index.html"><i class="fa-solid fa-users"></i> Clientes</a>
+      <a href="maquinas.html"><i class="fa-solid fa-gears"></i> Máquinas</a>
+      <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html" class="active"><i class="fa-solid fa-calendar-check"></i> Planeamento</a>
+      <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
+      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+    </nav>
+
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
+      <i class="fa-solid fa-power-off"></i>
+    </button>
+  </header>
+
+  <main style="max-width: 900px; margin: 20px auto; padding: 0 15px; padding-bottom: 80px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;" class="no-print">
+      <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Manutenções Planeadas</h2>
+      <button type="button" class="btn" onclick="toggleManutencaoForm()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 18px;">
+        <i class="fa-solid fa-plus"></i> Agendar Manutenção
+      </button>
+    </div>
+
+    <!-- FORMULÁRIO DE AGENDAMENTO (ACORDEÃO) -->
+    <section class="card no-print" id="manutencaoFormSection" style="display: none; border-top: 4px solid var(--electric-cyan); margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 id="form-title" style="color: #0B132B; font-size: 1.2rem; margin: 0;">Novo Agendamento</h3>
+        <button type="button" onclick="toggleManutencaoForm()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748B;">&times;</button>
+      </div>
+
+      <form id="manutencao-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label for="m-data" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem;">Data Prevista:</label>
+            <input type="date" id="m-data" required style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-cliente" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem;">Cliente:</label>
+            <select id="m-cliente" required style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; background: #fff;">
+              <option value="">Selecione o cliente...</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label for="m-maquina" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem;">Máquina / Equipamento:</label>
+            <input type="text" id="m-maquina" placeholder="Ex: Prensa Hidráulica 02" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-tipo" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem;">Tipo de Serviço:</label>
+            <select id="m-tipo" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; background: #fff;">
+              <option value="Preventiva">Preventiva</option>
+              <option value="Inspeção">Inspeção / Lubrificação</option>
+              <option value="Corretiva Agendada">Corretiva Agendada</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label for="m-obs" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem;">Observações / Tarefas:</label>
+          <textarea id="m-obs" rows="3" placeholder="Descreva os detalhes do serviço a ser executado..." style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; font-family: inherit;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" id="btn-submit-m" class="btn" style="background-color: #22C55E; color: white; font-weight: bold; padding: 10px 20px; flex: 1;">Guardar Agendamento</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 10px 20px;" onclick="resetManutencaoForm()">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- LISTA DE AGENDAMENTOS -->
+    <section class="card">
+      <h3 style="color: #0B132B; font-size: 1.3rem; margin-bottom: 15px;">Cronograma de Manutenções</h3>
+      <div id="manutencao-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+        <p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar agendamentos...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="no-print">
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
+  <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="index.html"><i class="fa-solid fa-users"></i><span>Clientes</span></a>
+    <a href="maquinas.html"><i class="fa-solid fa-gears"></i><span>Máquinas</span></a>
+    <a href="historico.html"><i class="fa-solid fa-file-lines"></i><span>Relatórios</span></a>
+    <a href="manutencoes.html" class="active"><i class="fa-solid fa-calendar-check"></i><span>Plan</span></a>
+    <a href="orcamentos.html" id="nav-item-orcamentos"><i class="fa-solid fa-calculator"></i><span>Orçamentos</span></a>
+    <a href="horas-extras.html" id="nav-item-horas"><i class="fa-solid fa-clock"></i><span>Horas</span></a>
+    <a href="configuracao.html" id="nav-item-config"><i class="fa-solid fa-gear"></i><span>Config</span></a>
+  </nav>
+
+  <script src="manutencoes.js?v=2"></script>
+</body>
+</html>
