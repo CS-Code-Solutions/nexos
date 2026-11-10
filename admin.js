@@ -188,7 +188,7 @@ window.exportarBackupCSV = async function(uid, nomeEmpresa) {
 
 /**
  * Processa o upload de imagem otimizando a largura/altura para no máximo 350px.
- * Isso mantém o ficheiro leve (< 40KB em vez de 3MB) e evita erros de limite de documento no Firestore.
+ * Mantém o ficheiro leve (< 40KB) para evitar exceder o limite de documento do Firestore.
  */
 window.processarUploadLogo = function(event) {
   const file = event.target.files[0];
@@ -340,17 +340,21 @@ if (tenantFormEl) {
     };
 
     try {
+      // 1. Grava no Firestore para o tenant alvo
       await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
 
-      // Atualiza instantaneamente o localStorage e a visualização no topo caso seja o tenant ativo ou super admin
-      if (logoBase64Final) {
-        localStorage.setItem('rg_logo_base64', logoBase64Final);
-        const headerLogo = document.getElementById('logo-cliente');
-        if (headerLogo) headerLogo.src = logoBase64Final;
-      } else {
-        localStorage.removeItem('rg_logo_base64');
-        const headerLogo = document.getElementById('logo-cliente');
-        if (headerLogo) headerLogo.src = 'marca.png';
+      // 2. ISOLAMENTO MULTI-TENANT: SÓ atualiza o localStorage local se o administrador estiver a editar o SEU próprio tenant
+      const meuTenantId = localStorage.getItem('rg_tenant_id') || 'cs_master';
+      if (uid === meuTenantId) {
+        if (logoBase64Final) {
+          localStorage.setItem('rg_logo_base64', logoBase64Final);
+          const headerLogo = document.getElementById('logo-cliente');
+          if (headerLogo) headerLogo.src = logoBase64Final;
+        } else {
+          localStorage.removeItem('rg_logo_base64');
+          const headerLogo = document.getElementById('logo-cliente');
+          if (headerLogo) headerLogo.src = 'marca.png';
+        }
       }
 
       if (emailCliente) {
@@ -363,7 +367,7 @@ if (tenantFormEl) {
         }, { merge: true });
       }
 
-      alert('✅ Configurações e logótipo salvos com sucesso!');
+      alert('✅ Configurações e logótipo salvos no banco de dados com sucesso!');
       fecharModalCliente();
       carregarPainelAdmin();
     } catch (err) {
