@@ -107,14 +107,15 @@
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
+    <!--Menu Superior (Desktop)-->
     <nav class="desktop-nav">
-      <a href="cadastros.html" class="active"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
-      <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
+
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
       <i class="fa-solid fa-power-off"></i>
@@ -217,23 +218,19 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="cadastros.html" class="active">
+    <a href="cadastros.html"class="active">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html">
+    <a href="relatorios.html" class="active">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
     <a href="manutencoes.html">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
-    </a>
-    <a href="orcamentos.html" id="nav-item-orcamentos">
-      <i class="fa-solid fa-calculator"></i>
-      <span>Orçamentos</span>
     </a>
     <a href="horas-extras.html" id="nav-item-horas">
       <i class="fa-solid fa-clock"></i>
@@ -244,6 +241,7 @@
       <span>Config</span>
     </a>
   </nav>
+
 
   <script src="cadastros.js?v=2"></script>
   <script>
