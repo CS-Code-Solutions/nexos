@@ -1,21 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script>
-  (function() {
-    const logoSalva = localStorage.getItem('rg_logo_base64');
-    if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-    }
-  })();
-</script>
-
-  <link rel="icon" href="nexosico192.png" type="image/png">
-  <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NexOS - Painel Super Admin (CS Code Solutions)</title>
   
+  <link rel="icon" href="nexosico192.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   
   <!-- FontAwesome para os ícones -->
@@ -66,7 +57,7 @@
 </head>
 <body>
 
-<!-- CABEÇALHO DO SUPER ADMIN COM MENU DESKTOP -->
+  <!-- CABEÇALHO DO SUPER ADMIN COM MENU DESKTOP -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
     
     <!-- LADO ESQUERDO: LOGO + SELO SUPER ADMIN -->
@@ -75,14 +66,14 @@
       <span style="background: #EF4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Super Admin</span>
     </div>
     
-      <!-- CENTRO: MENU DESKTOP -->
-      <nav class="desktop-nav">
+    <!-- CENTRO: MENU DESKTOP -->
+    <nav class="desktop-nav">
       <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
-      </nav>
+    </nav>
 
     <!-- LADO DIREITO: BOTÃO SAIR -->
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
@@ -151,9 +142,10 @@
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">🎨 Identidade Visual (White-Label)</h4>
             
             <div class="form-group" style="margin-bottom: 10px;">
-              <label><strong>Logótipo da Empresa (Mantém PNG original):</strong></label>
+              <label><strong>Logótipo da Empresa (Mantém PNG transparente):</strong></label>
               <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
                 <input type="file" id="tenantLogoFile" accept="image/*" onchange="processarUploadLogo(event)" style="font-size: 0.85rem;">
+                <button type="button" onclick="removerLogoForm()" style="background: #EF4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;"><i class="fa-solid fa-trash"></i> Remover Logo</button>
               </div>
               <input type="hidden" id="tenantLogoBase64">
               <div id="logoPreviewContainer" style="margin-top: 8px; display: none;">
@@ -267,13 +259,13 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-<!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="cadastros.html">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html" >
+    <a href="relatorios.html">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
@@ -292,7 +284,7 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="admin.js?v=9"></script>
+  <script src="admin.js?v=10"></script>
 
   <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
   <script>
