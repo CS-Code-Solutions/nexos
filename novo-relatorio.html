@@ -96,7 +96,7 @@
 </head>
 <body>
 
- <!-- CABEÇALHO -->
+  <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     
     <!-- LADO ESQUERDO: LOGO -->
@@ -106,14 +106,12 @@
 
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
-  <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-  <a href="historico.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-  <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
-  <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
-  <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-  <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
-</nav>
-
+      <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+    </nav>
 
     <!-- LADO DIREITO: BOTÃO SAIR -->
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
@@ -137,9 +135,7 @@
       <form id="reportForm">
         <input type="hidden" id="editIndex" value="">
 
-        <!-- ============================================== -->
         <!-- PASSO 1: DADOS TÉCNICOS E PREENCHIMENTO -->
-        <!-- ============================================== -->
         <div id="step1">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
             <div>
@@ -232,9 +228,7 @@
           </button>
         </div>
 
-        <!-- ============================================== -->
         <!-- PASSO 2: ASSINATURA DO CLIENTE -->
-        <!-- ============================================== -->
         <div id="step2" style="display: none;">
           <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--deep-navy);">Resumo do Atendimento</h3>
           
@@ -272,9 +266,7 @@
           </button>
         </div>
 
-        <!-- ============================================== -->
         <!-- PASSO 3: CRITÉRIOS DE COBRANÇA E ENCERRAMENTO -->
-        <!-- ============================================== -->
         <div id="step3" style="display: none;">
           <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
             <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">Critérios de Cobrança Internos</h3>
@@ -393,8 +385,6 @@
         await loadClients();
         gerarCamposDias();
         await verificarModoEdicao();
-        
-        // --- AUTOPREENCHIMENTO Vindo de Manutenções Planeadas ---
         await verificarPreenchimentoPlaneado();
       }
     });
@@ -413,10 +403,6 @@
     let hasSignature = false;
     let tempAnexoBase64 = '';
 
-    // ==============================================
-    // CONTROLE DE NAVEGAÇÃO ENTRE PASSOS (WIZARD)
-    // ==============================================
-    
     window.avancarParaStep2 = function() {
       const reqFields = document.querySelectorAll('#step1 [required]');
       let isValid = true;
@@ -484,8 +470,6 @@
       document.getElementById('ind-step2').classList.add('active');
     };
 
-    // ==============================================
-
     async function aplicarFeatureFlagsCriterios() {
       try {
         const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
@@ -525,7 +509,6 @@
       }
     }
 
-    // Assinatura Canvas Logic
     if (clientCanvas && clientCtx) {
       function startClient(e) { paintingClient = true; hasSignature = true; drawClient(e); }
       function finishClient() { paintingClient = false; clientCtx.beginPath(); }
@@ -853,7 +836,6 @@
       }
     }
 
-    // --- FUNÇÃO PARA TRATAR O AUTOPREENCHIMENTO DO PLANEAMENTO ---
     async function verificarPreenchimentoPlaneado() {
       const dadosPend = localStorage.getItem('rg_preencher_rs');
       if (dadosPend) {
@@ -1132,7 +1114,7 @@
 
           await DataSync.save('rg_reports', reports);
           alert('Relatório de serviço salvo e sincronizado com sucesso!');
-          window.location.href = 'historico.html';
+          window.location.href = 'relatorios.html';
         } catch (err) {
           alert('Erro ao salvar relatório: ' + err.message);
         }
@@ -1140,7 +1122,7 @@
     }
 
     window.resetForm = function() {
-      window.location.href = 'historico.html';
+      window.location.href = 'relatorios.html';
     };
 
     function escapeHTML(str) {
@@ -1155,52 +1137,42 @@
   </script>
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
- <nav class="bottom-nav no-print" id="mainBottomNav">
-  <a href="index.html">
-    <i class="fa-solid fa-address-book"></i>
-    <span>Cadastros</span>
-  </a>
-  <a href="historico.html"class="active">
-    <i class="fa-solid fa-file-lines"></i>
-    <span>Relatórios</span>
-  </a>
-  <a href="manutencoes.html">
-    <i class="fa-solid fa-calendar-check"></i>
-    <span>Plan</span>
-  </a>
-  <a href="orcamentos.html" id="nav-item-orcamentos">
-    <i class="fa-solid fa-calculator"></i>
-    <span>Orçamentos</span>
-  </a>
-  <a href="horas-extras.html" id="nav-item-horas">
-    <i class="fa-solid fa-clock"></i>
-    <span>Horas</span>
-  </a>
-  <a href="configuracao.html" id="nav-item-config">
-    <i class="fa-solid fa-gear"></i>
-    <span>Config</span>
-  </a>
-</nav>
-
+  <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="index.html">
+      <i class="fa-solid fa-address-book"></i>
+      <span>Cadastros</span>
+    </a>
+    <a href="relatorios.html" class="active">
+      <i class="fa-solid fa-file-lines"></i>
+      <span>Relatórios</span>
+    </a>
+    <a href="manutencoes.html">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Plan</span>
+    </a>
+    <a href="horas-extras.html" id="nav-item-horas">
+      <i class="fa-solid fa-clock"></i>
+      <span>Horas</span>
+    </a>
+    <a href="configuracao.html" id="nav-item-config">
+      <i class="fa-solid fa-gear"></i>
+      <span>Config</span>
+    </a>
+  </nav>
 
   <!-- SCRIPT SÍNCRONO INSTANTÂNEO -->
   <script>
     (function() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
-      if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos { display: none !important; }</style>');
-      }
       if (!isSuperAdmin && showHoras !== 'true') {
         document.write('<style>#nav-item-horas { display: none !important; }</style>');
       }
     })();
   </script>
 
-  <!-- SCRIPT DOMContentLoaded (Aplicação de estado definitivo) -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const imgLogo = document.getElementById('logo-cliente');
@@ -1213,17 +1185,11 @@
         }
       }
 
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
-      const navOrcamentos = document.getElementById('nav-item-orcamentos');
       const navHoras = document.getElementById('nav-item-horas');
-
-      if (navOrcamentos) {
-        navOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
-      }
 
       if (navHoras) {
         navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
@@ -1236,7 +1202,6 @@
     if (bottomNav) {
       const activeItem = bottomNav.querySelector('a.active');
       if (activeItem) {
-        // Centraliza o item ativo automaticamente na barra horizontal
         setTimeout(() => {
           bottomNav.scrollTo({
             left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
