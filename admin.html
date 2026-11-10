@@ -77,9 +77,9 @@
     
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
+      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
@@ -172,6 +172,9 @@
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">📑 Controle de Páginas Gerais</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="pageManutencoes" checked style="width: 16px; height: 16px;"> Planejamento
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
                 <input type="checkbox" id="pageCadastros" checked style="width: 16px; height: 16px;"> Cadastros
               </label>
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
@@ -179,9 +182,6 @@
               </label>
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
                 <input type="checkbox" id="pageOrcamentos" checked style="width: 16px; height: 16px;"> Orçamentos
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="pageManutencoes" checked style="width: 16px; height: 16px;"> Planejamento
               </label>
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
                 <input type="checkbox" id="modHorasExtras" style="width: 16px; height: 16px;"> Horas Extras
@@ -269,6 +269,10 @@
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="manutencoes.html" class="active">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Plan</span>
+    </a>
     <a href="index.html">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
@@ -277,22 +281,18 @@
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html">
-      <i class="fa-solid fa-calendar-check"></i>
-      <span>Plan</span>
-    </a>
     <a href="horas-extras.html" id="nav-item-horas">
       <i class="fa-solid fa-clock"></i>
       <span>Horas</span>
     </a>
-    <a href="configuracao.html" class="active" id="nav-item-config">
+    <a href="configuracao.html" id="nav-item-config">
       <i class="fa-solid fa-gear"></i>
       <span>Config</span>
     </a>
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="admin.js?v=7"></script>
+  <script src="admin.js?v=8"></script>
 
   <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
   <script>
