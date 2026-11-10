@@ -265,6 +265,31 @@
 
   </div>
 </div>
+<script>
+  // Defina aqui a versão atual do seu sistema
+  const VERSAO_ATUAL = "1.2.0"; 
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const versaoArmazenada = localStorage.getItem('rg_ultima_versao_vista');
+
+    if (versaoArmazenada !== VERSAO_ATUAL) {
+      // Se for a primeira vez que entra nesta versão, exibe o modal
+      const modal = document.getElementById('changelogModal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+  });
+
+  function fecharChangelog() {
+    // Grava a versão atual para não exibir novamente
+    localStorage.setItem('rg_ultima_versao_vista', VERSAO_ATUAL);
+    const modal = document.getElementById('changelogModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+</script>
 
 </body>
 </html>
