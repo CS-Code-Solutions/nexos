@@ -28,23 +28,12 @@ let listaOrcamentos = [];
 let activeReportData = {};
 let activeBudgetData = {};
 
-const orcDateEl = document.getElementById('orcDate');
-if (orcDateEl) orcDateEl.valueAsDate = new Date();
-
 async function carregarOpcoesClientes() {
-  const selectOrc = document.getElementById('orcClient');
   const selectFiltro = document.getElementById('selectClienteFiltro');
   
   try {
     const clients = await DataSync.load('rg_clients') || [];
     if (!Array.isArray(clients)) return;
-
-    if (selectOrc) {
-      const valAtual = selectOrc.value;
-      selectOrc.innerHTML = '<option value="">Selecione um cliente...</option>';
-      clients.forEach(c => selectOrc.innerHTML += `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`);
-      selectOrc.value = valAtual;
-    }
 
     if (selectFiltro) {
       const valFiltroAtual = selectFiltro.value;
@@ -89,8 +78,6 @@ window.filtrarDocumentos = function() {
   const busca = (document.getElementById('inputPesquisa')?.value || '').toLowerCase().trim();
   const tipoFiltro = document.getElementById('selectTipoFiltro')?.value || 'todos';
   const clienteFiltro = document.getElementById('selectClienteFiltro')?.value || '';
-  const dataIni = document.getElementById('dataInicio')?.value || '';
-  const dataFim = document.getElementById('dataFim')?.value || '';
 
   let unificados = [];
 
@@ -111,21 +98,27 @@ window.filtrarDocumentos = function() {
     });
   }
 
-  // Mapeia Orçamentos
-  if (tipoFiltro === 'todos' || tipoFiltro === 'orcamento') {
-    listaOrcamentos.forEach((o, idx) => {
-      if (!o) return;
-      unificados.push({
-        tipoDoc: 'ORC',
-        origemIndex: idx,
-        numero: o.number || `ORC-${String(idx + 1).padStart(4, '0')}`,
-        data: o.date || '',
-        cliente: o.client || '-',
-        equipamento: o.equipment || '-',
-        detalheExtra: `R$ ${Number(o.total || 0).toFixed(2)}`,
-        objetoOriginal: o
+  // Mapeia Orçamentos (Apenas se o módulo estiver ativo)
+  const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
+  const userRole = localStorage.getItem('rg_user_role');
+  const isSuperAdmin = (userRole === 'super_admin');
+
+  if (isSuperAdmin || showOrcamentos) {
+    if (tipoFiltro === 'todos' || tipoFiltro === 'orc') {
+      listaOrcamentos.forEach((o, idx) => {
+        if (!o) return;
+        unificados.push({
+          tipoDoc: 'ORC',
+          origemIndex: idx,
+          numero: o.number || `ORC-${String(idx + 1).padStart(4, '0')}`,
+          data: o.date || '',
+          cliente: o.client || '-',
+          equipamento: o.equipment || '-',
+          detalheExtra: `R$ ${Number(o.total || 0).toFixed(2)}`,
+          objetoOriginal: o
+        });
       });
-    });
+    }
   }
 
   // Ordena por data (mais recente primeiro)
@@ -133,14 +126,8 @@ window.filtrarDocumentos = function() {
 
   // Aplicação dos Filtros
   const filtrados = unificados.filter(item => {
-    // Filtro por Cliente
     if (clienteFiltro && item.cliente !== clienteFiltro) return false;
 
-    // Filtro por Intervalo de Data
-    if (dataIni && item.data < dataIni) return false;
-    if (dataFim && item.data > dataFim) return false;
-
-    // Filtro de Texto
     if (busca) {
       const numClean = item.numero.toLowerCase();
       const cliClean = item.cliente.toLowerCase();
@@ -223,132 +210,6 @@ window.filtrarDocumentos = function() {
   });
 
   container.innerHTML = htmlCards;
-};
-
-/* --- GESTÃO E CRIAÇÃO DE ORÇAMENTOS --- */
-window.toggleBudgetForm = async function(forceShow = false) {
-  const formSection = document.getElementById('budgetFormSection');
-  if (!formSection) return;
-
-  if (forceShow || formSection.style.display === 'none') {
-    formSection.style.display = 'block';
-    window.scrollTo({ top: formSection.offsetTop - 80, behavior: 'smooth' });
-    
-    if (!document.getElementById('editIndexOrc').value) {
-      document.getElementById('budgetForm').reset();
-      document.getElementById('editIndexOrc').value = '';
-      document.getElementById('formTitleOrc').textContent = 'Novo Orçamento';
-      if (orcDateEl) orcDateEl.valueAsDate = new Date();
-      
-      try {
-        let budgets = await DataSync.load('rg_orcamentos') || [];
-        document.getElementById('orcNumber').value = `ORC-${String(budgets.length + 1).padStart(4, '0')}`;
-      } catch (e) {}
-
-      atualizarTermosCompletos();
-    }
-  } else {
-    formSection.style.display = 'none';
-    document.getElementById('budgetForm').reset();
-    document.getElementById('editIndexOrc').value = '';
-  }
-};
-
-window.atualizarTermosCompletos = function() {
-  const checkboxes = document.querySelectorAll('.term-check');
-  let selecionados = [];
-  checkboxes.forEach(cb => { if (cb.checked) selecionados.push(cb.value); });
-
-  const checkNotInc = document.getElementById('checkNotIncluded');
-  const textNotInc = document.getElementById('orcNotIncludedText');
-  if (checkNotInc && checkNotInc.checked && textNotInc) {
-    const val = textNotInc.value.trim() !== '' ? textNotInc.value.trim() : textNotInc.placeholder;
-    selecionados.push(`Não estão inclusos: ${val}`);
-  }
-
-  const orcTermsEl = document.getElementById('orcTerms');
-  if (orcTermsEl) orcTermsEl.value = selecionados.join('\n');
-};
-
-document.getElementById('budgetForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const editIndex = document.getElementById('editIndexOrc').value;
-
-  const newBudget = {
-    number: document.getElementById('orcNumber').value,
-    date: document.getElementById('orcDate').value,
-    client: document.getElementById('orcClient').value,
-    equipment: document.getElementById('orcEquipment').value,
-    desc: document.getElementById('orcDesc').value,
-    paymentOption: document.getElementById('orcPaymentOption').value,
-    total: document.getElementById('orcTotal').value,
-    terms: document.getElementById('orcTerms').value
-  };
-
-  try {
-    let budgets = await DataSync.load('rg_orcamentos') || [];
-    if (!Array.isArray(budgets)) budgets = [];
-
-    if (editIndex !== '') {
-      budgets[editIndex] = newBudget;
-    } else {
-      budgets.push(newBudget);
-    }
-
-    await DataSync.save('rg_orcamentos', budgets);
-    alert('Orçamento salvo e sincronizado com sucesso!');
-    toggleBudgetForm();
-    await renderizarTudo();
-  } catch (err) {
-    alert('Erro ao salvar orçamento: ' + err.message);
-  }
-});
-
-window.editBudget = async function(index) {
-  try {
-    const b = listaOrcamentos[index];
-    if (!b) return;
-
-    document.getElementById('editIndexOrc').value = index;
-    document.getElementById('formTitleOrc').textContent = `Editar Orçamento - ${b.number}`;
-    document.getElementById('orcNumber').value = b.number;
-    document.getElementById('orcDate').value = b.date;
-    document.getElementById('orcClient').value = b.client;
-    document.getElementById('orcEquipment').value = b.equipment;
-    document.getElementById('orcDesc').value = b.desc;
-    document.getElementById('orcPaymentOption').value = b.paymentOption || 'banco1';
-    document.getElementById('orcTotal').value = b.total;
-    document.getElementById('orcTerms').value = b.terms;
-
-    const currentTerms = b.terms || '';
-    document.querySelectorAll('.term-check').forEach(cb => {
-      cb.checked = currentTerms.includes(cb.value);
-    });
-
-    if (currentTerms.includes("Não estão inclusos:")) {
-      document.getElementById('checkNotIncluded').checked = true;
-      const parts = currentTerms.split("Não estão inclusos:");
-      if (parts[1]) document.getElementById('orcNotIncludedText').value = parts[1].trim();
-    } else {
-      document.getElementById('checkNotIncluded').checked = false;
-      document.getElementById('orcNotIncludedText').value = "";
-    }
-
-    toggleBudgetForm(true);
-  } catch (e) {
-    alert('Erro ao carregar orçamento para edição.');
-  }
-};
-
-window.deleteBudget = async function(index) {
-  if (confirm('Deseja realmente excluir este orçamento?')) {
-    try {
-      let budgets = await DataSync.load('rg_orcamentos') || [];
-      budgets.splice(index, 1);
-      await DataSync.save('rg_orcamentos', budgets);
-      await renderizarTudo();
-    } catch (e) { alert('Erro ao excluir orçamento.'); }
-  }
 };
 
 /* --- AÇÕES DE EDICÃO E EXCLUSÃO DE RS --- */
