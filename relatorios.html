@@ -3,13 +3,16 @@
 <head>
 <script>
   (function() {
-    // Verifica instantaneamente no armazenamento local se os orçamentos estão desativados para este inquilino
+    // Bloqueio instantâneo para evitar piscadas de elementos sem permissão
     const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
     if (showOrcamentos === 'false') {
-      // Injeta uma regra CSS imediata que esconde o botão de orçamento e opções antes mesmo da página renderizar
       document.write('<style>a[href="novo-orcamento.html"], option[value="orc"] { display: none !important; }</style>');
     }
-  }));
+    const showRelatorios = localStorage.getItem('rg_page_relatorios');
+    if (showRelatorios === 'false') {
+      document.write('<style>a[href="novo-relatorio.html"], option[value="rs"] { display: none !important; }</style>');
+    }
+  })();
 </script>
 <script>
   (function() {
