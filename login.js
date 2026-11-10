@@ -64,7 +64,7 @@ window.handleGoogleLogin = async function() {
     localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
     localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
     
-    // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS E A LOGO PARA NÃO PISCAR ---
+    // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS E A LOGO DO TENANT ESPECÍFICO DO UTILIZADOR ---
     try {
       const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
       if (configDoc.exists) {
