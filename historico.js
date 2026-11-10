@@ -53,13 +53,44 @@ window.filtrarDocumentos = function() {
   if (!container) return;
 
   const busca = (document.getElementById('inputPesquisaRelatorios')?.value || '').toLowerCase().trim();
-  const tipoFiltro = document.getElementById('selectTipoFiltro')?.value || 'todos';
+  const selectTipo = document.getElementById('selectTipoFiltro');
   const clienteFiltro = document.getElementById('selectClienteFiltro')?.value || '';
+
+  // Leitura das flags de permissão do localStorage (configuradas no Painel Admin)
+  const showRelatorios = localStorage.getItem('rg_page_relatorios') !== 'false';
+  const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
+
+  // Controle visual dos botões no topo
+  const btnNovoRelatório = document.querySelector('a[href="novo-relatorio.html"]');
+  const btnNovoOrcamento = document.querySelector('a[href="novo-orcamento.html"]');
+
+  if (btnNovoRelatório) btnNovoRelatório.style.display = showRelatorios ? 'inline-flex' : 'none';
+  if (btnNovoOrcamento) btnNovoOrcamento.style.display = showOrcamentos ? 'inline-flex' : 'none';
+
+  let tipoFiltro = selectTipo ? selectTipo.value : 'todos';
+
+  // Aplicação estrita das regras de exibição e seletor
+  let grupoTipoFiltroContainer = selectTipo ? selectTipo.closest('div') : null;
+
+  if (!showRelatorios && showOrcamentos) {
+    tipoFiltro = 'orc';
+    if (selectTipo) selectTipo.value = 'orc';
+    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none'; // Oculta seletor redundante se só há 1 opção
+  } else if (showRelatorios && !showOrcamentos) {
+    tipoFiltro = 'rs';
+    if (selectTipo) selectTipo.value = 'rs';
+    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none'; // Oculta seletor redundante se só há 1 opção
+  } else if (!showRelatorios && !showOrcamentos) {
+    tipoFiltro = 'none';
+    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none';
+  } else {
+    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'block';
+  }
 
   let unificados = [];
 
-  // 1. Mapeia Relatórios RS
-  if (tipoFiltro === 'todos' || tipoFiltro === 'rs') {
+  // 1. Mapeia Relatórios RS (se permitido)
+  if (showRelatorios && (tipoFiltro === 'todos' || tipoFiltro === 'rs')) {
     listaRelatoriosRS.forEach((r, idx) => {
       if (!r) return;
       unificados.push({
@@ -75,8 +106,8 @@ window.filtrarDocumentos = function() {
     });
   }
 
-  // 2. Mapeia Orçamentos ORC
-  if (tipoFiltro === 'todos' || tipoFiltro === 'orc') {
+  // 2. Mapeia Orçamentos ORC (se permitido)
+  if (showOrcamentos && (tipoFiltro === 'todos' || tipoFiltro === 'orc')) {
     listaOrcamentos.forEach((o, idx) => {
       if (!o) return;
       unificados.push({
