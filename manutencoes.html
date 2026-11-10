@@ -40,10 +40,15 @@
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
+      if (!isSuperAdmin && showManutencoes === 'false') {
+        alert('Acesso restrito: A página de Planejamento encontra-se desativada para a sua conta.');
+        window.location.href = 'index.html';
+      }
       if (!isSuperAdmin && showOrcamentos === 'false') {
         document.write('<style>#nav-item-orcamentos { display: none !important; }</style>');
       }
@@ -147,7 +152,7 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR ÚNICA E CORRETA -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html">
       <i class="fa-solid fa-users"></i>
