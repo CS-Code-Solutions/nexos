@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+  (function() {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+    }
+  })();
+</script>
+
+  <link rel="icon" href="nexosico.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexOS - Novo Orçamento</title>
+  
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="global-modal.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js?v=2"></script>
+  <script src="firebase-sync.js?v=2"></script>
+
+  <style>
+    .desktop-nav { display: flex; align-items: center; gap: 20px; }
+    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
+    @media (max-width: 768px) { .desktop-nav { display: none !important; } }
+    @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain;">
+    </a>
+
+    <nav class="desktop-nav">
+      <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+    </nav>
+
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Encerrar Sessão">
+      <i class="fa-solid fa-power-off"></i>
+    </button>
+  </header>
+
+  <main style="max-width: 900px; margin: 20px auto; padding: 0 15px; padding-bottom: 80px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h2 id="formTitle" style="color: #0B132B; margin: 0; font-size: 1.4rem;">Novo Orçamento</h2>
+      <a href="relatorios.html" class="btn" style="background-color: #64748B; color: white; text-decoration: none; padding: 8px 14px; font-size: 0.85rem; border-radius: 4px;">
+        <i class="fa-solid fa-arrow-left"></i> Voltar
+      </a>
+    </div>
+
+    <section class="card" style="border-top: 4px solid var(--tech-blue, #2563EB); background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+      <form id="budgetForm">
+        <input type="hidden" id="editIndex" value="">
+
+        <div class="grid-2" style="margin-bottom: 12px;">
+          <div>
+            <label for="orcNumber"><strong>Nº do Orçamento:</strong></label>
+            <input type="text" id="orcNumber" class="form-control" value="ORC-0001" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; margin-top:4px;">
+          </div>
+          <div>
+            <label for="orcDate"><strong>Data:</strong></label>
+            <input type="date" id="orcDate" class="form-control" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; margin-top:4px;">
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 12px;">
+          <div>
+            <label for="orcClient"><strong>Cliente:</strong></label>
+            <select id="orcClient" class="form-control" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background: #fff; margin-top:4px;"></select>
+          </div>
+          <div>
+            <label for="orcEquipment"><strong>Equipamento / Máquina:</strong></label>
+            <input type="text" id="orcEquipment" placeholder="Ex: Laser Amada / SCM" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; margin-top:4px;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label for="orcDesc"><strong>Dados do Serviço / Escopo:</strong></label>
+          <textarea id="orcDesc" rows="5" placeholder="Descreva os serviços a serem realizados..." style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit; margin-top:4px;"></textarea>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 12px;">
+          <div>
+            <label for="orcPaymentOption"><strong>Forma de Recebimento / Conta:</strong></label>
+            <select id="orcPaymentOption" class="form-control" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background: #FFF; margin-top:4px;">
+              <option value="banco1" id="optionBank1Label">Conta Bancária 1</option>
+              <option value="banco2" id="optionBank2Label">Conta Bancária 2</option>
+              <option value="boleto">Boleto Bancário</option>
+            </select>
+          </div>
+          <div>
+            <label for="orcTotal"><strong>Valor Total (R$):</strong></label>
+            <input type="number" step="0.01" id="orcTotal" placeholder="0.00" class="form-control" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; margin-top:4px;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="margin-bottom: 5px; display: block;"><strong>Condições Comerciais (Opções Rápidas):</strong></label>
+          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 10px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0;">
+              <input type="checkbox" class="term-check" value="Pagamento a combinar." checked style="margin-top: 2px;" onchange="atualizarTermosCompletos()">
+              <span>Pagamento a combinar.</span>
+            </label>
+            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0;">
+              <input type="checkbox" class="term-check" value="Impostos inclusos." checked style="margin-top: 2px;" onchange="atualizarTermosCompletos()">
+              <span>Impostos inclusos.</span>
+            </label>
+            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0;">
+              <input type="checkbox" class="term-check" value="Despesas com deslocamento, alimentação e hotel já incluso no orçamento." checked style="margin-top: 2px;" onchange="atualizarTermosCompletos()">
+              <span>Despesas com deslocamento, alimentação e hotel já incluso no orçamento.</span>
+            </label>
+          </div>
+
+          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="checkNotIncluded" checked style="margin-top: 2px;" onchange="atualizarTermosCompletos()">
+              <span style="font-weight: bold;">Não estão inclusos:</span>
+            </label>
+            <textarea id="orcNotIncludedText" rows="2" class="form-control" placeholder="óleos, peças, espelhos" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit; font-size: 11px;" oninput="atualizarTermosCompletos()"></textarea>
+          </div>
+
+          <label for="orcTerms" style="margin-top: 8px; display: block;"><strong>Resumo das Condições Comerciais:</strong></label>
+          <textarea id="orcTerms" rows="4" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit; margin-top: 4px; background: #FFF;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="submit" class="btn" style="background-color: #22C55E; color: #FFF; font-weight: bold; padding: 10px 24px; border: none; border-radius: 4px; font-size: 0.95rem; cursor: pointer;">
+            Guardar Orçamento
+          </button>
+          <a href="relatorios.html" class="btn" style="background-color: #64748B; color: #FFF; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-size: 0.95rem;">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="no-print">
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+
+  <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="index.html"><i class="fa-solid fa-address-book"></i><span>Cadastros</span></a>
+    <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i><span>Relatórios</span></a>
+    <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i><span>Plan</span></a>
+    <a href="horas-extras.html" id="nav-item-horas"><i class="fa-solid fa-clock"></i><span>Horas</span></a>
+    <a href="configuracao.html" id="nav-item-config"><i class="fa-solid fa-gear"></i><span>Config</span></a>
+  </nav>
+
+  <script src="novo-orcamento.js?v=2"></script>
+</body>
+</html>
