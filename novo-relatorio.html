@@ -1,498 +1,777 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<script>
-  (function() {
-    const logoSalva = localStorage.getItem('rg_logo_base64');
-    if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-    }
-  })();
-</script>
+/**
+ * NexOS - Módulo de Novo Relatório de Serviço (novo-relatorio.js)
+ */
 
-  <link rel="icon" href="nexosico.png" type="image/png">
-  <link rel="manifest" href="manifest.json">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NexOS - Novo Relatório de Serviço</title>
+window.configHorariosTenant = { intervalo: true, direto: true };
 
-  <link rel="stylesheet" href="style.css">
-
-  <!-- FontAwesome para os ícones -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <script src="global-modal.js"></script>
-
-  <!-- Firebase SDKs Compat -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-  <!-- Inicialização do Firebase e Sincronização -->
-  <script src="firebase-init.js?v=2"></script>
-  <script src="firebase-sync.js?v=2"></script>
-
-  <style>
-    /* Estilos do Menu Desktop e Responsividade */
-    .desktop-nav {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    .desktop-nav a {
-      color: #94A3B8;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: color 0.2s;
-    }
-    .desktop-nav a:hover, 
-    .desktop-nav a.active {
-      color: #00F5D4;
-    }
-    @media (max-width: 768px) {
-      .desktop-nav {
-        display: none !important;
-      }
-    }
-    @media (min-width: 769px) {
-      #mainBottomNav {
-        display: none !important;
-      }
-    }
-
-    #logo-cliente {
-      background-color: transparent !important;
-      object-fit: contain;
-    }
-
-    .signature-pad {
-      border: 2px dashed #CBD5E1;
-      background: #FFF;
-      width: 100%;
-      max-width: 400px;
-      height: 150px;
-      cursor: crosshair;
-      touch-action: none;
-      border-radius: 4px;
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    .dia-card-flutuante {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 10px;
-      box-shadow: 0 4px 12px rgba(11, 19, 43, 0.05);
-      transition: all 0.2s ease;
-    }
-    .dia-card-flutuante:hover {
-      box-shadow: 0 6px 16px rgba(11, 19, 43, 0.08);
-      border-color: #CBD5E1;
-    }
-    .grid-data-hora {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+  } else {
+    await aplicarFeatureFlagsCriterios();
+    await loadClients();
+    gerarCamposDias();
+    await verificarModoEdicao();
     
-    /* Indicador de Passos */
-    .step-indicator {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      padding: 10px 0;
-      border-bottom: 2px solid #E2E8F0;
-    }
-    .step-item {
-      flex: 1;
-      text-align: center;
-      font-size: 0.85rem;
-      font-weight: bold;
-      color: #94A3B8;
-    }
-    .step-item.active {
-      color: #0D9488;
-      border-bottom: 3px solid #0D9488;
-      padding-bottom: 5px;
-    }
+    // --- AUTOPREENCHIMENTO Vindo de Manutenções Planeadas ---
+    verificarPreenchimentoPlaneado();
+  }
+});
 
-    @media (max-width: 768px) {
-      .grid-data-hora {
-        grid-template-columns: 1fr;
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+  });
+}
+
+let anexosList = [];
+let clientMachines = [];
+let clientCanvas = document.getElementById('clientCanvas');
+let clientCtx = clientCanvas ? clientCanvas.getContext('2d') : null;
+let paintingClient = false;
+let hasSignature = false;
+let tempAnexoBase64 = '';
+
+// ==============================================
+// CONTROLE DE NAVEGAÇÃO ENTRE PASSOS (WIZARD)
+// ==============================================
+
+window.avancarParaStep2 = function() {
+  const reqFields = document.querySelectorAll('#step1 [required]');
+  let isValid = true;
+  reqFields.forEach(f => {
+    if(!f.value) { 
+      isValid = false; 
+      f.style.borderColor = '#EF4444'; 
+    } else { 
+      f.style.borderColor = '#CBD5E1'; 
+    }
+  });
+  
+  if(!isValid) {
+    alert('Por favor, preencha todos os campos obrigatórios no Passo 1.');
+    return;
+  }
+
+  document.getElementById('resumoCliente').textContent = document.getElementById('repClient').value;
+  document.getElementById('resumoMaquina').textContent = document.getElementById('repEquipment').value;
+  document.getElementById('resumoManutencao').textContent = document.getElementById('repServiceNature').value;
+  document.getElementById('resumoServico').textContent = document.getElementById('repDesc').value;
+
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  
+  document.getElementById('ind-step1').classList.remove('active');
+  document.getElementById('ind-step2').classList.add('active');
+};
+
+window.confirmarAssinatura = function() {
+  const editIndex = document.getElementById('editIndex').value;
+  
+  if(!hasSignature && !editIndex) {
+    alert('O cliente/responsável precisa desenhar a assinatura antes de salvar.');
+    return;
+  }
+
+  document.getElementById('areaAssinatura').style.display = 'none';
+  document.getElementById('btnVoltarStep1').style.display = 'none';
+  document.getElementById('msgAssinaturaSucesso').style.display = 'block';
+  document.getElementById('btnAvancarStep3').style.display = 'block';
+};
+
+window.avancarParaStep3 = function() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step3').style.display = 'block';
+  
+  document.getElementById('ind-step2').classList.remove('active');
+  document.getElementById('ind-step3').classList.add('active');
+};
+
+window.voltarParaStep1 = function() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+  
+  document.getElementById('ind-step2').classList.remove('active');
+  document.getElementById('ind-step1').classList.add('active');
+};
+
+window.voltarParaStep2 = function() {
+  document.getElementById('step3').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  
+  document.getElementById('ind-step3').classList.remove('active');
+  document.getElementById('ind-step2').classList.add('active');
+};
+
+// ==============================================
+
+async function aplicarFeatureFlagsCriterios() {
+  try {
+    const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
+    const configDoc = await db.collection('rg_config').doc(tenantId).get();
+
+    if (configDoc.exists) {
+      const config = configDoc.data();
+
+      if (config.criterioEmpreitada === false) {
+        const el = document.getElementById('selectEmpreitada');
+        if (el && el.closest('div')) el.closest('div').style.display = 'none';
       }
+      if (config.criterioHoraTrabalhada === false) {
+        const el = document.getElementById('selectHora');
+        if (el && el.closest('div')) el.closest('div').style.display = 'none';
+      }
+      if (config.criterioHoraDeslocamento === false) {
+        const el = document.getElementById('selectDeslocamento');
+        if (el && el.closest('div')) el.closest('div').style.display = 'none';
+      }
+      if (config.criterioHospedagem === false) {
+        const el = document.getElementById('selectHospedagem');
+        if (el && el.closest('div')) el.closest('div').style.display = 'none';
+      }
+      if (config.criterioOutrasDespesas === false) {
+        const el = document.getElementById('selectOutras');
+        if (el && el.closest('div')) el.closest('div').style.display = 'none';
+      }
+
+      window.configHorariosTenant = {
+        intervalo: config.criterioHorarioIntervalo !== false,
+        direto: config.criterioHorarioDireto !== false
+      };
     }
-  </style>
-</head>
-<body>
+  } catch (err) {
+    console.error("Erro ao aplicar restrições de critérios:", err);
+  }
+}
 
-  <!-- CABEÇALHO COM MENU DESKTOP E MOBILE INTEGRADO -->
-  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
-    
-    <!-- LADO ESQUERDO: LOGO -->
-    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
-    </a>
+// Assinatura Canvas Logic
+if (clientCanvas && clientCtx) {
+  function startClient(e) { paintingClient = true; hasSignature = true; drawClient(e); }
+  function finishClient() { paintingClient = false; clientCtx.beginPath(); }
+  function drawClient(e) {
+    if (!paintingClient) return;
+    e.preventDefault();
+    clientCtx.lineWidth = 2;
+    clientCtx.lineCap = 'round';
+    clientCtx.strokeStyle = '#0B132B';
+    const rect = clientCanvas.getBoundingClientRect();
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+    clientCtx.lineTo(x, y);
+    clientCtx.stroke();
+    clientCtx.beginPath();
+    clientCtx.moveTo(x, y);
+  }
 
-    <!-- CENTRO: MENU DESKTOP (Aparece no PC) -->
-    <nav class="desktop-nav">
-      <a href="index.html"><i class="fa-solid fa-users"></i> Clientes</a>
-      <a href="maquinas.html"><i class="fa-solid fa-gears"></i> Máquinas</a>
-      <a href="historico.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
-      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
-    </nav>
+  clientCanvas.addEventListener('mousedown', startClient);
+  clientCanvas.addEventListener('mouseup', finishClient);
+  clientCanvas.addEventListener('mousemove', drawClient);
+  clientCanvas.addEventListener('touchstart', startClient, {passive: false});
+  clientCanvas.addEventListener('touchend', finishClient);
+  clientCanvas.addEventListener('touchmove', drawClient, {passive: false});
+}
 
-    <!-- LADO DIREITO: BOTÃO SAIR -->
-    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
-      <i class="fa-solid fa-power-off"></i>
-    </button>
-  </header>
+window.clearClientSig = function() {
+  if (clientCtx && clientCanvas) {
+    clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
+    hasSignature = false;
+  }
+};
 
-  <main style="padding-top: 20px; padding-bottom: 80px;">
-    <section class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-        <h2 id="formTitle" style="margin-bottom: 0; color: #0B132B; font-size: 1.5rem;">Novo Relatório de Serviço (RS)</h2>
-      </div>
+function gerarOpcoesHoras(selecionado = '08:00') {
+  let html = '';
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      let hs = String(h).padStart(2, '0');
+      let ms = String(m).padStart(2, '0');
+      let val = `${hs}:${ms}`;
+      let sel = (val === selecionado) ? 'selected' : '';
+      html += `<option value="${val}" ${sel}>${hs}:${ms}</option>`;
+    }
+  }
+  return html;
+}
 
-      <!-- Indicador de Passos Visuais -->
-      <div class="step-indicator">
-        <div class="step-item active" id="ind-step1">1. Preenchimento</div>
-        <div class="step-item" id="ind-step2">2. Assinatura</div>
-        <div class="step-item" id="ind-step3">3. Cobrança</div>
-      </div>
+window.alternarTipoHorarioDia = function(index) {
+  const selectTipo = document.getElementById(`tipo_registo_${index}`);
+  const boxTurnos = document.getElementById(`box_turnos_${index}`);
+  const boxDireto = document.getElementById(`box_direto_${index}`);
 
-      <form id="reportForm">
-        <input type="hidden" id="editIndex" value="">
+  if (!selectTipo || !boxTurnos || !boxDireto) return;
 
-        <!-- ============================================== -->
-        <!-- PASSO 1: DADOS TÉCNICOS E PREENCHIMENTO -->
-        <!-- ============================================== -->
-        <div id="step1">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-            <div>
-              <label for="repNumber"><strong>Nº do Relatório (RS):</strong></label>
-              <input type="text" id="repNumber" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-            </div>
-            <div>
-              <label for="repDate"><strong>Data do Atendimento:</strong></label>
-              <input type="date" id="repDate" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-            </div>
+  if (selectTipo.value === 'turnos') {
+    boxTurnos.style.display = 'block';
+    boxDireto.style.display = 'none';
+  } else {
+    boxTurnos.style.display = 'none';
+    boxDireto.style.display = 'block';
+  }
+};
+
+window.gerarCamposDias = function(dadosSalvos = []) {
+  let qtd = parseInt(document.getElementById('numDiasTrabalho').value) || 1;
+  if (qtd < 1) qtd = 1;
+  if (qtd > 30) qtd = 30;
+
+  const container = document.getElementById('containerDiasHorarios');
+  if (!container) return;
+  const valoresAtuais = [];
+  const cardsAtuais = container.querySelectorAll('.dia-card-flutuante');
+
+  cardsAtuais.forEach((card, idx) => {
+    const tipoRegisto = document.getElementById(`tipo_registo_${idx}`) ? document.getElementById(`tipo_registo_${idx}`).value : 'turnos';
+
+    let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+    let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+    let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+    let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+
+    let iniDir = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+    let fimDir = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+
+    let dataIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+
+    valoresAtuais.push({
+      tipo: tipoRegisto,
+      dataIni,
+      iniM, fimM, iniT, fimT,
+      iniDir, fimDir
+    });
+  });
+
+  container.innerHTML = '';
+  let hojeStr = new Date().toISOString().split('T')[0];
+
+  const permiteIntervalo = window.configHorariosTenant ? window.configHorariosTenant.intervalo : true;
+  const permiteDireto = window.configHorariosTenant ? window.configHorariosTenant.direto : true;
+
+  for (let i = 0; i < qtd; i++) {
+    const d = dadosSalvos[i] || valoresAtuais[i] || {};
+
+    let temSubTurnos = d.inicioManha || d.fimManha || d.iniM || (d.inicio && d.fimManha);
+    let tipoVal = d.tipo || (temSubTurnos ? 'turnos' : 'direto');
+
+    if (!permiteIntervalo && permiteDireto) tipoVal = 'direto';
+    if (permiteIntervalo && !permiteDireto) tipoVal = 'turnos';
+
+    let dataIniVal = d.dataIni || (d.inicio ? d.inicio.split('T')[0] : hojeStr);
+
+    let iniM_val = d.iniM || (d.inicioManha ? d.inicioManha.split('T')[1] : '08:00');
+    let fimM_val = d.fimM || (d.fimManha ? d.fimManha.split('T')[1] : '12:00');
+    let iniT_val = d.iniT || (d.inicioTarde ? d.inicioTarde.split('T')[1] : '13:00');
+    let fimT_val = d.fimT || (d.fimTarde ? d.fimTarde.split('T')[1] : '17:00');
+
+    let iniDir_val = d.iniDir || (d.inicio ? d.inicio.split('T')[1] : '08:00');
+    let fimDir_val = d.fimDir || (d.fim ? d.fim.split('T')[1] : '17:00');
+
+    let opcoesSelectHTML = '';
+    if (permiteIntervalo) {
+      opcoesSelectHTML += `<option value="turnos" ${tipoVal === 'turnos' ? 'selected' : ''}>Com Intervalo (Manhã/Tarde)</option>`;
+    }
+    if (permiteDireto) {
+      opcoesSelectHTML += `<option value="direto" ${tipoVal === 'direto' ? 'selected' : ''}>Direto / Turno Único</option>`;
+    }
+
+    let displaySeletor = (permiteIntervalo && permiteDireto) ? 'flex' : 'none';
+
+    container.innerHTML += `
+      <div class="dia-card-flutuante">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 10px;">
+          <p style="font-weight: bold; font-size: 0.9rem; color: #0B132B; margin: 0;">📅 Dia ${i + 1}</p>
+          <div style="display: ${displaySeletor}; align-items: center; gap: 6px;">
+            <label style="font-size: 0.75rem; font-weight: bold; color: #475569; margin: 0;">Formato:</label>
+            <select id="tipo_registo_${i}" onchange="alternarTipoHorarioDia(${i})" style="padding: 3px 6px; font-size: 0.8rem; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;">
+              ${opcoesSelectHTML}
+            </select>
           </div>
+        </div>
 
-          <div style="margin-bottom: 12px;">
-            <label for="repClient"><strong>Cliente:</strong></label>
-            <select id="repClient" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;"></select>
-          </div>
+        <div style="margin-bottom: 8px;">
+          <label style="font-size: 0.8rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Data do Atendimento:</label>
+          <input type="date" class="dia-data-ini" value="${dataIniVal}" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+        </div>
 
-          <div style="margin-bottom: 12px;">
-            <label for="repEquipment"><strong>Equipamento / Máquina:</strong></label>
-            <select id="repEquipment" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-              <option value="">Selecione primeiro um cliente...</option>
+        <div id="box_turnos_${i}" style="display: ${tipoVal === 'turnos' ? 'block' : 'none'};">
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #0D9488; display: block; margin-bottom: 2px;">Início Manhã:</label>
+            <select class="dia-ini-manha" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              ${gerarOpcoesHoras(iniM_val)}
             </select>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-            <div>
-              <label for="repBrand"><strong>Marca:</strong></label>
-              <input type="text" id="repBrand" placeholder="Ex: Trumpf / Bystronic" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-            </div>
-            <div>
-              <label for="repModel"><strong>Modelo:</strong></label>
-              <input type="text" id="repModel" placeholder="Ex: TruLaser 3030" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-            </div>
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #0D9488; display: block; margin-bottom: 2px;">Final Manhã (Intervalo):</label>
+            <select class="dia-fim-manha" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              ${gerarOpcoesHoras(fimM_val)}
+            </select>
           </div>
 
-          <div style="margin-bottom: 12px;">
-            <label for="repSerialNumber"><strong>Número de Série / Tag:</strong></label>
-            <input type="text" id="repSerialNumber" placeholder="Ex: SN-99823" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #1D4ED8; display: block; margin-bottom: 2px;">Início Tarde (Retorno):</label>
+            <select class="dia-ini-tarde" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              ${gerarOpcoesHoras(iniT_val)}
+            </select>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-            <div>
-              <label for="repServiceNature"><strong>Tipo de Manutenção:</strong></label>
-              <select id="repServiceNature" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-                <option value="Corretiva">Corretiva</option>
-                <option value="Preventiva">Preventiva</option>
-                <option value="Instalação">Instalação</option>
-                <option value="Treinamento">Treinamento</option>
-                <option value="Garantia">Garantia</option>
-              </select>
-            </div>
-            <div>
-              <label for="repServiceArea"><strong>Área de Serviço:</strong></label>
-              <select id="repServiceArea" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
-                <option value="Mecânica">Mecânica</option>
-                <option value="Elétrica">Elétrica</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 15px;">
-            <label for="repDesc"><strong>Descrição Detalhada do Serviço Realizado:</strong></label>
-            <textarea id="repDesc" rows="5" placeholder="Descreva detalhadamente o que foi executado..." required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit;"></textarea>
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">📸 Fotografias / Anexos</h3>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
-              <div>
-                <label for="anexoTitulo" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Título da Foto:</label>
-                <input type="text" id="anexoTitulo" placeholder="Ex: Placa de identificação" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box;">
-              </div>
-              <div>
-                <label for="anexoFile" style="font-size: 0.85rem; font-weight: bold; color: #475569; display: block; margin-bottom: 4px;">Arquivo da Imagem:</label>
-                <input type="file" id="anexoFile" accept="image/*" style="width: 100%; padding: 6px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF; box-sizing: border-box;" onchange="converterAnexo(event)">
-              </div>
-              <button type="button" class="btn" style="background-color: #1D4ED8; color: #FFF; padding: 10px 15px; font-weight: bold; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="adicionarAnexo()">
-                <i class="fa-solid fa-plus"></i> Adicionar Foto
-              </button>
-            </div>
-            <div id="listaAnexos" style="display: flex; flex-direction: column; gap: 8px;"></div>
-          </div>
-
-          <button type="button" class="btn" style="background-color: #10B981; color: #FFF; padding: 12px; font-weight: bold; width: 100%;" onclick="avancarParaStep2()">
-            Avançar para Assinatura do Cliente <i class="fa-solid fa-arrow-right"></i>
-          </button>
-          
-          <button type="button" class="btn" style="background-color: transparent; color: #64748B; padding: 10px; width: 100%; margin-top: 5px;" onclick="resetForm()">
-            Cancelar Relatório
-          </button>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- PASSO 2: ASSINATURA DO CLIENTE (Resumo Oculto) -->
-        <!-- ============================================== -->
-        <div id="step2" style="display: none;">
-          <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--deep-navy);">Resumo do Atendimento</h3>
-          
-          <div style="background: #F8FAFC; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #CBD5E1; font-size: 0.9rem; color: #334155;">
-            <p style="margin-bottom: 6px;"><strong>Cliente:</strong> <span id="resumoCliente" style="color: #0F172A;"></span></p>
-            <p style="margin-bottom: 6px;"><strong>Equipamento/Máquina:</strong> <span id="resumoMaquina" style="color: #0F172A;"></span></p>
-            <p style="margin-bottom: 6px;"><strong>Tipo de Manutenção:</strong> <span id="resumoManutencao" style="color: #0F172A;"></span></p>
-            <p style="margin-bottom: 0;"><strong>Serviço Realizado:</strong> <br><span id="resumoServico" style="color: #0F172A; display: block; margin-top: 4px; white-space: pre-wrap;"></span></p>
-          </div>
-
-          <div id="areaAssinatura" style="margin-bottom: 15px;">
-            <label><strong>Assinatura do Cliente / Responsável:</strong></label>
-            <canvas id="clientCanvas" class="signature-pad" width="400" height="150"></canvas>
-            
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-              <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 10px; flex: 1;" onclick="clearClientSig()">Limpar</button>
-              <button type="button" class="btn" style="background-color: #10B981; color: #FFF; padding: 10px; flex: 2; font-weight: bold;" onclick="confirmarAssinatura()">Salvar Assinatura</button>
-            </div>
-          </div>
-
-          <!-- MENSAGEM DE SUCESSO PÓS ASSINATURA -->
-          <div id="msgAssinaturaSucesso" style="display: none; background: #D1FAE5; color: #065F46; padding: 20px; border-radius: 6px; border: 1px solid #10B981; margin-bottom: 20px; text-align: center;">
-            <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; margin-bottom: 10px;"></i><br>
-            <strong style="font-size: 1.1rem; display: block; margin-bottom: 5px;">Assinatura registrada com sucesso!</strong>
-            Por favor, devolva o aparelho ao técnico.
-          </div>
-
-          <div id="btnAvancarStep3" style="display: none; margin-bottom: 10px;">
-            <button type="button" class="btn" style="background-color: #3B82F6; color: #FFF; padding: 12px; font-weight: bold; width: 100%;" onclick="avancarParaStep3()">
-              Avançar para Cobrança e Encerramento <i class="fa-solid fa-arrow-right"></i>
-            </button>
-          </div>
-
-          <button type="button" id="btnVoltarStep1" class="btn" style="background-color: transparent; border: 1px solid #CBD5E1; color: #475569; padding: 8px 15px; width: 100%; margin-top: 10px;" onclick="voltarParaStep1()">
-            <i class="fa-solid fa-arrow-left"></i> Voltar e Editar Dados Técnicos
-          </button>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- PASSO 3: CRITÉRIOS DE COBRANÇA E ENCERRAMENTO -->
-        <!-- ============================================== -->
-        <div id="step3" style="display: none;">
-          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--deep-navy);">Critérios de Cobrança Internos</h3>
-
-            <div style="margin-bottom: 12px;">
-              <label for="selectEmpreitada"><strong>Regime de Empreitada (Valor Fechado)?</strong></label>
-              <select id="selectEmpreitada" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleEmpreitadaSelect()">
-                <option value="nao">Não</option>
-                <option value="sim">Sim</option>
-              </select>
-            </div>
-
-            <div id="boxEmpreitadaDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-              <label for="repValorEmpreitada">Valor Total da Empreitada (R$):</label>
-              <input type="number" step="0.01" id="repValorEmpreitada" value="0.00" placeholder="Ex: 1500.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
-            </div>
-
-            <div style="margin-bottom: 12px;">
-              <label for="selectHora"><strong>Cobrar Hora Trabalhada?</strong></label>
-              <select id="selectHora" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleHoraSelect()">
-                <option value="nao">Não</option>
-                <option value="sim">Sim</option>
-              </select>
-            </div>
-
-            <div id="boxHoraDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-              <div style="margin-bottom: 10px;">
-                <label for="repValorHora"><strong>Valor da Hora (R$):</strong></label>
-                <input type="number" step="0.01" id="repValorHora" value="200.00" placeholder="Ex: 200.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
-              </div>
-
-              <div style="margin-bottom: 10px;">
-                <label for="numDiasTrabalho"><strong>Quantidade de Dias de Atendimento:</strong></label>
-                <input type="number" id="numDiasTrabalho" min="1" max="30" value="1" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="gerarCamposDias()">
-              </div>
-
-              <div id="containerDiasHorarios" style="display: flex; flex-direction: column; gap: 8px;"></div>
-            </div>
-
-            <div style="margin-bottom: 12px;">
-              <label for="selectDeslocamento"><strong>Cobrar Hora de Deslocamento?</strong></label>
-              <select id="selectDeslocamento" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleDeslocamentoSelect()">
-                <option value="nao">Não</option>
-                <option value="sim">Sim</option>
-              </select>
-            </div>
-
-            <div id="boxDeslocamentoDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-              <div style="margin-bottom: 8px;">
-                <label for="valorHoraDeslocamento">Valor da hora de deslocamento (R$):</label>
-                <input type="number" step="0.01" id="valorHoraDeslocamento" value="260.00" placeholder="Ex: 260" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="calcularTotalDeslocamento()">
-              </div>
-              <div style="margin-bottom: 8px;">
-                <label for="tempoDeslocamentoHoras">Tempo de deslocamento ida e volta (hs):</label>
-                <input type="number" step="0.5" id="tempoDeslocamentoHoras" value="0" placeholder="Ex: 5" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;" oninput="calcularTotalDeslocamento()">
-              </div>
-              <div>
-                <label><strong>Total de deslocamento (R$):</strong></label>
-                <input type="text" id="totalDeslocamentoCalculado" value="0,00" readonly style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#F1F5F9; font-weight:bold; color:#0D9488; margin-top: 2px;">
-              </div>
-            </div>
-
-            <div style="margin-bottom: 12px;">
-              <label for="selectHospedagem"><strong>Adicionar Hospedagem?</strong></label>
-              <select id="selectHospedagem" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleHospedagemSelect()">
-                <option value="nao">Não</option>
-                <option value="sim">Sim</option>
-              </select>
-            </div>
-
-            <div id="boxHospedagemDetalhes" style="display: none; margin-bottom: 12px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-              <label for="valorHospedagem">Valor da Hospedagem (R$):</label>
-              <input type="number" step="0.01" id="valorHospedagem" value="0.00" placeholder="Ex: 150.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
-            </div>
-
-            <div style="margin-bottom: 4px;">
-              <label for="selectOutras"><strong>Adicionar Outras Despesas / Alimentação?</strong></label>
-              <select id="selectOutras" class="form-control" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; margin-top: 4px;" onchange="toggleOutrasSelect()">
-                <option value="nao">Não</option>
-                <option value="sim">Sim</option>
-              </select>
-            </div>
-
-            <div id="boxOutrasDetalhes" style="display: none; margin-top: 10px; background: #FFF; padding: 10px; border: 1px solid #CBD5E1; border-radius: 4px;">
-              <label for="valorOutras">Valor Adicional (R$):</label>
-              <input type="number" step="0.01" id="valorOutras" value="0.00" placeholder="Ex: 50.00" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; margin-top: 2px;">
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 10px;">
-            <button type="button" class="btn" style="background-color: transparent; border: 1px solid #CBD5E1; color: #475569; padding: 10px 15px;" onclick="voltarParaStep2()">
-              <i class="fa-solid fa-arrow-left"></i>
-            </button>
-            <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 12px; flex: 1;">
-              Salvar e Encerrar Relatório
-            </button>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: bold; color: #1D4ED8; display: block; margin-bottom: 2px;">Final Tarde (Encerramento):</label>
+            <select class="dia-fim-tarde" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              ${gerarOpcoesHoras(fimT_val)}
+            </select>
           </div>
         </div>
 
-      </form>
-    </section>
-  </main>
+        <div id="box_direto_${i}" style="display: ${tipoVal === 'direto' ? 'block' : 'none'};">
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Início do Atendimento:</label>
+            <select class="dia-hora-ini-direto" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              ${gerarOpcoesHoras(iniDir_val)}
+            </select>
+          </div>
 
-  <footer class="no-print">
-    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
-  </footer>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Final do Atendimento:</label>
+            <select class="dia-hora-fim-direto" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              ${gerarOpcoesHoras(fimDir_val)}
+            </select>
+          </div>
+        </div>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR (Apenas Mobile) -->
-  <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="index.html">
-      <i class="fa-solid fa-users"></i>
-      <span>Clientes</span>
-    </a>
-    <a href="maquinas.html">
-      <i class="fa-solid fa-gears"></i>
-      <span>Máquinas</span>
-    </a>
-    <a href="historico.html" class="active">
-      <i class="fa-solid fa-file-lines"></i>
-      <span>Relatórios</span>
-    </a>
-    <a href="orcamentos.html" id="nav-item-orcamentos">
-      <i class="fa-solid fa-calculator"></i>
-      <span>Orçamentos</span>
-    </a>
-    <a href="horas-extras.html" id="nav-item-horas">
-      <i class="fa-solid fa-clock"></i>
-      <span>Horas</span>
-    </a>
-    <a href="configuracao.html" id="nav-item-config">
-      <i class="fa-solid fa-gear"></i>
-      <span>Config</span>
-    </a>
-  </nav>
+      </div>
+    `;
+  }
+};
 
-  <!-- SCRIPT EXTERNO SEPARADO PARA OTIMIZAR A VELOCIDADE -->
-  <script src="novo-relatorio.js?v=2"></script>
+window.toggleEmpreitadaSelect = function() {
+  const val = document.getElementById('selectEmpreitada').value;
+  document.getElementById('boxEmpreitadaDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+};
 
-  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const imgLogo = document.getElementById('logo-cliente');
-      if (imgLogo) {
-        const logoSalva = localStorage.getItem('rg_logo_base64');
-        if (logoSalva && logoSalva.startsWith('data:image')) {
-          imgLogo.src = logoSalva;
-        } else {
-          imgLogo.src = 'marca.png';
+window.toggleHoraSelect = function() {
+  const val = document.getElementById('selectHora').value;
+  document.getElementById('boxHoraDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+  if (val === 'sim' && document.getElementById('containerDiasHorarios').children.length === 0) {
+    window.gerarCamposDias();
+  }
+};
+
+window.toggleDeslocamentoSelect = function() {
+  const val = document.getElementById('selectDeslocamento').value;
+  document.getElementById('boxDeslocamentoDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+  window.calcularTotalDeslocamento();
+};
+
+window.toggleHospedagemSelect = function() {
+  const val = document.getElementById('selectHospedagem').value;
+  document.getElementById('boxHospedagemDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+};
+
+window.toggleOutrasSelect = function() {
+  const val = document.getElementById('selectOutras').value;
+  document.getElementById('boxOutrasDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+};
+
+window.calcularTotalDeslocamento = function() {
+  const valorHora = Number(document.getElementById('valorHoraDeslocamento').value) || 0;
+  const horas = Number(document.getElementById('tempoDeslocamentoHoras').value) || 0;
+  const total = valorHora * horas;
+  document.getElementById('totalDeslocamentoCalculado').value = total.toFixed(2).replace('.', ',');
+};
+
+window.converterAnexo = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const MAX_WIDTH = 1000;
+      const MAX_HEIGHT = 1000;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height = Math.round(height * (MAX_WIDTH / width));
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width = Math.round(width * (MAX_HEIGHT / height));
+          height = MAX_HEIGHT;
         }
       }
 
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
 
-      const navOrcamentos = document.getElementById('nav-item-orcamentos');
-      const navHoras = document.getElementById('nav-item-horas');
-      const dNavOrcamentos = document.getElementById('d-nav-orcamentos');
-      const dNavHoras = document.getElementById('d-nav-horas');
+      ctx.drawImage(img, 0, 0, width, height);
+      tempAnexoBase64 = canvas.toDataURL('image/png');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
 
-      if (navOrcamentos) navOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
-      if (navHoras) navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
-      if (dNavOrcamentos) dNavOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
-      if (dNavHoras) dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+window.adicionarAnexo = function() {
+  const titulo = document.getElementById('anexoTitulo').value;
+  if (!tempAnexoBase64) { alert('Selecione uma imagem primeiro.'); return; }
+  anexosList.push({ titulo: String(titulo || 'Foto do Equipamento'), imagem: String(tempAnexoBase64) });
+  document.getElementById('anexoTitulo').value = '';
+  document.getElementById('anexoFile').value = '';
+  tempAnexoBase64 = '';
+  renderizarAnexos();
+};
+
+window.removerAnexo = function(index) {
+  anexosList.splice(index, 1);
+  renderizarAnexos();
+};
+
+function renderizarAnexos() {
+  const container = document.getElementById('listaAnexos');
+  if (!container) return;
+  container.innerHTML = '';
+  anexosList.forEach((a, idx) => {
+    container.innerHTML += `
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; border: 1px solid #CBD5E1; padding: 6px 10px; border-radius: 4px;">
+        <span><strong>${idx + 1}.</strong> ${escapeHTML(a.titulo)}</span>
+        <button type="button" class="btn" style="background-color: #EF4444; padding: 2px 6px; font-size: 0.75rem;" onclick="removerAnexo(${idx})">Remover</button>
+      </div>
+    `;
+  });
+}
+
+async function loadClients() {
+  const select = document.getElementById('repClient');
+  if (!select) return;
+  try {
+    const clients = await DataSync.load('rg_clients') || [];
+    select.innerHTML = '<option value="">Selecione um cliente...</option>';
+    clients.forEach(c => { select.innerHTML += `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`; });
+  } catch (e) { console.error("Erro ao carregar clientes", e); }
+}
+
+async function carregarMaquinasDoCliente(clientName, selectedEquipment = '') {
+  const eqSelect = document.getElementById('repEquipment');
+  if (!eqSelect) return;
+  eqSelect.innerHTML = '<option value="">Selecione a máquina...</option>';
+  clientMachines = [];
+
+  if (!clientName) return;
+  try {
+    const machines = await DataSync.load('rg_machines') || [];
+    clientMachines = machines.filter(m => m.client === clientName || m.cliente === clientName);
+
+    clientMachines.forEach((m, idx) => {
+      const eqName = m.name || m.equipment || m.nome || `Máquina ${idx+1}`;
+      const isSelected = (eqName === selectedEquipment) ? 'selected' : '';
+      eqSelect.innerHTML += `<option value="${escapeHTML(eqName)}" data-index="${idx}" ${isSelected}>${escapeHTML(eqName)}</option>`;
     });
-  </script>
+  } catch (e) {
+    console.error("Erro ao carregar máquinas do cliente", e);
+  }
+}
 
-  <!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina piscada dos botões) -->
-  <script>
-    (function() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
+// --- FUNÇÃO PARA TRATAR O AUTOPREENCHIMENTO DO PLANEAMENTO ---
+async function verificarPreenchimentoPlaneado() {
+  const dadosPend = localStorage.getItem('rg_preencher_rs');
+  if (dadosPend) {
+    try {
+      const dados = JSON.parse(dadosPend);
+      
+      const repClientSelect = document.getElementById('repClient');
+      if (repClientSelect && dados.client) {
+        repClientSelect.value = dados.client;
+        await carregarMaquinasDoCliente(dados.client, dados.machine);
+      }
 
-      if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
+      const repDescInput = document.getElementById('repDesc');
+      if (repDescInput && dados.description) {
+        repDescInput.value = dados.description;
       }
-      if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
+
+      localStorage.removeItem('rg_preencher_rs');
+    } catch (e) {
+      console.error("Erro ao processar preenchimento planeado:", e);
+    }
+  }
+}
+
+const repClientEl = document.getElementById('repClient');
+if (repClientEl) {
+  repClientEl.addEventListener('change', async function() {
+    const clientName = this.value;
+    document.getElementById('repBrand').value = '';
+    document.getElementById('repModel').value = '';
+    document.getElementById('repSerialNumber').value = '';
+    await carregarMaquinasDoCliente(clientName);
+  });
+}
+
+const repEquipmentEl = document.getElementById('repEquipment');
+if (repEquipmentEl) {
+  repEquipmentEl.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const idx = selectedOption.getAttribute('data-index');
+    if (idx !== null && clientMachines[idx]) {
+      const m = clientMachines[idx];
+      document.getElementById('repBrand').value = m.brand || m.marca || '';
+      document.getElementById('repModel').value = m.model || m.modelo || '';
+      document.getElementById('repSerialNumber').value = m.serialNumber || m.serial || m.tag || m.Tag || m.serie || m.matricula || '';
+    } else {
+      document.getElementById('repBrand').value = '';
+      document.getElementById('repModel').value = '';
+      document.getElementById('repSerialNumber').value = '';
+    }
+  });
+}
+
+async function verificarModoEdicao() {
+  const repDateEl = document.getElementById('repDate');
+  if (repDateEl) repDateEl.valueAsDate = new Date();
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const editIndex = urlParams.get('edit');
+
+  if (editIndex !== null) {
+    try {
+      let reports = await DataSync.load('rg_reports') || [];
+      const rep = reports[editIndex];
+      if (rep) {
+        document.getElementById('editIndex').value = editIndex;
+        document.getElementById('formTitle').textContent = `Editar Relatório - ${rep.number}`;
+        document.getElementById('repNumber').value = rep.number || '';
+        document.getElementById('repDate').value = rep.date || '';
+        document.getElementById('repClient').value = rep.client || '';
+
+        await carregarMaquinasDoCliente(rep.client, rep.equipment);
+
+        document.getElementById('repBrand').value = rep.brand || '';
+        document.getElementById('repModel').value = rep.model || '';
+        document.getElementById('repSerialNumber').value = rep.serialNumber || '';
+        document.getElementById('repServiceNature').value = rep.serviceNature || 'Corretiva';
+        document.getElementById('repServiceArea').value = rep.serviceArea || 'Mecânica';
+        document.getElementById('repDesc').value = rep.desc || '';
+
+        if (rep.temEmpreitada === 'sim') {
+          document.getElementById('selectEmpreitada').value = 'sim';
+          toggleEmpreitadaSelect();
+          document.getElementById('repValorEmpreitada').value = rep.valorEmpreitada || 0;
+        } else {
+          document.getElementById('selectEmpreitada').value = 'nao';
+          toggleEmpreitadaSelect();
+        }
+
+        if (rep.temHora === 'sim') {
+          document.getElementById('selectHora').value = 'sim';
+          toggleHoraSelect();
+          document.getElementById('repValorHora').value = rep.valorHora || 200.00;
+          if (rep.diasTrabalho && Array.isArray(rep.diasTrabalho) && rep.diasTrabalho.length > 0) {
+            document.getElementById('numDiasTrabalho').value = rep.diasTrabalho.length;
+            gerarCamposDias(rep.diasTrabalho);
+          }
+        } else {
+          document.getElementById('selectHora').value = 'nao';
+          toggleHoraSelect();
+        }
+
+        if (rep.temDeslocamento === 'sim') {
+          document.getElementById('selectDeslocamento').value = 'sim';
+          toggleDeslocamentoSelect();
+          document.getElementById('valorHoraDeslocamento').value = rep.valorHoraDeslocamento || 260.00;
+          document.getElementById('tempoDeslocamentoHoras').value = rep.tempoDeslocamentoHoras || 0;
+          calcularTotalDeslocamento();
+        } else {
+          document.getElementById('selectDeslocamento').value = 'nao';
+          toggleDeslocamentoSelect();
+        }
+
+        if (rep.temHospedagem === 'sim') {
+          document.getElementById('selectHospedagem').value = 'sim';
+          toggleHospedagemSelect();
+          document.getElementById('valorHospedagem').value = rep.valorHospedagem || 0;
+        } else {
+          document.getElementById('selectHospedagem').value = 'nao';
+          toggleHospedagemSelect();
+        }
+
+        if (rep.temOutras === 'sim') {
+          document.getElementById('selectOutras').value = 'sim';
+          toggleOutrasSelect();
+          document.getElementById('valorOutras').value = rep.valorOutras || 0;
+        } else {
+          document.getElementById('selectOutras').value = 'nao';
+          toggleOutrasSelect();
+        }
+
+        if (rep.signature && clientCtx) {
+          const img = new Image();
+          img.onload = () => { 
+            clientCtx.drawImage(img, 0, 0); 
+            hasSignature = true; 
+          };
+          img.src = rep.signature;
+        }
+        if (rep.anexos && Array.isArray(rep.anexos)) {
+          anexosList = rep.anexos;
+          renderizarAnexos();
+        }
       }
-    })();
-  </script>
-</body>
-</html>
+    } catch (e) {
+      console.error("Erro ao carregar relatório para edição", e);
+    }
+  } else {
+    try {
+      let reports = await DataSync.load('rg_reports') || [];
+      let config = await DataSync.load('rg_config') || {};
+      let nextNum = 1000;
+      if (config.nextRsNumber) {
+        nextNum = Number(config.nextRsNumber);
+      } else if (reports.length > 0) {
+        let maxNum = 999;
+        reports.forEach(r => {
+          if (r.number) {
+            const match = r.number.match(/\d+/);
+            if (match) {
+              const num = parseInt(match[0], 10);
+              if (num > maxNum) maxNum = num;
+            }
+          }
+        });
+        nextNum = maxNum + 1;
+      }
+      document.getElementById('repNumber').value = `RS-${nextNum}`;
+    } catch (e) {
+      document.getElementById('repNumber').value = 'RS-1000';
+    }
+  }
+}
+
+const reportFormEl = document.getElementById('reportForm');
+if (reportFormEl) {
+  reportFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const editIndex = document.getElementById('editIndex').value;
+
+    const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
+    const numRsStr = document.getElementById('repNumber').value;
+
+    let diasTrabalhoArray = [];
+    const cards = document.querySelectorAll('.dia-card-flutuante');
+
+    cards.forEach((card, idx) => {
+      let dIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+      const selectTipo = document.getElementById(`tipo_registo_${idx}`);
+      const tipo = selectTipo ? selectTipo.value : 'turnos';
+
+      if (tipo === 'turnos') {
+        let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+        let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+        let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+        let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+
+        diasTrabalhoArray.push({
+          tipo: 'turnos',
+          inicio: dIni ? `${dIni}T${iniM}` : '',
+          fimManha: dIni ? `${dIni}T${fimM}` : '',
+          inicioTarde: dIni ? `${dIni}T${iniT}` : '',
+          fim: dIni ? `${dIni}T${fimT}` : ''
+        });
+      } else {
+        let hIni = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+        let hFim = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+
+        diasTrabalhoArray.push({
+          tipo: 'direto',
+          inicio: dIni ? `${dIni}T${hIni}` : '',
+          fim: dIni ? `${dIni}T${hFim}` : ''
+        });
+      }
+    });
+
+    let cleanAnexos = [];
+    if (Array.isArray(anexosList)) {
+      anexosList.forEach(a => {
+        if (a && typeof a === 'object') {
+          cleanAnexos.push({
+            titulo: String(a.titulo || 'Foto'),
+            imagem: String(a.imagem || '')
+          });
+        }
+      });
+    }
+
+    const reportData = {
+      number: String(numRsStr || ''),
+      date: String(document.getElementById('repDate').value || ''),
+      client: String(document.getElementById('repClient').value || ''),
+      equipment: String(document.getElementById('repEquipment').value || ''),
+      brand: String(document.getElementById('repBrand').value || ''),
+      model: String(document.getElementById('repModel').value || ''),
+      serialNumber: String(document.getElementById('repSerialNumber').value || ''),
+      serviceNature: String(document.getElementById('repServiceNature').value || ''),
+      serviceArea: String(document.getElementById('repServiceArea').value || ''),
+      desc: String(document.getElementById('repDesc').value || ''),
+
+      temEmpreitada: String(document.getElementById('selectEmpreitada').value || 'nao'),
+      valorEmpreitada: String(document.getElementById('repValorEmpreitada').value || '0'),
+
+      temHora: String(document.getElementById('selectHora').value || 'nao'),
+      diasTrabalho: diasTrabalhoArray,
+      valorHora: String(document.getElementById('repValorHora').value || '200'),
+
+      temDeslocamento: String(document.getElementById('selectDeslocamento').value || 'nao'),
+      valorHoraDeslocamento: String(document.getElementById('valorHoraDeslocamento').value || '260'),
+      tempoDeslocamentoHoras: String(document.getElementById('tempoDeslocamentoHoras').value || '0'),
+
+      temHospedagem: String(document.getElementById('selectHospedagem').value || 'nao'),
+      valorHospedagem: String(document.getElementById('valorHospedagem').value || '0'),
+
+      temOutras: String(document.getElementById('selectOutras').value || 'nao'),
+      valorOutras: String(document.getElementById('valorOutras').value || '0'),
+
+      signature: String(clientSigData || ''),
+      anexos: cleanAnexos
+    };
+
+    try {
+      let reports = await DataSync.load('rg_reports') || [];
+      if (!Array.isArray(reports)) reports = [];
+
+      if (editIndex !== '') {
+        reports[editIndex] = reportData;
+      } else {
+        reports.push(reportData);
+        let config = await DataSync.load('rg_config') || {};
+        const matchNum = numRsStr.match(/\d+/);
+        const currentNum = matchNum ? parseInt(matchNum[0], 10) : (1000 + reports.length);
+        config.nextRsNumber = String(currentNum + 1);
+        await DataSync.save('rg_config', config);
+      }
+
+      await DataSync.save('rg_reports', reports);
+      alert('Relatório de serviço salvo e sincronizado com sucesso!');
+      window.location.href = 'historico.html';
+    } catch (err) {
+      alert('Erro ao salvar relatório: ' + err.message);
+    }
+  });
+}
+
+window.resetForm = function() {
+  window.location.href = 'historico.html';
+};
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
