@@ -85,14 +85,10 @@
   <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS NO MOBILE E DESKTOP -->
   <script>
     (function() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
-      if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
-      }
       if (!isSuperAdmin && showHoras !== 'true') {
         document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
       }
@@ -109,9 +105,8 @@
 
     <nav class="desktop-nav">
       <a href="index.html" class="active"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
-      <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
@@ -239,17 +234,13 @@
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="historico.html">
+    <a href="relatorios.html">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
     <a href="manutencoes.html">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
-    </a>
-    <a href="orcamentos.html" id="nav-item-orcamentos">
-      <i class="fa-solid fa-calculator"></i>
-      <span>Orçamentos</span>
     </a>
     <a href="horas-extras.html" id="nav-item-horas">
       <i class="fa-solid fa-clock"></i>
@@ -274,7 +265,7 @@
         <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
           <li>🗂️ Unificação da Gestão de Clientes e Equipamentos na mesma tela.</li>
           <li>✨ Carrossel horizontal otimizado na barra inferior mobile.</li>
-          <li>📑 Módulo de Manutenções Planejadas.</li>
+          <li>📑 Central unificada de Relatórios e Orçamentos.</li>
         </ul>
         <p style="font-size: 0.85rem; color: #64748B; margin: 0;">Obrigado por utilizar o NexOS | Powered by CS Code Solutions.</p>
       </div>
