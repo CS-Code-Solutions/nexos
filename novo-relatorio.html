@@ -82,10 +82,15 @@
       padding-bottom: 5px;
     }
 
+    .desktop-nav { display: flex; align-items: center; gap: 20px; }
+    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
+    .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
     @media (max-width: 768px) {
-      .grid-data-hora {
-        grid-template-columns: 1fr;
-      }
+      .grid-data-hora { grid-template-columns: 1fr; }
+      .desktop-nav { display: none !important; }
+    }
+    @media (min-width: 769px) {
+      #mainBottomNav { display: none !important; }
     }
   </style>
 </head>
@@ -101,11 +106,10 @@
 
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
-      <!-- Mude a class="active" dependendo da página em que estiver -->
-      <a href="index.html" ><i class="fa-solid fa-users"></i> Clientes</a>
+      <a href="index.html"><i class="fa-solid fa-users"></i> Clientes</a>
       <a href="maquinas.html"><i class="fa-solid fa-gears"></i> Máquinas</a>
       <a href="historico.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planeamento</a>
       <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
@@ -116,7 +120,8 @@
       <i class="fa-solid fa-power-off"></i>
     </button>
   </header>
-  <main style="padding-top: 20px;">
+
+  <main style="padding-top: 20px; max-width: 900px; margin: 0 auto; padding-bottom: 80px;">
     <section class="card">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
         <h2 id="formTitle" style="margin-bottom: 0; color: #0B132B; font-size: 1.5rem;">Novo Relatório de Serviço (RS)</h2>
@@ -228,7 +233,7 @@
         </div>
 
         <!-- ============================================== -->
-        <!-- PASSO 2: ASSINATURA DO CLIENTE (Resumo Oculto) -->
+        <!-- PASSO 2: ASSINATURA DO CLIENTE -->
         <!-- ============================================== -->
         <div id="step2" style="display: none;">
           <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--deep-navy);">Resumo do Atendimento</h3>
@@ -250,7 +255,6 @@
             </div>
           </div>
 
-          <!-- MENSAGEM DE SUCESSO PÓS ASSINATURA -->
           <div id="msgAssinaturaSucesso" style="display: none; background: #D1FAE5; color: #065F46; padding: 20px; border-radius: 6px; border: 1px solid #10B981; margin-bottom: 20px; text-align: center;">
             <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; margin-bottom: 10px;"></i><br>
             <strong style="font-size: 1.1rem; display: block; margin-bottom: 5px;">Assinatura registrada com sucesso!</strong>
@@ -389,6 +393,9 @@
         await loadClients();
         gerarCamposDias();
         await verificarModoEdicao();
+        
+        // --- AUTOPREENCHIMENTO Vindo de Manutenções Planeadas ---
+        await verificarPreenchimentoPlaneado();
       }
     });
 
@@ -401,7 +408,7 @@
     let anexosList = [];
     let clientMachines = [];
     let clientCanvas = document.getElementById('clientCanvas');
-    let clientCtx = clientCanvas.getContext('2d');
+    let clientCtx = clientCanvas ? clientCanvas.getContext('2d') : null;
     let paintingClient = false;
     let hasSignature = false;
     let tempAnexoBase64 = '';
@@ -411,13 +418,12 @@
     // ==============================================
     
     window.avancarParaStep2 = function() {
-      // Validar campos obrigatórios do Passo 1 antes de prosseguir
       const reqFields = document.querySelectorAll('#step1 [required]');
       let isValid = true;
       reqFields.forEach(f => {
         if(!f.value) { 
           isValid = false; 
-          f.style.borderColor = '#EF4444'; // Fica vermelho se faltar
+          f.style.borderColor = '#EF4444'; 
         } else { 
           f.style.borderColor = '#CBD5E1'; 
         }
@@ -428,17 +434,14 @@
         return;
       }
 
-      // Preenche o resumo para o cliente ler
       document.getElementById('resumoCliente').textContent = document.getElementById('repClient').value;
       document.getElementById('resumoMaquina').textContent = document.getElementById('repEquipment').value;
       document.getElementById('resumoManutencao').textContent = document.getElementById('repServiceNature').value;
       document.getElementById('resumoServico').textContent = document.getElementById('repDesc').value;
 
-      // Troca de ecrã
       document.getElementById('step1').style.display = 'none';
       document.getElementById('step2').style.display = 'block';
       
-      // Atualiza Indicador
       document.getElementById('ind-step1').classList.remove('active');
       document.getElementById('ind-step2').classList.add('active');
     };
@@ -446,15 +449,13 @@
     window.confirmarAssinatura = function() {
       const editIndex = document.getElementById('editIndex').value;
       
-      // Valida se assinou (em modo de criação nova precisa assinar, na edição pode já ter assinatura carregada)
       if(!hasSignature && !editIndex) {
         alert('O cliente/responsável precisa desenhar a assinatura antes de guardar.');
         return;
       }
 
-      // Oculta área de assinatura e mostra mensagem verde de sucesso + botão avançar
       document.getElementById('areaAssinatura').style.display = 'none';
-      document.getElementById('btnVoltarStep1').style.display = 'none'; // Esconde botão de voltar para não confundir o cliente
+      document.getElementById('btnVoltarStep1').style.display = 'none';
       document.getElementById('msgAssinaturaSucesso').style.display = 'block';
       document.getElementById('btnAvancarStep3').style.display = 'block';
     };
@@ -463,7 +464,6 @@
       document.getElementById('step2').style.display = 'none';
       document.getElementById('step3').style.display = 'block';
       
-      // Atualiza Indicador
       document.getElementById('ind-step2').classList.remove('active');
       document.getElementById('ind-step3').classList.add('active');
     };
@@ -526,33 +526,37 @@
     }
 
     // Assinatura Canvas Logic
-    function startClient(e) { paintingClient = true; hasSignature = true; drawClient(e); }
-    function finishClient() { paintingClient = false; clientCtx.beginPath(); }
-    function drawClient(e) {
-      if (!paintingClient) return;
-      e.preventDefault(); // Evita scroll ao assinar no telemóvel
-      clientCtx.lineWidth = 2;
-      clientCtx.lineCap = 'round';
-      clientCtx.strokeStyle = '#0B132B';
-      const rect = clientCanvas.getBoundingClientRect();
-      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-      const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
-      clientCtx.lineTo(x, y);
-      clientCtx.stroke();
-      clientCtx.beginPath();
-      clientCtx.moveTo(x, y);
+    if (clientCanvas && clientCtx) {
+      function startClient(e) { paintingClient = true; hasSignature = true; drawClient(e); }
+      function finishClient() { paintingClient = false; clientCtx.beginPath(); }
+      function drawClient(e) {
+        if (!paintingClient) return;
+        e.preventDefault();
+        clientCtx.lineWidth = 2;
+        clientCtx.lineCap = 'round';
+        clientCtx.strokeStyle = '#0B132B';
+        const rect = clientCanvas.getBoundingClientRect();
+        const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+        const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+        clientCtx.lineTo(x, y);
+        clientCtx.stroke();
+        clientCtx.beginPath();
+        clientCtx.moveTo(x, y);
+      }
+
+      clientCanvas.addEventListener('mousedown', startClient);
+      clientCanvas.addEventListener('mouseup', finishClient);
+      clientCanvas.addEventListener('mousemove', drawClient);
+      clientCanvas.addEventListener('touchstart', startClient, {passive: false});
+      clientCanvas.addEventListener('touchend', finishClient);
+      clientCanvas.addEventListener('touchmove', drawClient, {passive: false});
     }
 
-    clientCanvas.addEventListener('mousedown', startClient);
-    clientCanvas.addEventListener('mouseup', finishClient);
-    clientCanvas.addEventListener('mousemove', drawClient);
-    clientCanvas.addEventListener('touchstart', startClient, {passive: false});
-    clientCanvas.addEventListener('touchend', finishClient);
-    clientCanvas.addEventListener('touchmove', drawClient, {passive: false});
-
     window.clearClientSig = function() {
-      clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
-      hasSignature = false;
+      if (clientCtx && clientCanvas) {
+        clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
+        hasSignature = false;
+      }
     };
 
     function gerarOpcoesHoras(selecionado = '08:00') {
@@ -591,6 +595,7 @@
       if (qtd > 30) qtd = 30;
 
       const container = document.getElementById('containerDiasHorarios');
+      if (!container) return;
       const valoresAtuais = [];
       const cardsAtuais = container.querySelectorAll('.dia-card-flutuante');
 
@@ -606,11 +611,10 @@
         let fimDir = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
 
         let dataIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
-        let dataFim = card.querySelector('.dia-data-fim') ? card.querySelector('.dia-data-fim').value : '';
 
         valoresAtuais.push({
           tipo: tipoRegisto,
-          dataIni, dataFim,
+          dataIni,
           iniM, fimM, iniT, fimT,
           iniDir, fimDir
         });
@@ -806,6 +810,7 @@
 
     function renderizarAnexos() {
       const container = document.getElementById('listaAnexos');
+      if (!container) return;
       container.innerHTML = '';
       anexosList.forEach((a, idx) => {
         container.innerHTML += `
@@ -829,6 +834,7 @@
 
     async function carregarMaquinasDoCliente(clientName, selectedEquipment = '') {
       const eqSelect = document.getElementById('repEquipment');
+      if (!eqSelect) return;
       eqSelect.innerHTML = '<option value="">Selecione a máquina...</option>';
       clientMachines = [];
 
@@ -847,31 +853,64 @@
       }
     }
 
-    document.getElementById('repClient').addEventListener('change', async function() {
-      const clientName = this.value;
-      document.getElementById('repBrand').value = '';
-      document.getElementById('repModel').value = '';
-      document.getElementById('repSerialNumber').value = '';
-      await carregarMaquinasDoCliente(clientName);
-    });
+    // --- FUNÇÃO PARA TRATAR O AUTOPREENCHIMENTO DO PLANEAMENTO ---
+    async function verificarPreenchimentoPlaneado() {
+      const dadosPend = localStorage.getItem('rg_preencher_rs');
+      if (dadosPend) {
+        try {
+          const dados = JSON.parse(dadosPend);
+          
+          const repClientSelect = document.getElementById('repClient');
+          if (repClientSelect && dados.client) {
+            repClientSelect.value = dados.client;
+            await carregarMaquinasDoCliente(dados.client, dados.machine);
+          }
 
-    document.getElementById('repEquipment').addEventListener('change', function() {
-      const selectedOption = this.options[this.selectedIndex];
-      const idx = selectedOption.getAttribute('data-index');
-      if (idx !== null && clientMachines[idx]) {
-        const m = clientMachines[idx];
-        document.getElementById('repBrand').value = m.brand || m.marca || '';
-        document.getElementById('repModel').value = m.model || m.modelo || '';
-        document.getElementById('repSerialNumber').value = m.serialNumber || m.serial || m.tag || m.Tag || m.serie || m.matricula || '';
-      } else {
+          const repDescInput = document.getElementById('repDesc');
+          if (repDescInput && dados.description) {
+            repDescInput.value = dados.description;
+          }
+
+          localStorage.removeItem('rg_preencher_rs');
+        } catch (e) {
+          console.error("Erro ao processar preenchimento planeado:", e);
+        }
+      }
+    }
+
+    const repClientEl = document.getElementById('repClient');
+    if (repClientEl) {
+      repClientEl.addEventListener('change', async function() {
+        const clientName = this.value;
         document.getElementById('repBrand').value = '';
         document.getElementById('repModel').value = '';
         document.getElementById('repSerialNumber').value = '';
-      }
-    });
+        await carregarMaquinasDoCliente(clientName);
+      });
+    }
+
+    const repEquipmentEl = document.getElementById('repEquipment');
+    if (repEquipmentEl) {
+      repEquipmentEl.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const idx = selectedOption.getAttribute('data-index');
+        if (idx !== null && clientMachines[idx]) {
+          const m = clientMachines[idx];
+          document.getElementById('repBrand').value = m.brand || m.marca || '';
+          document.getElementById('repModel').value = m.model || m.modelo || '';
+          document.getElementById('repSerialNumber').value = m.serialNumber || m.serial || m.tag || m.Tag || m.serie || m.matricula || '';
+        } else {
+          document.getElementById('repBrand').value = '';
+          document.getElementById('repModel').value = '';
+          document.getElementById('repSerialNumber').value = '';
+        }
+      });
+    }
 
     async function verificarModoEdicao() {
-      document.getElementById('repDate').valueAsDate = new Date();
+      const repDateEl = document.getElementById('repDate');
+      if (repDateEl) repDateEl.valueAsDate = new Date();
+      
       const urlParams = new URLSearchParams(window.location.search);
       const editIndex = urlParams.get('edit');
 
@@ -946,11 +985,11 @@
               toggleOutrasSelect();
             }
 
-            if (rep.signature) {
+            if (rep.signature && clientCtx) {
               const img = new Image();
               img.onload = () => { 
                 clientCtx.drawImage(img, 0, 0); 
-                hasSignature = true; // Define que já tem assinatura ao editar
+                hasSignature = true; 
               };
               img.src = rep.signature;
             }
@@ -989,113 +1028,116 @@
       }
     }
 
-    document.getElementById('reportForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const editIndex = document.getElementById('editIndex').value;
+    const reportFormEl = document.getElementById('reportForm');
+    if (reportFormEl) {
+      reportFormEl.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editIndex = document.getElementById('editIndex').value;
 
-      const clientSigData = clientCanvas.toDataURL();
-      const numRsStr = document.getElementById('repNumber').value;
+        const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
+        const numRsStr = document.getElementById('repNumber').value;
 
-      let diasTrabalhoArray = [];
-      const cards = document.querySelectorAll('.dia-card-flutuante');
+        let diasTrabalhoArray = [];
+        const cards = document.querySelectorAll('.dia-card-flutuante');
 
-      cards.forEach((card, idx) => {
-        let dIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
-        const selectTipo = document.getElementById(`tipo_registo_${idx}`);
-        const tipo = selectTipo ? selectTipo.value : 'turnos';
+        cards.forEach((card, idx) => {
+          let dIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+          const selectTipo = document.getElementById(`tipo_registo_${idx}`);
+          const tipo = selectTipo ? selectTipo.value : 'turnos';
 
-        if (tipo === 'turnos') {
-          let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
-          let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
-          let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
-          let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+          if (tipo === 'turnos') {
+            let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+            let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+            let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+            let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
 
-          diasTrabalhoArray.push({
-            tipo: 'turnos',
-            inicio: dIni ? `${dIni}T${iniM}` : '',
-            fimManha: dIni ? `${dIni}T${fimM}` : '',
-            inicioTarde: dIni ? `${dIni}T${iniT}` : '',
-            fim: dIni ? `${dIni}T${fimT}` : ''
-          });
-        } else {
-          let hIni = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
-          let hFim = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+            diasTrabalhoArray.push({
+              tipo: 'turnos',
+              inicio: dIni ? `${dIni}T${iniM}` : '',
+              fimManha: dIni ? `${dIni}T${fimM}` : '',
+              inicioTarde: dIni ? `${dIni}T${iniT}` : '',
+              fim: dIni ? `${dIni}T${fimT}` : ''
+            });
+          } else {
+            let hIni = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+            let hFim = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
 
-          diasTrabalhoArray.push({
-            tipo: 'direto',
-            inicio: dIni ? `${dIni}T${hIni}` : '',
-            fim: dIni ? `${dIni}T${hFim}` : ''
-          });
-        }
-      });
-
-      let cleanAnexos = [];
-      if (Array.isArray(anexosList)) {
-        anexosList.forEach(a => {
-          if (a && typeof a === 'object') {
-            cleanAnexos.push({
-              titulo: String(a.titulo || 'Foto'),
-              imagem: String(a.imagem || '')
+            diasTrabalhoArray.push({
+              tipo: 'direto',
+              inicio: dIni ? `${dIni}T${hIni}` : '',
+              fim: dIni ? `${dIni}T${hFim}` : ''
             });
           }
         });
-      }
 
-      const reportData = {
-        number: String(numRsStr || ''),
-        date: String(document.getElementById('repDate').value || ''),
-        client: String(document.getElementById('repClient').value || ''),
-        equipment: String(document.getElementById('repEquipment').value || ''),
-        brand: String(document.getElementById('repBrand').value || ''),
-        model: String(document.getElementById('repModel').value || ''),
-        serialNumber: String(document.getElementById('repSerialNumber').value || ''),
-        serviceNature: String(document.getElementById('repServiceNature').value || ''),
-        serviceArea: String(document.getElementById('repServiceArea').value || ''),
-        desc: String(document.getElementById('repDesc').value || ''),
-
-        temEmpreitada: String(document.getElementById('selectEmpreitada').value || 'nao'),
-        valorEmpreitada: String(document.getElementById('repValorEmpreitada').value || '0'),
-
-        temHora: String(document.getElementById('selectHora').value || 'nao'),
-        diasTrabalho: diasTrabalhoArray,
-        valorHora: String(document.getElementById('repValorHora').value || '200'),
-
-        temDeslocamento: String(document.getElementById('selectDeslocamento').value || 'nao'),
-        valorHoraDeslocamento: String(document.getElementById('valorHoraDeslocamento').value || '260'),
-        tempoDeslocamentoHoras: String(document.getElementById('tempoDeslocamentoHoras').value || '0'),
-
-        temHospedagem: String(document.getElementById('selectHospedagem').value || 'nao'),
-        valorHospedagem: String(document.getElementById('valorHospedagem').value || '0'),
-
-        temOutras: String(document.getElementById('selectOutras').value || 'nao'),
-        valorOutras: String(document.getElementById('valorOutras').value || '0'),
-
-        signature: String(clientSigData || ''),
-        anexos: cleanAnexos
-      };
-
-      try {
-        let reports = await DataSync.load('rg_reports') || [];
-        if (!Array.isArray(reports)) reports = [];
-
-        if (editIndex !== '') {
-          reports[editIndex] = reportData;
-        } else {
-          reports.push(reportData);
-          let config = await DataSync.load('rg_config') || {};
-          const matchNum = numRsStr.match(/\d+/);
-          const currentNum = matchNum ? parseInt(matchNum[0], 10) : (1000 + reports.length);
-          config.nextRsNumber = String(currentNum + 1);
-          await DataSync.save('rg_config', config);
+        let cleanAnexos = [];
+        if (Array.isArray(anexosList)) {
+          anexosList.forEach(a => {
+            if (a && typeof a === 'object') {
+              cleanAnexos.push({
+                titulo: String(a.titulo || 'Foto'),
+                imagem: String(a.imagem || '')
+              });
+            }
+          });
         }
 
-        await DataSync.save('rg_reports', reports);
-        alert('Relatório de serviço salvo e sincronizado com sucesso!');
-        window.location.href = 'historico.html';
-      } catch (err) {
-        alert('Erro ao salvar relatório: ' + err.message);
-      }
-    });
+        const reportData = {
+          number: String(numRsStr || ''),
+          date: String(document.getElementById('repDate').value || ''),
+          client: String(document.getElementById('repClient').value || ''),
+          equipment: String(document.getElementById('repEquipment').value || ''),
+          brand: String(document.getElementById('repBrand').value || ''),
+          model: String(document.getElementById('repModel').value || ''),
+          serialNumber: String(document.getElementById('repSerialNumber').value || ''),
+          serviceNature: String(document.getElementById('repServiceNature').value || ''),
+          serviceArea: String(document.getElementById('repServiceArea').value || ''),
+          desc: String(document.getElementById('repDesc').value || ''),
+
+          temEmpreitada: String(document.getElementById('selectEmpreitada').value || 'nao'),
+          valorEmpreitada: String(document.getElementById('repValorEmpreitada').value || '0'),
+
+          temHora: String(document.getElementById('selectHora').value || 'nao'),
+          diasTrabalho: diasTrabalhoArray,
+          valorHora: String(document.getElementById('repValorHora').value || '200'),
+
+          temDeslocamento: String(document.getElementById('selectDeslocamento').value || 'nao'),
+          valorHoraDeslocamento: String(document.getElementById('valorHoraDeslocamento').value || '260'),
+          tempoDeslocamentoHoras: String(document.getElementById('tempoDeslocamentoHoras').value || '0'),
+
+          temHospedagem: String(document.getElementById('selectHospedagem').value || 'nao'),
+          valorHospedagem: String(document.getElementById('valorHospedagem').value || '0'),
+
+          temOutras: String(document.getElementById('selectOutras').value || 'nao'),
+          valorOutras: String(document.getElementById('valorOutras').value || '0'),
+
+          signature: String(clientSigData || ''),
+          anexos: cleanAnexos
+        };
+
+        try {
+          let reports = await DataSync.load('rg_reports') || [];
+          if (!Array.isArray(reports)) reports = [];
+
+          if (editIndex !== '') {
+            reports[editIndex] = reportData;
+          } else {
+            reports.push(reportData);
+            let config = await DataSync.load('rg_config') || {};
+            const matchNum = numRsStr.match(/\d+/);
+            const currentNum = matchNum ? parseInt(matchNum[0], 10) : (1000 + reports.length);
+            config.nextRsNumber = String(currentNum + 1);
+            await DataSync.save('rg_config', config);
+          }
+
+          await DataSync.save('rg_reports', reports);
+          alert('Relatório de serviço salvo e sincronizado com sucesso!');
+          window.location.href = 'historico.html';
+        } catch (err) {
+          alert('Erro ao salvar relatório: ' + err.message);
+        }
+      });
+    }
 
     window.resetForm = function() {
       window.location.href = 'historico.html';
@@ -1125,6 +1167,10 @@
     <a href="historico.html" class="active">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
+    </a>
+    <a href="manutencoes.html">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Plan</span>
     </a>
     <a href="orcamentos.html" id="nav-item-orcamentos">
       <i class="fa-solid fa-calculator"></i>
