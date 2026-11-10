@@ -4,7 +4,6 @@
 
 let listaRelatoriosRS = [];
 let listaOrcamentos = [];
-let tipoFiltroAtual = 'todos';
 let activeDocumentData = {};
 let activeDocumentType = 'RS';
 
@@ -49,28 +48,18 @@ async function renderizarTudo() {
   }
 }
 
-window.filtrarPorTipo = function(tipo) {
-  tipoFiltroAtual = tipo;
-  
-  document.getElementById('btnFiltroTodos')?.classList.toggle('active', tipo === 'todos');
-  document.getElementById('btnFiltroRS')?.classList.toggle('active', tipo === 'rs');
-  document.getElementById('btnFiltroORC')?.classList.toggle('active', tipo === 'orc');
-
-  filtrarDocumentos();
-};
-
 window.filtrarDocumentos = function() {
   const container = document.getElementById('reportCardsContainer');
   if (!container) return;
 
   const busca = (document.getElementById('inputPesquisaRelatorios')?.value || '').toLowerCase().trim();
+  const tipoFiltro = document.getElementById('selectTipoFiltro')?.value || 'todos';
   const clienteFiltro = document.getElementById('selectClienteFiltro')?.value || '';
-  const dataIni = document.getElementById('dataInicio')?.value || '';
-  const dataFim = document.getElementById('dataFim')?.value || '';
 
   let unificados = [];
 
-  if (tipoFiltroAtual === 'todos' || tipoFiltroAtual === 'rs') {
+  // 1. Mapeia Relatórios RS
+  if (tipoFiltro === 'todos' || tipoFiltro === 'rs') {
     listaRelatoriosRS.forEach((r, idx) => {
       if (!r) return;
       unificados.push({
@@ -86,7 +75,8 @@ window.filtrarDocumentos = function() {
     });
   }
 
-  if (tipoFiltroAtual === 'todos' || tipoFiltroAtual === 'orc') {
+  // 2. Mapeia Orçamentos ORC
+  if (tipoFiltro === 'todos' || tipoFiltro === 'orc') {
     listaOrcamentos.forEach((o, idx) => {
       if (!o) return;
       unificados.push({
@@ -106,8 +96,6 @@ window.filtrarDocumentos = function() {
 
   const filtrados = unificados.filter(item => {
     if (clienteFiltro && item.cliente !== clienteFiltro) return false;
-    if (dataIni && item.data < dataIni) return false;
-    if (dataFim && item.data > dataFim) return false;
 
     if (busca) {
       const numClean = item.numero.toLowerCase();
