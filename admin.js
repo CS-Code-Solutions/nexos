@@ -186,20 +186,60 @@ window.exportarBackupCSV = async function(uid, nomeEmpresa) {
   }
 };
 
+/**
+ * Processa o upload de imagem otimizando a largura/altura para no máximo 350px.
+ * Isso mantém o ficheiro leve (< 40KB em vez de 3MB) e evita erros de limite de documento no Firestore.
+ */
 window.processarUploadLogo = function(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = function(e) {
-    const originalBase64 = e.target.result;
-    document.getElementById('tenantLogoBase64').value = originalBase64;
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 350;
+      const MAX_HEIGHT = 150;
+      let width = img.width;
+      let height = img.height;
 
-    const preview = document.getElementById('logoPreviewImg');
-    preview.src = originalBase64;
-    document.getElementById('logoPreviewContainer').style.display = 'block';
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const resizedBase64 = canvas.toDataURL('image/png');
+      document.getElementById('tenantLogoBase64').value = resizedBase64;
+
+      const preview = document.getElementById('logoPreviewImg');
+      preview.src = resizedBase64;
+      document.getElementById('logoPreviewContainer').style.display = 'block';
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+};
+
+window.removerLogoForm = function() {
+  document.getElementById('tenantLogoBase64').value = '';
+  document.getElementById('tenantLogoFile').value = '';
+  document.getElementById('logoPreviewImg').src = '';
+  document.getElementById('logoPreviewContainer').style.display = 'none';
 };
 
 window.abrirModalCliente = function() {
@@ -209,8 +249,7 @@ window.abrirModalCliente = function() {
   inputUid.readOnly = false;
   inputUid.style.background = '#F8FAFC';
   
-  document.getElementById('tenantLogoBase64').value = '';
-  document.getElementById('logoPreviewContainer').style.display = 'none';
+  removerLogoForm();
   document.getElementById('modalTenantTitle').textContent = 'Adicionar Novo Cliente / Tenant';
   document.getElementById('tenantModal').style.display = 'flex';
 };
@@ -232,15 +271,16 @@ window.editarTenant = function(uid) {
   document.getElementById('tenantEmail').value = t.email || '';
   document.getElementById('tenantWatermark').value = t.watermark || '';
   
-  document.getElementById('tenantLogoBase64').value = t.logoBase64 || '';
-  if (t.logoBase64) {
-    document.getElementById('logoPreviewImg').src = t.logoBase64;
+  const logoBase64Val = t.logoBase64 || '';
+  document.getElementById('tenantLogoBase64').value = logoBase64Val;
+  if (logoBase64Val) {
+    document.getElementById('logoPreviewImg').src = logoBase64Val;
     document.getElementById('logoPreviewContainer').style.display = 'block';
   } else {
     document.getElementById('logoPreviewContainer').style.display = 'none';
   }
 
-  // Feature Flags Ajustadas
+  // Feature Flags
   document.getElementById('pageCadastros').checked = t.pageCadastros !== false;
   document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
   document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
@@ -272,11 +312,13 @@ if (tenantFormEl) {
       uid = 'tenant_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     }
 
+    const logoBase64Final = document.getElementById('tenantLogoBase64').value.trim();
+
     const tenantData = {
       name: nomeCliente,
       nomeEmpresa: nomeCliente,
       email: emailCliente,
-      logoBase64: document.getElementById('tenantLogoBase64').value.trim(),
+      logoBase64: logoBase64Final,
       watermark: document.getElementById('tenantWatermark').value.trim(),
       
       pageCadastros: document.getElementById('pageCadastros').checked,
@@ -300,6 +342,17 @@ if (tenantFormEl) {
     try {
       await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
 
+      // Atualiza instantaneamente o localStorage e a visualização no topo caso seja o tenant ativo ou super admin
+      if (logoBase64Final) {
+        localStorage.setItem('rg_logo_base64', logoBase64Final);
+        const headerLogo = document.getElementById('logo-cliente');
+        if (headerLogo) headerLogo.src = logoBase64Final;
+      } else {
+        localStorage.removeItem('rg_logo_base64');
+        const headerLogo = document.getElementById('logo-cliente');
+        if (headerLogo) headerLogo.src = 'marca.png';
+      }
+
       if (emailCliente) {
         await db.collection('saas_users').doc(emailCliente).set({
           role: "client",
@@ -310,10 +363,11 @@ if (tenantFormEl) {
         }, { merge: true });
       }
 
-      alert('Configurações salvas com sucesso!');
+      alert('✅ Configurações e logótipo salvos com sucesso!');
       fecharModalCliente();
       carregarPainelAdmin();
     } catch (err) {
+      console.error(err);
       alert('Erro ao salvar tenant e permissões: ' + err.message);
     }
   });
