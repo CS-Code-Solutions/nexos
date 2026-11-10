@@ -45,7 +45,7 @@ async function carregarPainelAdmin() {
       const semNome = (nomeEmpresaStr === "" || nomeEmpresaStr === "Empresa Sem Nome" || nomeEmpresaStr === "Sem Nome");
       const semEmail = (emailEmpresa === "" || emailEmpresa.includes("não informado") || emailEmpresa === " e-mail não informado");
 
-      // FILTRO INTELIGENTE: Filtra contas incompletas / sem nome nem e-mail
+      // FILTRO INTELIGENTE: Ignora apenas contas incompletas sem nome nem e-mail
       if (!ehMaster && semNome && semEmail) {
         continue;
       }
@@ -242,10 +242,10 @@ window.editarTenant = function(uid) {
     document.getElementById('logoPreviewContainer').style.display = 'none';
   }
 
-  document.getElementById('pageClientes').checked = t.pageClientes !== false;
-  document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
+  // Feature Flags Ajustadas
+  document.getElementById('pageCadastros').checked = t.pageCadastros !== false;
   document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
-  document.getElementById('pageOrcamentos').checked = t.pageOrcamentos === true;
+  document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
   document.getElementById('pageManutencoes').checked = t.pageManutencoes !== false;
   document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
@@ -281,8 +281,7 @@ if (tenantFormEl) {
       logoBase64: document.getElementById('tenantLogoBase64').value.trim(),
       watermark: document.getElementById('tenantWatermark').value.trim(),
       
-      pageClientes: document.getElementById('pageClientes').checked,
-      pageMaquinas: document.getElementById('pageMaquinas').checked,
+      pageCadastros: document.getElementById('pageCadastros').checked,
       pageRelatorios: document.getElementById('pageRelatorios').checked,
       pageOrcamentos: document.getElementById('pageOrcamentos').checked,
       pageManutencoes: document.getElementById('pageManutencoes').checked,
