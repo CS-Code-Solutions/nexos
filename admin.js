@@ -83,7 +83,6 @@ async function carregarPainelAdmin() {
         botaoContratoHtml = `<a href="${linkAssinatura}" target="_blank" class="btn" style="background-color: #64748B; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pen"></i> Assinar Contrato</a>`;
       }
 
-      // Removida a linha "Horas Extras: Ativo/Inativo" conforme solicitado
       html += `
         <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
           <div style="flex: 1; min-width: 250px;">
@@ -96,8 +95,8 @@ async function carregarPainelAdmin() {
             ${botaoContratoHtml}
             <button class="btn" style="background-color: #F59E0B; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="editarTenant('${uid}')"><i class="fa-solid fa-pen"></i> Editar</button>
             
-            <button class="btn" style="background-color: #3B82F6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupJSON('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-code"></i> JSON</button>
-            <button class="btn" style="background-color: #8B5CF6; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold;" onclick="exportarBackupCSV('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-csv"></i> CSV</button>
+            <button class="btn" style="background-color: #3B82F6; color: white; padding: 6px 10px; font-size: 0.85rem; font-weight: bold;" onclick="exportarBackupJSON('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-code"></i> JSON</button>
+            <button class="btn" style="background-color: #8B5CF6; color: white; padding: 6px 10px; font-size: 0.85rem; font-weight: bold;" onclick="exportarBackupCSV('${uid}', '${escapeHTML(nomeEmpresa)}')"><i class="fa-solid fa-file-csv"></i> CSV</button>
 
             <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="excluirTenant('${uid}')"><i class="fa-solid fa-trash"></i> Excluir</button>
           </div>
@@ -242,10 +241,10 @@ window.editarTenant = function(uid) {
   }
 
   // Feature Flags Ajustadas
-  document.getElementById('pageManutencoes').checked = t.pageManutencoes !== false;
   document.getElementById('pageCadastros').checked = t.pageCadastros !== false;
   document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
   document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
+  document.getElementById('pageManutencoes').checked = t.pageManutencoes !== false;
   document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
   document.getElementById('criterioHorarioIntervalo').checked = t.criterioHorarioIntervalo !== false;
@@ -280,10 +279,10 @@ if (tenantFormEl) {
       logoBase64: document.getElementById('tenantLogoBase64').value.trim(),
       watermark: document.getElementById('tenantWatermark').value.trim(),
       
-      pageManutencoes: document.getElementById('pageManutencoes').checked,
       pageCadastros: document.getElementById('pageCadastros').checked,
       pageRelatorios: document.getElementById('pageRelatorios').checked,
       pageOrcamentos: document.getElementById('pageOrcamentos').checked,
+      pageManutencoes: document.getElementById('pageManutencoes').checked,
       modHorasExtras: document.getElementById('modHorasExtras').checked,
 
       criterioHorarioIntervalo: document.getElementById('criterioHorarioIntervalo').checked,
