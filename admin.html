@@ -66,7 +66,7 @@
 </head>
 <body>
 
-  <!-- CABEÇALHO DO SUPER ADMIN COM MENU DESKTOP -->
+<!-- CABEÇALHO DO SUPER ADMIN COM MENU DESKTOP -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
     
     <!-- LADO ESQUERDO: LOGO + SELO SUPER ADMIN -->
@@ -78,8 +78,9 @@
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
       <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
@@ -138,12 +139,12 @@
 
           <div class="form-group" style="margin-bottom: 12px;">
             <label for="tenantNome"><strong>Nome / Razão Social:</strong></label>
-            <input type="text" id="tenantNome" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+            <input type="text" id="tenantNome" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
           </div>
 
           <div class="form-group" style="margin-bottom: 12px;">
             <label for="tenantEmail"><strong>E-mail de Acesso:</strong></label>
-            <input type="email" id="tenantEmail" required placeholder="cliente@empresa.com" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+            <input type="email" id="tenantEmail" placeholder="cliente@empresa.com" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
           </div>
 
           <!-- WHITE-LABEL: LOGO E MARCA D'ÁGUA -->
@@ -178,7 +179,10 @@
                 <input type="checkbox" id="pageMaquinas" checked style="width: 16px; height: 16px;"> Página Máquinas
               </label>
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="pageRelatorios" checked style="width: 16px; height: 16px;"> Central de Relatórios & Orçamentos
+                <input type="checkbox" id="pageRelatorios" checked style="width: 16px; height: 16px;"> Página Relatórios (RS)
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                <input type="checkbox" id="pageOrcamentos" checked style="width: 16px; height: 16px;"> Página Orçamentos
               </label>
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
                 <input type="checkbox" id="pageManutencoes" checked style="width: 16px; height: 16px;"> Página Planejamento
@@ -268,31 +272,35 @@
   </footer>
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
-  <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="index.html">
-      <i class="fa-solid fa-address-book"></i>
-      <span>Cadastros</span>
-    </a>
-    <a href="relatorios.html">
-      <i class="fa-solid fa-file-lines"></i>
-      <span>Relatórios</span>
-    </a>
-    <a href="manutencoes.html">
-      <i class="fa-solid fa-calendar-check"></i>
-      <span>Plan</span>
-    </a>
-    <a href="horas-extras.html" id="nav-item-horas">
-      <i class="fa-solid fa-clock"></i>
-      <span>Horas</span>
-    </a>
-    <a href="configuracao.html" class="active" id="nav-item-config">
-      <i class="fa-solid fa-gear"></i>
-      <span>Config</span>
-    </a>
-  </nav>
+ <nav class="bottom-nav no-print" id="mainBottomNav">
+  <a href="index.html">
+    <i class="fa-solid fa-address-book"></i>
+    <span>Cadastros</span>
+  </a>
+  <a href="historico.html">
+    <i class="fa-solid fa-file-lines"></i>
+    <span>Relatórios</span>
+  </a>
+  <a href="manutencoes.html">
+    <i class="fa-solid fa-calendar-check"></i>
+    <span>Plan</span>
+  </a>
+  <a href="orcamentos.html" id="nav-item-orcamentos">
+    <i class="fa-solid fa-calculator"></i>
+    <span>Orçamentos</span>
+  </a>
+  <a href="horas-extras.html" id="nav-item-horas">
+    <i class="fa-solid fa-clock"></i>
+    <span>Horas</span>
+  </a>
+  <a href="configuracao.html" class="active" id="nav-item-config">
+    <i class="fa-solid fa-gear"></i>
+    <span>Config</span>
+  </a>
+</nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="admin.js?v=2"></script>
+  <script src="admin.js?v=6"></script>
 
   <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
   <script>
@@ -307,18 +315,19 @@
         }
       }
 
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
+      const navOrcamentos = document.getElementById('nav-item-orcamentos');
       const navHoras = document.getElementById('nav-item-horas');
-      const dNavHoras = document.getElementById('d-nav-horas');
 
+      if (navOrcamentos) {
+        navOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
+      }
       if (navHoras) {
         navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
-      }
-      if (dNavHoras) {
-        dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
       }
     });
   </script>
@@ -326,12 +335,16 @@
   <!-- SCRIPT SÍNCRONO INSTANTÂNEO -->
   <script>
     (function() {
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
+      if (!isSuperAdmin && showOrcamentos === 'false') {
+        document.write('<style>#nav-item-orcamentos { display: none !important; }</style>');
+      }
       if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
+        document.write('<style>#nav-item-horas { display: none !important; }</style>');
       }
     })();
   </script>
