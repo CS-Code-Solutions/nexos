@@ -88,7 +88,7 @@ window.handleGoogleLogin = async function() {
       console.warn("Aviso ao carregar permissões visuais:", cErr);
     }
 
-    window.location.href = 'index.html';
+    window.location.href = 'manutencoes.html';
 
   } catch (error) {
     console.error("Erro no login Google:", error);
