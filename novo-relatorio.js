@@ -12,17 +12,9 @@ firebase.auth().onAuthStateChanged(async (user) => {
     await loadClients();
     gerarCamposDias();
     await verificarModoEdicao();
-    
-    // --- AUTOPREENCHIMENTO Vindo de Manutenções Planeadas ---
     verificarPreenchimentoPlaneado();
   }
 });
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
-  });
-}
 
 let anexosList = [];
 let clientMachines = [];
@@ -31,10 +23,6 @@ let clientCtx = clientCanvas ? clientCanvas.getContext('2d') : null;
 let paintingClient = false;
 let hasSignature = false;
 let tempAnexoBase64 = '';
-
-// ==============================================
-// CONTROLE DE NAVEGAÇÃO ENTRE PASSOS (WIZARD)
-// ==============================================
 
 window.avancarParaStep2 = function() {
   const reqFields = document.querySelectorAll('#step1 [required]');
@@ -103,8 +91,6 @@ window.voltarParaStep2 = function() {
   document.getElementById('ind-step2').classList.add('active');
 };
 
-// ==============================================
-
 async function aplicarFeatureFlagsCriterios() {
   try {
     const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
@@ -144,7 +130,6 @@ async function aplicarFeatureFlagsCriterios() {
   }
 }
 
-// Assinatura Canvas Logic
 if (clientCanvas && clientCtx) {
   function startClient(e) { paintingClient = true; hasSignature = true; drawClient(e); }
   function finishClient() { paintingClient = false; clientCtx.beginPath(); }
@@ -476,28 +461,22 @@ async function carregarMaquinasDoCliente(clientName, selectedEquipment = '') {
   }
 }
 
-// --- FUNÇÃO PARA TRATAR O AUTOPREENCHIMENTO DO PLANEAMENTO ---
 async function verificarPreenchimentoPlaneado() {
   const dadosPend = localStorage.getItem('rg_preencher_rs');
   if (dadosPend) {
     try {
       const dados = JSON.parse(dadosPend);
-      
       const repClientSelect = document.getElementById('repClient');
       if (repClientSelect && dados.client) {
         repClientSelect.value = dados.client;
         await carregarMaquinasDoCliente(dados.client, dados.machine);
       }
-
       const repDescInput = document.getElementById('repDesc');
       if (repDescInput && dados.description) {
         repDescInput.value = dados.description;
       }
-
       localStorage.removeItem('rg_preencher_rs');
-    } catch (e) {
-      console.error("Erro ao processar preenchimento planeado:", e);
-    }
+    } catch (e) {}
   }
 }
 
@@ -621,9 +600,7 @@ async function verificarModoEdicao() {
           renderizarAnexos();
         }
       }
-    } catch (e) {
-      console.error("Erro ao carregar relatório para edição", e);
-    }
+    } catch (e) {}
   } else {
     try {
       let reports = await DataSync.load('rg_reports') || [];
@@ -656,7 +633,6 @@ if (reportFormEl) {
   reportFormEl.addEventListener('submit', async (e) => {
     e.preventDefault();
     const editIndex = document.getElementById('editIndex').value;
-
     const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
     const numRsStr = document.getElementById('repNumber').value;
 
@@ -755,7 +731,7 @@ if (reportFormEl) {
 
       await DataSync.save('rg_reports', reports);
       alert('Relatório de serviço salvo e sincronizado com sucesso!');
-      window.location.href = 'historico.html';
+      window.location.href = 'relatorios.html';
     } catch (err) {
       alert('Erro ao salvar relatório: ' + err.message);
     }
@@ -763,7 +739,7 @@ if (reportFormEl) {
 }
 
 window.resetForm = function() {
-  window.location.href = 'historico.html';
+  window.location.href = 'relatorios.html';
 };
 
 function escapeHTML(str) {
