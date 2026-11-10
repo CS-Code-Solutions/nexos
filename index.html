@@ -240,5 +240,31 @@
     }
   });
 </script>
+<!-- MODAL DE ATUALIZAÇÃO DA VERSÃO -->
+<div id="changelogModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 99999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+  <div style="background: white; width: 100%; max-width: 500px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; border-top: 4px solid #00F5D4;">
+    
+    <div style="background: #0B132B; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 1.1rem; color: #00F5D4;"><i class="fa-solid fa-bullhorn"></i> Novidades da Versão NexOS</h3>
+      <button type="button" onclick="fecharChangelog()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: white;">&times;</button>
+    </div>
+
+    <div style="padding: 20px; color: #334155; font-size: 0.95rem;">
+      <p style="margin-top: 0; font-weight: bold; color: #1D4ED8;">O que há de novo nesta versão:</p>
+      <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
+        <li>✨ Novo design otimizado para a barra de navegação móvel (Carrossel).</li>
+        <li>📑 Gestão da página de Planejamento direto pelo Painel Super Admin.</li>
+        <li>⚙️ Correções de estabilidade e melhorias de performance geral.</li>
+      </ul>
+      <p style="font-size: 0.85rem; color: #64748B; margin: 0;">Obrigado por utilizar o NexOS | Powered by CS Code Solutions.</p>
+    </div>
+
+    <div style="background: #F8FAFC; padding: 12px 20px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
+      <button type="button" class="btn" onclick="fecharChangelog()" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px; font-size: 0.9rem;">Entendido, obrigado!</button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
