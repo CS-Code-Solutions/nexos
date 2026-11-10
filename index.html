@@ -14,70 +14,101 @@
   <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NexOS - Gestão de Clientes</title>
-  
+  <title>NexOS - Gestão de Cadastros</title>
+
   <link rel="stylesheet" href="style.css">
-  
-  <!-- FontAwesome para os ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
+  <script src="global-modal.js"></script>
+
   <!-- Firebase SDKs Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  
-  <script src="global-modal.js"></script>
-  
+
   <script src="firebase-init.js?v=2"></script>
   <script src="firebase-sync.js?v=2"></script>
 
   <style>
-    /* Estilos do Menu Desktop e Responsividade */
-    .desktop-nav {
+    .desktop-nav { display: flex; align-items: center; gap: 20px; }
+    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
+    .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
+    @media (max-width: 768px) { .desktop-nav { display: none !important; } }
+    @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
+
+    /* Estilos do Acordeão de Clientes e Máquinas */
+    .client-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-left: 5px solid var(--tech-blue);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+    .client-header {
+      padding: 14px 16px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 20px;
+      cursor: pointer;
+      background: #FFFFFF;
+      user-select: none;
+      transition: background 0.2s;
     }
-    .desktop-nav a {
-      color: #94A3B8;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 0.95rem;
+    .client-header:hover {
+      background: #F8FAFC;
+    }
+    .client-machines-drawer {
+      display: none;
+      padding: 14px 16px;
+      background: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
+    }
+    .client-card.open .client-machines-drawer {
+      display: block;
+    }
+    .machine-item {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      transition: color 0.2s;
-    }
-    .desktop-nav a:hover, 
-    .desktop-nav a.active {
-      color: #00F5D4;
-    }
-    @media (max-width: 768px) {
-      .desktop-nav {
-        display: none !important;
-      }
-    }
-    @media (min-width: 769px) {
-      #mainBottomNav {
-        display: none !important;
-      }
+      flex-wrap: wrap;
+      gap: 10px;
     }
   </style>
+
+  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS NO MOBILE E DESKTOP -->
+  <script>
+    (function() {
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      if (!isSuperAdmin && showOrcamentos === 'false') {
+        document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
+      }
+      if (!isSuperAdmin && showHoras !== 'true') {
+        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
+      }
+    })();
+  </script>
 </head>
 <body>
 
-  <!-- CABEÇALHO COM MENU DESKTOP E MOBILE INTEGRADO -->
+  <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
-    
-    <!-- LADO ESQUERDO: LOGO -->
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
-    <!-- CENTRO: MENU DESKTOP (Aparece no PC) -->
     <nav class="desktop-nav">
-      <a href="index.html" class="active"><i class="fa-solid fa-users"></i> Clientes</a>
-      <a href="maquinas.html"><i class="fa-solid fa-gears"></i> Máquinas</a>
+      <a href="index.html" class="active"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
@@ -85,72 +116,128 @@
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
-    <!-- LADO DIREITO: BOTÃO SAIR -->
-    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
       <i class="fa-solid fa-power-off"></i>
     </button>
   </header>
 
-  <main style="padding-top: 20px; padding-bottom: 80px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-      <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Gestão de Clientes</h2>
-      <button type="button" class="btn" onclick="toggleClientForm()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 18px;">
-        <i class="fa-solid fa-plus"></i> Novo Cliente
-      </button>
+  <main style="max-width: 900px; margin: 20px auto; padding: 0 15px; padding-bottom: 80px;">
+
+    <!-- BARRA SUPERIOR DE AÇÕES -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;" class="no-print">
+      <div>
+        <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Clientes & Equipamentos</h2>
+        <p style="color: #64748B; font-size: 0.85rem; margin: 2px 0 0 0;">Gestão unificada de cadastros</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn" onclick="abrirFormCliente()" style="background-color: var(--tech-blue); color: white; font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
+          <i class="fa-solid fa-user-plus"></i> + Cliente
+        </button>
+        <button type="button" class="btn" onclick="abrirFormMaquina()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
+          <i class="fa-solid fa-gears"></i> + Máquina
+        </button>
+      </div>
     </div>
 
-    <!-- FORMULÁRIO OCULTO -->
-    <section class="card" id="clientFormSection" style="display: none; border-top: 4px solid var(--electric-cyan);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 id="formTitle" style="margin: 0; color: #0B132B;">Adicionar Cliente</h3>
-        <button type="button" onclick="toggleClientForm()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748B;">&times;</button>
+    <!-- CAMPO DE PESQUISA RÁPIDA -->
+    <div class="card no-print" style="padding: 12px; margin-bottom: 15px; border-top: none;">
+      <input type="text" id="inputPesquisa" oninput="filtrarCadastros()" placeholder="🔍 Pesquisar por cliente, CPF/CNPJ, máquina ou marca..." style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem;">
+    </div>
+
+    <!-- FORMULÁRIO DE CLIENTE COMPLETO -->
+    <section class="card no-print" id="clienteFormSection" style="display: none; border-top: 4px solid var(--tech-blue); margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 id="cliente-form-title" style="color: #0B132B; font-size: 1.15rem; margin: 0;">Cadastrar Novo Cliente</h3>
+        <button type="button" onclick="fecharFormCliente()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748B;">&times;</button>
       </div>
-      
-      <form id="clientForm">
-        <input type="hidden" id="editIndex" value="">
-        <div class="form-group">
-          <label for="clientName">Nome / Razão Social</label>
-          <input type="text" id="clientName" required placeholder="Ex: Empresa Exemplo Lda">
+      <form id="cliente-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div style="grid-column: 1 / -1;">
+            <label for="c-nome" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nome / Razão Social:*</label>
+            <input type="text" id="c-nome" required placeholder="Ex: Metalúrgica Silva LTDA" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-doc" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">CPF / CNPJ:*</label>
+            <input type="text" id="c-doc" required placeholder="00.000.000/0001-00" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-email" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">E-mail:</label>
+            <input type="email" id="c-email" placeholder="cliente@empresa.com" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-contato" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Pessoa de Contato:</label>
+            <input type="text" id="c-contato" placeholder="Ex: Eng. Roberto" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-telefone" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Telefone / WhatsApp:</label>
+            <input type="text" id="c-telefone" placeholder="(51) 99999-9999" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label for="c-endereco" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Endereço / Morada:</label>
+            <input type="text" id="c-endereco" placeholder="Rua, Número, Bairro, Cidade - UF" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
         </div>
-        <div class="form-group">
-          <label for="clientEmail">E-mail</label>
-          <input type="email" id="clientEmail" placeholder="exemplo@email.com">
-        </div>
-        <div class="form-group">
-          <label for="clientDoc">CPF / CNPJ</label>
-          <input type="text" id="clientDoc" required placeholder="00.000.000/0001-00">
-        </div>
-        <div class="form-group">
-          <label for="clientAddress">Morada / Endereço</label>
-          <input type="text" id="clientAddress" placeholder="Rua, Número, Cidade">
-        </div>
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-          <button type="submit" class="btn" id="saveBtn" style="background-color: #10B981; font-weight: bold;">Salvar Cliente</button>
-          <button type="button" class="btn" id="cancelBtn" style="background-color: #64748B;" onclick="resetForm()">Cancelar</button>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" id="btn-submit-c" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1;">Guardar Cliente</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px;" onclick="fecharFormCliente()">Cancelar</button>
         </div>
       </form>
     </section>
 
-    <section>
-      <div id="clientListContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
-        <p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar clientes da nuvem...</p>
+    <!-- FORMULÁRIO DE MÁQUINA COMPLETO -->
+    <section class="card no-print" id="maquinaFormSection" style="display: none; border-top: 4px solid var(--electric-cyan); margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 id="maquina-form-title" style="color: #0B132B; font-size: 1.15rem; margin: 0;">Cadastrar Nova Máquina</h3>
+        <button type="button" onclick="fecharFormMaquina()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748B;">&times;</button>
       </div>
+      <form id="maquina-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div style="grid-column: 1 / -1;">
+            <label for="m-cliente-select" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Cliente Pertencente:*</label>
+            <select id="m-cliente-select" required style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;">
+              <option value="">Selecione o cliente...</option>
+            </select>
+          </div>
+          <div>
+            <label for="m-nome" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nome / Equipamento:*</label>
+            <input type="text" id="m-nome" required placeholder="Ex: Prensa Hidráulica 02" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-marca" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Marca / Fabricante:</label>
+            <input type="text" id="m-marca" placeholder="Ex: Trumpf / Bystronic / Romi" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-modelo" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Modelo:</label>
+            <input type="text" id="m-modelo" placeholder="Ex: TruLaser 3030" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-numserie" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nº de Série / Tag:</label>
+            <input type="text" id="m-numserie" placeholder="Ex: SN-2024-8890" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" id="btn-submit-m" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1;">Guardar Máquina</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px;" onclick="fecharFormMaquina()">Cancelar</button>
+        </div>
+      </form>
     </section>
+
+    <!-- LISTA PRINCIPAL HIERÁRQUICA (CLIENTES E SUAS MÁQUINAS) -->
+    <section id="cadastrosContainer">
+      <p style="text-align: center; color: #64748B; padding: 30px;">A carregar lista de cadastros...</p>
+    </section>
+
   </main>
 
   <footer class="no-print">
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR (Apenas Mobile) -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="index.html" class="active">
-      <i class="fa-solid fa-users"></i>
-      <span>Clientes</span>
-    </a>
-    <a href="maquinas.html">
-      <i class="fa-solid fa-gears"></i>
-      <span>Máquinas</span>
+      <i class="fa-solid fa-address-book"></i>
+      <span>Cadastros</span>
     </a>
     <a href="historico.html">
       <i class="fa-solid fa-file-lines"></i>
@@ -174,122 +261,61 @@
     </a>
   </nav>
 
-  <!-- SCRIPT EXTERNO SEPARADO PARA OTIMIZAR A VELOCIDADE -->
-  <script src="clientes.js?v=2"></script>
+  <!-- MODAL DE ATUALIZAÇÃO DA VERSÃO -->
+  <div id="changelogModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 99999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+    <div style="background: white; width: 100%; max-width: 500px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; border-top: 4px solid #00F5D4;">
+      <div style="background: #0B132B; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: #00F5D4;"><i class="fa-solid fa-bullhorn"></i> Novidades da Versão NexOS</h3>
+        <button type="button" onclick="fecharChangelog()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: white;">&times;</button>
+      </div>
 
-  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
+      <div style="padding: 20px; color: #334155; font-size: 0.95rem;">
+        <p style="margin-top: 0; font-weight: bold; color: #1D4ED8;">O que há de novo nesta versão:</p>
+        <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
+          <li>🗂️ Unificação da Gestão de Clientes e Equipamentos na mesma tela.</li>
+          <li>✨ Carrossel horizontal otimizado na barra inferior mobile.</li>
+          <li>📑 Módulo de Manutenções Planejadas.</li>
+        </ul>
+        <p style="font-size: 0.85rem; color: #64748B; margin: 0;">Obrigado por utilizar o NexOS | Powered by CS Code Solutions.</p>
+      </div>
+
+      <div style="background: #F8FAFC; padding: 12px 20px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
+        <button type="button" class="btn" onclick="fecharChangelog()" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px; font-size: 0.9rem;">Entendido, obrigado!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js?v=2"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const imgLogo = document.getElementById('logo-cliente');
-      if (imgLogo) {
-        const logoSalva = localStorage.getItem('rg_logo_base64');
-        if (logoSalva && logoSalva.startsWith('data:image')) {
-          imgLogo.src = logoSalva;
-        } else {
-          imgLogo.src = 'marca.png';
+      const bottomNav = document.getElementById('mainBottomNav');
+      if (bottomNav) {
+        const activeItem = bottomNav.querySelector('a.active');
+        if (activeItem) {
+          setTimeout(() => {
+            bottomNav.scrollTo({
+              left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
+              behavior: 'smooth'
+            });
+          }, 100);
         }
       }
-
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      const navOrcamentos = document.getElementById('nav-item-orcamentos');
-      const navHoras = document.getElementById('nav-item-horas');
-      const dNavOrcamentos = document.getElementById('d-nav-orcamentos');
-      const dNavHoras = document.getElementById('d-nav-horas');
-
-      if (navOrcamentos) navOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
-      if (navHoras) navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
-      if (dNavOrcamentos) dNavOrcamentos.style.display = (!isSuperAdmin && showOrcamentos === 'false') ? 'none' : 'flex';
-      if (dNavHoras) dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
     });
-  </script>
 
-  <!-- SCRIPT SÍNCRONO INSTANTÂNEO (Elimina piscada dos botões) -->
-  <script>
-    (function() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
+    const VERSAO_ATUAL = "1.3.0"; 
+    document.addEventListener("DOMContentLoaded", () => {
+      const versaoArmazenada = localStorage.getItem('rg_ultima_versao_vista');
+      if (versaoArmazenada !== VERSAO_ATUAL) {
+        const modal = document.getElementById('changelogModal');
+        if (modal) modal.style.display = 'flex';
       }
-      if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
-      }
-    })();
-  </script>
-  <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const bottomNav = document.getElementById('mainBottomNav');
-    if (bottomNav) {
-      const activeItem = bottomNav.querySelector('a.active');
-      if (activeItem) {
-        // Centraliza o item ativo automaticamente na barra horizontal
-        setTimeout(() => {
-          bottomNav.scrollTo({
-            left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
-            behavior: 'smooth'
-          });
-        }, 100);
-      }
-    }
-  });
-</script>
-<!-- MODAL DE ATUALIZAÇÃO DA VERSÃO -->
-<div id="changelogModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 99999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
-  <div style="background: white; width: 100%; max-width: 500px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; border-top: 4px solid #00F5D4;">
-    
-    <div style="background: #0B132B; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-      <h3 style="margin: 0; font-size: 1.1rem; color: #00F5D4;"><i class="fa-solid fa-bullhorn"></i> Novidades da Versão NexOS</h3>
-      <button type="button" onclick="fecharChangelog()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: white;">&times;</button>
-    </div>
+    });
 
-    <div style="padding: 20px; color: #334155; font-size: 0.95rem;">
-      <p style="margin-top: 0; font-weight: bold; color: #1D4ED8;">O que há de novo nesta versão:</p>
-      <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
-        <li>✨ Novo design otimizado para a barra de navegação móvel.</li>
-        <li>📑 Nova página de Planejamento.</li>
-        <li>⚙️ Correções de estabilidade e melhorias de performance geral.</li>
-      </ul>
-      <p style="font-size: 0.85rem; color: #64748B; margin: 0;">Obrigado por utilizar o NexOS | Powered by CS Code Solutions.</p>
-    </div>
-
-    <div style="background: #F8FAFC; padding: 12px 20px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
-      <button type="button" class="btn" onclick="fecharChangelog()" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px; font-size: 0.9rem;">Entendido, obrigado!</button>
-    </div>
-
-  </div>
-</div>
-<script>
-  // Defina aqui a versão atual do seu sistema
-  const VERSAO_ATUAL = "1.2.0"; 
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const versaoArmazenada = localStorage.getItem('rg_ultima_versao_vista');
-
-    if (versaoArmazenada !== VERSAO_ATUAL) {
-      // Se for a primeira vez que entra nesta versão, exibe o modal
+    function fecharChangelog() {
+      localStorage.setItem('rg_ultima_versao_vista', VERSAO_ATUAL);
       const modal = document.getElementById('changelogModal');
-      if (modal) {
-        modal.style.display = 'flex';
-      }
+      if (modal) modal.style.display = 'none';
     }
-  });
-
-  function fecharChangelog() {
-    // Grava a versão atual para não exibir novamente
-    localStorage.setItem('rg_ultima_versao_vista', VERSAO_ATUAL);
-    const modal = document.getElementById('changelogModal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
-  }
-</script>
-
+  </script>
 </body>
 </html>
