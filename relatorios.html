@@ -68,17 +68,6 @@
     
     .section-box { border: 1px solid #CBD5E1; padding: 5px 7px; margin-bottom: 5px; border-radius: 4px; background: #FFFFFF !important; page-break-inside: avoid; }
     .section-title { font-weight: bold; font-size: 9.5px; color: #0B132B; margin-bottom: 2px; border-bottom: 1px solid #CBD5E1; padding-bottom: 2px; }
-
-    .filter-segmented-container {
-      display: flex; background: #F1F5F9; border-radius: 8px; padding: 3px; border: 1px solid #E2E8F0; width: 100%; box-sizing: border-box;
-    }
-    .btn-filtro {
-      flex: 1; text-align: center; padding: 8px 12px; font-size: 0.83rem; border-radius: 6px; border: none; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; background: transparent; color: #64748B; transition: all 0.2s ease-in-out;
-    }
-    .btn-filtro.active {
-      background-color: #0B132B !important; color: #00F5D4 !important; box-shadow: 0 2px 5px rgba(11, 19, 43, 0.25);
-    }
   </style>
 </head>
 <body>
@@ -116,7 +105,7 @@
       </div>
     </div>
 
-    <!-- PAINEL DE BUSCA E FILTROS -->
+    <!-- PAINEL DE FILTROS (TIPO E CLIENTE LADO A LADO) -->
     <div class="card no-print" style="padding: 14px; margin-bottom: 15px; border-top: none; background: #FFFFFF; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
       <div style="display: flex; flex-direction: column; gap: 12px;">
         
@@ -125,39 +114,28 @@
           <input type="text" id="inputPesquisaRelatorios" oninput="filtrarDocumentos()" placeholder="Pesquisar por número (RS/ORC), cliente ou máquina..." style="width: 100%; box-sizing: border-box; padding: 10px 12px 10px 36px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.9rem; outline: none;">
         </div>
 
-        <div class="filter-segmented-container">
-          <button type="button" class="btn-filtro active" id="btnFiltroTodos" onclick="filtrarPorTipo('todos')">
-            <i class="fa-solid fa-layer-group"></i> Todos
-          </button>
-          <button type="button" class="btn-filtro" id="btnFiltroRS" onclick="filtrarPorTipo('rs')">
-            <i class="fa-solid fa-file-lines"></i> Relatórios (RS)
-          </button>
-          <button type="button" class="btn-filtro" id="btnFiltroORC" onclick="filtrarPorTipo('orc')">
-            <i class="fa-solid fa-calculator"></i> Orçamentos (ORC)
-          </button>
-        </div>
-
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
           <div>
-            <label for="selectClienteFiltro" style="font-size: 0.8rem; font-weight: bold; color: #475569;">Filtrar por Cliente:</label>
-            <select id="selectClienteFiltro" onchange="filtrarDocumentos()" style="width: 100%; padding: 8px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem; background: #fff; margin-top: 3px;">
-              <option value="">Todos os Clientes</option>
+            <label for="selectTipoFiltro" style="font-size: 0.8rem; font-weight: bold; color: #475569;">Filtrar por Tipo:</label>
+            <select id="selectTipoFiltro" onchange="filtrarDocumentos()" style="width: 100%; padding: 9px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem; background: #fff; margin-top: 3px; font-weight: 500;">
+              <option value="todos">Todos (Relatórios & Orçamentos)</option>
+              <option value="rs">Relatórios (RS)</option>
+              <option value="orc">Orçamentos (ORC)</option>
             </select>
           </div>
+
           <div>
-            <label for="dataInicio" style="font-size: 0.8rem; font-weight: bold; color: #475569;">Data Inicial:</label>
-            <input type="date" id="dataInicio" onchange="filtrarDocumentos()" style="width: 100%; padding: 7px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem; margin-top: 3px;">
-          </div>
-          <div>
-            <label for="dataFim" style="font-size: 0.8rem; font-weight: bold; color: #475569;">Data Final:</label>
-            <input type="date" id="dataFim" onchange="filtrarDocumentos()" style="width: 100%; padding: 7px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem; margin-top: 3px;">
+            <label for="selectClienteFiltro" style="font-size: 0.8rem; font-weight: bold; color: #475569;">Filtrar por Cliente:</label>
+            <select id="selectClienteFiltro" onchange="filtrarDocumentos()" style="width: 100%; padding: 9px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem; background: #fff; margin-top: 3px; font-weight: 500;">
+              <option value="">Todos os Clientes</option>
+            </select>
           </div>
         </div>
 
       </div>
     </div>
 
-    <!-- CARDS DE EXIBIÇÃO -->
+    <!-- CARDS DE EXIBIÇÃO DA CENTRAL -->
     <section>
       <div id="reportCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
         <p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>
@@ -198,6 +176,6 @@
     <a href="configuracao.html" id="nav-item-config"><i class="fa-solid fa-gear"></i><span>Config</span></a>
   </nav>
 
-  <script src="historico.js?v=3"></script>
+  <script src="historico.js?v=4"></script>
 </body>
 </html>
