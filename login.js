@@ -70,6 +70,7 @@ window.handleGoogleLogin = async function() {
       if (configDoc.exists) {
         const cfg = configDoc.data();
         localStorage.setItem('rg_page_orcamentos', cfg.pageOrcamentos !== false ? 'true' : 'false');
+        localStorage.setItem('rg_page_manutencoes', cfg.pageManutencoes !== false ? 'true' : 'false');
         localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
         
         if (cfg.logoBase64 && cfg.logoBase64.startsWith('data:image')) {
@@ -79,6 +80,7 @@ window.handleGoogleLogin = async function() {
         }
       } else {
         localStorage.setItem('rg_page_orcamentos', 'true');
+        localStorage.setItem('rg_page_manutencoes', 'true');
         localStorage.setItem('rg_mod_horas_extras', 'false');
         localStorage.removeItem('rg_logo_base64');
       }
