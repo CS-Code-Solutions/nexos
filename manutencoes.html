@@ -39,7 +39,6 @@
   <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS INSTANTANEAMENTE -->
   <script>
     (function() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
       const showManutencoes = localStorage.getItem('rg_page_manutencoes');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
@@ -48,9 +47,6 @@
       if (!isSuperAdmin && showManutencoes === 'false') {
         alert('Acesso restrito: A página de Planejamento encontra-se desativada para a sua conta.');
         window.location.href = 'index.html';
-      }
-      if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos { display: none !important; }</style>');
       }
       if (!isSuperAdmin && showHoras !== 'true') {
         document.write('<style>#nav-item-horas { display: none !important; }</style>');
@@ -67,14 +63,12 @@
     </a>
 
     <nav class="desktop-nav">
-  <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-  <a href="historico.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-  <a href="manutencoes.html"class="active"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
-  <a href="orcamentos.html" id="d-nav-orcamentos"><i class="fa-solid fa-calculator"></i> Orçamentos</a>
-  <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-  <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
-</nav>
-
+      <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html" class="active"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+    </nav>
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
       <i class="fa-solid fa-power-off"></i>
@@ -98,7 +92,6 @@
       </div>
 
       <form id="manutencao-form">
-        <!-- Linha 1: Data e Cliente com largura 100% e box-sizing rigoroso -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
           <div style="width: 100%; min-width: 0;">
             <label for="m-data" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem;">Data Prevista:</label>
@@ -112,7 +105,6 @@
           </div>
         </div>
 
-        <!-- Linha 2: Máquina e Tipo de Serviço com largura 100% e box-sizing rigoroso -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
           <div style="width: 100%; min-width: 0;">
             <label for="m-maquina" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem;">Máquina / Equip:</label>
@@ -156,32 +148,27 @@
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
-  <a href="index.html">
-    <i class="fa-solid fa-address-book"></i>
-    <span>Cadastros</span>
-  </a>
-  <a href="historico.html">
-    <i class="fa-solid fa-file-lines"></i>
-    <span>Relatórios</span>
-  </a>
-  <a href="manutencoes.html"class="active">
-    <i class="fa-solid fa-calendar-check"></i>
-    <span>Plan</span>
-  </a>
-  <a href="orcamentos.html" id="nav-item-orcamentos">
-    <i class="fa-solid fa-calculator"></i>
-    <span>Orçamentos</span>
-  </a>
-  <a href="horas-extras.html" id="nav-item-horas">
-    <i class="fa-solid fa-clock"></i>
-    <span>Horas</span>
-  </a>
-  <a href="configuracao.html" id="nav-item-config">
-    <i class="fa-solid fa-gear"></i>
-    <span>Config</span>
-  </a>
-</nav>
-
+    <a href="index.html">
+      <i class="fa-solid fa-address-book"></i>
+      <span>Cadastros</span>
+    </a>
+    <a href="relatorios.html">
+      <i class="fa-solid fa-file-lines"></i>
+      <span>Relatórios</span>
+    </a>
+    <a href="manutencoes.html" class="active">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Plan</span>
+    </a>
+    <a href="horas-extras.html" id="nav-item-horas">
+      <i class="fa-solid fa-clock"></i>
+      <span>Horas</span>
+    </a>
+    <a href="configuracao.html" id="nav-item-config">
+      <i class="fa-solid fa-gear"></i>
+      <span>Config</span>
+    </a>
+  </nav>
 
   <script src="manutencoes.js?v=2"></script>
   <script>
@@ -190,7 +177,6 @@
     if (bottomNav) {
       const activeItem = bottomNav.querySelector('a.active');
       if (activeItem) {
-        // Centraliza o item ativo automaticamente na barra horizontal e corrige o scroll inicial
         setTimeout(() => {
           bottomNav.scrollTo({
             left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
