@@ -245,6 +245,7 @@ window.editarTenant = function(uid) {
   document.getElementById('pageMaquinas').checked = t.pageMaquinas !== false;
   document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
   document.getElementById('pageOrcamentos').checked = t.pageOrcamentos === true;
+  document.getElementById('pageManutencoes').checked = t.pageManutencoes !== false;
   document.getElementById('modHorasExtras').checked = t.modHorasExtras === true;
 
   document.getElementById('criterioHorarioIntervalo').checked = t.criterioHorarioIntervalo !== false;
@@ -286,6 +287,7 @@ if (tenantFormEl) {
       pageMaquinas: document.getElementById('pageMaquinas').checked,
       pageRelatorios: document.getElementById('pageRelatorios').checked,
       pageOrcamentos: document.getElementById('pageOrcamentos').checked,
+      pageManutencoes: document.getElementById('pageManutencoes').checked,
       modHorasExtras: document.getElementById('modHorasExtras').checked,
 
       criterioHorarioIntervalo: document.getElementById('criterioHorarioIntervalo').checked,
