@@ -134,14 +134,40 @@
     .signature-box { text-align: center; width: 45%; font-size: 9px; }
     .signature-box img { max-width: 130px; height: 32px; object-fit: contain; display: block; margin: 0 auto; }
 
-    /* Estilo dos botões de filtro tipo Pill */
+    /* Estilo dos Filtros Segmentados (Tab Control Profissional) */
+    .filter-segmented-container {
+      display: flex;
+      background: #F1F5F9;
+      border-radius: 8px;
+      padding: 3px;
+      border: 1px solid #E2E8F0;
+      width: 100%;
+      box-sizing: border-box;
+    }
     .btn-filtro {
-      transition: all 0.2s ease;
+      flex: 1;
+      text-align: center;
+      padding: 8px 12px;
+      font-size: 0.83rem;
+      border-radius: 6px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: transparent;
+      color: #64748B;
+      transition: all 0.2s ease-in-out;
+    }
+    .btn-filtro:hover {
+      color: #0B132B;
     }
     .btn-filtro.active {
       background-color: #0B132B !important;
       color: #00F5D4 !important;
-      border-color: #00F5D4 !important;
+      box-shadow: 0 2px 5px rgba(11, 19, 43, 0.25);
     }
   </style>
 </head>
@@ -177,32 +203,35 @@
       <h2 style="color: #0B132B; margin: 0; font-size: 1.4rem;">Central de Relatórios & Orçamentos</h2>
       
       <div style="display: flex; gap: 8px;">
-        <a href="novo-relatorio.html" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; text-decoration: none; padding: 9px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-plus"></i> + Novo RS
+        <a href="novo-relatorio.html" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; text-decoration: none; padding: 9px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;">
+          <i class="fa-solid fa-file-circle-plus"></i> Novo Relatório
         </a>
-        <button type="button" class="btn" onclick="abrirNovoOrcamento()" style="background-color: var(--tech-blue); color: white; font-weight: bold; padding: 9px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-calculator"></i> + Novo Orçamento
-        </button>
+        <a href="orcamentos.html" class="btn" onclick="abrirNovoOrcamento(event)" style="background-color: var(--tech-blue); color: white; font-weight: bold; text-decoration: none; padding: 9px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;">
+          <i class="fa-solid fa-calculator"></i> Novo Orçamento
+        </a>
       </div>
     </div>
 
-    <!-- CAMPO DE PESQUISA E BOTÕES DE FILTRO -->
-    <div class="card no-print" style="padding: 12px; margin-bottom: 15px; border-top: none;">
-      <div style="display: flex; flex-direction: column; gap: 10px;">
+    <!-- CAMPO DE PESQUISA E FILTROS SEGMENTADOS PROFISSIONAIS -->
+    <div class="card no-print" style="padding: 14px; margin-bottom: 15px; border-top: none; background: #FFFFFF; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
         
-        <!-- Campo de Pesquisa -->
-        <input type="text" id="inputPesquisaRelatorios" oninput="filtrarRelatoriosEOrcamentos()" placeholder="🔍 Pesquisar por número (RS/ORC), cliente ou máquina..." style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem;">
+        <!-- Campo de Pesquisa Profissional com Ícone -->
+        <div style="position: relative; width: 100%;">
+          <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.9rem;"></i>
+          <input type="text" id="inputPesquisaRelatorios" oninput="filtrarRelatoriosEOrcamentos()" placeholder="Pesquisar por número (RS/ORC), cliente ou máquina..." style="width: 100%; box-sizing: border-box; padding: 10px 12px 10px 36px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.9rem; outline: none;">
+        </div>
         
-        <!-- Botões de Filtro -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button type="button" class="btn-filtro active" id="btnFiltroTodos" onclick="filtrarPorTipo('todos')" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 20px; border: 1px solid #CBD5E1; background: #F8FAFC; color: #475569; font-weight: bold; cursor: pointer;">
-            Todos
+        <!-- Barra de Filtro Segmentada (Tabs) -->
+        <div class="filter-segmented-container">
+          <button type="button" class="btn-filtro active" id="btnFiltroTodos" onclick="filtrarPorTipo('todos')">
+            <i class="fa-solid fa-layer-group"></i> Todos
           </button>
-          <button type="button" class="btn-filtro" id="btnFiltroRS" onclick="filtrarPorTipo('rs')" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 20px; border: 1px solid #CBD5E1; background: #F8FAFC; color: #475569; font-weight: bold; cursor: pointer;">
-            📄 Relatórios (RS)
+          <button type="button" class="btn-filtro" id="btnFiltroRS" onclick="filtrarPorTipo('rs')">
+            <i class="fa-solid fa-file-lines"></i> Relatórios (RS)
           </button>
-          <button type="button" class="btn-filtro" id="btnFiltroORC" onclick="filtrarPorTipo('orc')" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 20px; border: 1px solid #CBD5E1; background: #F8FAFC; color: #475569; font-weight: bold; cursor: pointer;">
-            📊 Orçamentos (ORC)
+          <button type="button" class="btn-filtro" id="btnFiltroORC" onclick="filtrarPorTipo('orc')">
+            <i class="fa-solid fa-calculator"></i> Orçamentos (ORC)
           </button>
         </div>
 
@@ -269,6 +298,14 @@
   <!-- SCRIPT EXTERNO DA CENTRAL UNIFICADA -->
   <script src="historico.js?v=2"></script>
 
+  <!-- NAVEGAÇÃO SEGURA PARA NOVO ORÇAMENTO -->
+  <script>
+    function abrirNovoOrcamento(e) {
+      if (e) e.preventDefault();
+      window.location.href = 'orcamentos.html';
+    }
+  </script>
+
   <!-- SCRIPT DE PERMISSÕES E LOGO -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -306,6 +343,7 @@
       }
     })();
   </script>
+
   <script>
   document.addEventListener("DOMContentLoaded", () => {
     const bottomNav = document.getElementById('mainBottomNav');
@@ -321,6 +359,6 @@
       }
     }
   });
-</script>
+  </script>
 </body>
 </html>
