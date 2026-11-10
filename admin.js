@@ -75,6 +75,7 @@ async function carregarPainelAdmin() {
       const nomeEmpresa = data.name || data.nomeEmpresa || 'Empresa Sem Nome';
       const exibeEmail = data.email || 'E-mail não informado';
       const temLogo = data.logoBase64 ? 'Sim (Personalizado)' : 'Padrão (marca.png)';
+      const statusHE = data.modHorasExtras ? 'Ativo' : 'Inativo';
 
       let botaoContratoHtml = '';
       if (contratoAssinadoUrl) {
