@@ -280,5 +280,22 @@
       }
     })();
   </script>
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const bottomNav = document.getElementById('mainBottomNav');
+    if (bottomNav) {
+      const activeItem = bottomNav.querySelector('a.active');
+      if (activeItem) {
+        // Centraliza o item ativo automaticamente na barra horizontal
+        setTimeout(() => {
+          bottomNav.scrollTo({
+            left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
+            behavior: 'smooth'
+          });
+        }, 100);
+      }
+    }
+  });
+</script>
 </body>
 </html>
