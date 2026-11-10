@@ -1,21 +1,37 @@
-const CACHE_NAME = 'nexos-cache-v2';
+/**
+ * NexOS - Service Worker (sw.js)
+ */
+
+const CACHE_NAME = 'nexos-cache-v3';
+
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './manutencoes.html',
+  './cadastros.html',
+  './relatorios.html',
   './novo-relatorio.html',
-  './historico.html',
-  './maquinas.html',
-  './orcamentos.html',
+  './novo-orcamento.html',
+  './horas-extras.html',
   './configuracao.html',
+  './admin.html',
   './login.html',
   './style.css',
-  './marca.png',
-  './nexosico.png',
+  './admin.js',
+  './cadastros.js',
+  './configuracao.js',
+  './horas-extras.js',
+  './login.js',
+  './manutencoes.js',
+  './relatorios.js',
   './global-modal.js',
   './firebase-init.js',
   './firebase-sync.js',
+  './marca.png',
+  './nexosico.png',
   './manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
 
 // Instalação e Cache dos Ficheiros Estáticos
@@ -27,7 +43,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Ativação e Limpeza de Caches Antigos
+// Ativação e Limpeza de Caches Antigos (Remove as versões v1, v2 anteriores)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
