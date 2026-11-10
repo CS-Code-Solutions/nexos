@@ -12,6 +12,9 @@ firebase.auth().onAuthStateChanged(async (user) => {
     await loadClients();
     gerarCamposDias();
     await verificarModoEdicao();
+    
+    // --- AUTOPREENCHIMENTO Vindo de Manutenções Planeadas ---
+    verificarPreenchimentoPlaneado();
   }
 });
 
@@ -470,6 +473,31 @@ async function carregarMaquinasDoCliente(clientName, selectedEquipment = '') {
     });
   } catch (e) {
     console.error("Erro ao carregar máquinas do cliente", e);
+  }
+}
+
+// --- FUNÇÃO PARA TRATAR O AUTOPREENCHIMENTO DO PLANEAMENTO ---
+async function verificarPreenchimentoPlaneado() {
+  const dadosPend = localStorage.getItem('rg_preencher_rs');
+  if (dadosPend) {
+    try {
+      const dados = JSON.parse(dadosPend);
+      
+      const repClientSelect = document.getElementById('repClient');
+      if (repClientSelect && dados.client) {
+        repClientSelect.value = dados.client;
+        await carregarMaquinasDoCliente(dados.client, dados.machine);
+      }
+
+      const repDescInput = document.getElementById('repDesc');
+      if (repDescInput && dados.description) {
+        repDescInput.value = dados.description;
+      }
+
+      localStorage.removeItem('rg_preencher_rs');
+    } catch (e) {
+      console.error("Erro ao processar preenchimento planeado:", e);
+    }
   }
 }
 
