@@ -82,7 +82,7 @@
     }
   </style>
 
-  <!-- SCRIPT SÍNCRONO DE REMOÇÃO DE ACESSO INDEVIDO -->
+  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS NO MOBILE E DESKTOP -->
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
@@ -91,10 +91,10 @@
       const isSuperAdmin = (userRole === 'super_admin');
 
       if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos { display: none !important; }</style>');
+        document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
       }
       if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas { display: none !important; }</style>');
+        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
       }
     })();
   </script>
