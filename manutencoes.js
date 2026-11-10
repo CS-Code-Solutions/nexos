@@ -67,7 +67,6 @@ async function carregarManutencoes() {
 
     let html = "";
     todasManutencoes.forEach((item) => {
-      // Garante que o item tem um ID único string
       if (!item.id) {
         item.id = 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
       }
@@ -103,7 +102,6 @@ async function carregarManutencoes() {
   }
 }
 
-// Prepara o formulário para edição
 window.editarManutencao = function(id) {
   const item = todasManutencoes.find(m => m.id === id);
   if (!item) return;
@@ -123,7 +121,6 @@ window.editarManutencao = function(id) {
   toggleManutencaoForm(true);
 };
 
-// Gera os dados para preencher na index.html e redireciona
 window.gerarRelatorioDeManutencao = function(id) {
   const item = todasManutencoes.find(m => m.id === id);
   if (!item) return;
@@ -134,7 +131,7 @@ window.gerarRelatorioDeManutencao = function(id) {
     description: `Manutenção Planeada (${item.tipo}): ${item.obs || ''}`
   };
   localStorage.setItem('rg_preencher_rs', JSON.stringify(dadosPreenchimento));
-  window.location.href = 'index.html';
+  window.location.href = 'novo-relatorio.html';
 };
 
 window.excluirManutencao = async function(id) {
