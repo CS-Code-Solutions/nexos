@@ -129,14 +129,14 @@
         
         <div style="position: relative; width: 100%;">
           <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.9rem;"></i>
-          <input type="text" id="inputPesquisa" oninput="filtrarDocumentos()" placeholder="Pesquisar por número (RS/ORC), cliente ou máquina..." style="width: 100%; box-sizing: border-box; padding: 10px 12px 10px 36px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.9rem; outline: none;">
+          <input type="text" id="inputPesquisa" oninput="filtrarDocumentos()" placeholder="Pesquisar por cliente, máquina ou número de RS/ORC..." style="width: 100%; box-sizing: border-box; padding: 10px 12px 10px 36px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.9rem; outline: none;">
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
           <div>
             <label for="selectTipoFiltro" style="font-size: 0.8rem; font-weight: bold; color: #475569;">Filtrar por Tipo:</label>
             <select id="selectTipoFiltro" onchange="filtrarDocumentos()" style="width: 100%; padding: 9px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem; background: #fff; margin-top: 3px; font-weight: 500;">
-              <option value="todos">Todos (Relatórios & Orçamentos)</option>
+              <option value="todos">Todos</option>
               <option value="rs">Relatórios (RS)</option>
               <option value="orc">Orçamentos (ORC)</option>
             </select>
