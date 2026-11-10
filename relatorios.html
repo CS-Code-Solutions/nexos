@@ -17,6 +17,8 @@
   <title>NexOS - Central de Relatórios & Orçamentos</title>
   
   <link rel="stylesheet" href="style.css">
+  
+  <!-- FontAwesome para os ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <script src="global-modal.js"></script>
@@ -34,11 +36,36 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
   <style>
-    .desktop-nav { display: flex; align-items: center; gap: 20px; }
-    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
-    .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
-    @media (max-width: 768px) { .desktop-nav { display: none !important; } }
-    @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
+    /* Estilos do Menu Desktop e Responsividade */
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .desktop-nav a {
+      color: #94A3B8;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.2s;
+    }
+    .desktop-nav a:hover, 
+    .desktop-nav a.active {
+      color: #00F5D4;
+    }
+    @media (max-width: 768px) {
+      .desktop-nav {
+        display: none !important;
+      }
+    }
+    @media (min-width: 769px) {
+      #mainBottomNav {
+        display: none !important;
+      }
+    }
 
     @media print {
       header, footer, .no-print, .action-toolbar { display: none !important; }
@@ -46,8 +73,7 @@
       .card { box-shadow: none; border: none; padding: 0; margin: 0; }
     }
 
-    /* Modais de Pré-Visualização */
-    .modal-preview {
+    #reportPreviewModal {
       display: none;
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -70,7 +96,7 @@
       overflow: hidden;
     }
     .action-toolbar {
-      background: #0B132B;
+      background: var(--deep-navy);
       color: white;
       padding: 12px 15px;
       display: flex;
@@ -78,7 +104,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 10px;
-      border-bottom: 2px solid #00F5D4;
+      border-bottom: 2px solid var(--electric-cyan);
       flex-shrink: 0;
     }
     .toolbar-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -93,32 +119,33 @@
       text-align: center; white-space: nowrap; text-transform: uppercase; width: 100%;
     }
 
-    /* Estilos do PDF Impresso */
-    .print-body { font-family: Arial, sans-serif; color: #0B132B; line-height: 1.15; font-size: 9px; position: relative; z-index: 1; box-sizing: border-box; width: 100%; max-width: 190mm; margin: 0 auto; }
+    .print-body { font-family: Arial, sans-serif; color: #0B132B; line-height: 1.15; font-size: 9px; position: relative; z-index: 1; box-sizing: border-box; width: 100%; max-width: 190mm; margin: 0 auto; padding-bottom: 5px; }
     .print-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 4px; margin-bottom: 6px; width: 100%; box-sizing: border-box; }
     .print-header img { height: 30px; width: auto; max-width: 120px; object-fit: contain; }
     .print-header-info { text-align: right; flex-shrink: 0; }
-    .print-header-info h1, .print-header-info h2 { font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; white-space: nowrap; }
+    .print-header-info h1 { font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; white-space: nowrap; }
     
     .section-box { border: 1px solid #CBD5E1; padding: 5px 7px; margin-bottom: 5px; border-radius: 4px; background: #FFFFFF !important; page-break-inside: avoid; break-inside: avoid; }
     .section-title { font-weight: bold; font-size: 9.5px; color: #0B132B; margin-bottom: 2px; border-bottom: 1px solid #CBD5E1; padding-bottom: 2px; background: #FFFFFF !important; }
     
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .print-body p { margin: 1px 0; font-size: 9px; }
     .signature-area { margin-top: 6px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; break-inside: avoid; }
     .signature-box { text-align: center; width: 45%; font-size: 9px; }
     .signature-box img { max-width: 130px; height: 32px; object-fit: contain; display: block; margin: 0 auto; }
-    .page-break { page-break-before: always; }
   </style>
 </head>
 <body>
 
-  <!-- CABEÇALHO DA PÁGINA -->
+  <!-- CABEÇALHO COM MENU DESKTOP -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
+    
+    <!-- LADO ESQUERDO: LOGO -->
     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
+    <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
       <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
@@ -127,195 +154,42 @@
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
-    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
+    <!-- LADO DIREITO: BOTÃO SAIR -->
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
       <i class="fa-solid fa-power-off"></i>
     </button>
   </header>
 
-  <main style="max-width: 900px; margin: 20px auto; padding: 0 15px; padding-bottom: 80px;">
-
-    <!-- CABEÇALHO DE AÇÕES -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;" class="no-print">
-      <div>
-        <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Relatórios & Orçamentos</h2>
-        <p style="color: #64748B; font-size: 0.85rem; margin: 2px 0 0 0;">Histórico unificado de atendimentos e propostas</p>
-      </div>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <a href="novo-relatorio.html" class="btn" style="background-color: var(--tech-blue, #2563EB); color: white; font-weight: bold; padding: 9px 14px; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-plus"></i> Novo RS
-        </a>
-        <button type="button" class="btn" onclick="toggleBudgetForm()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 9px 14px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-calculator"></i> + Orçamento
-        </button>
-      </div>
-    </div>
-
-    <!-- PAINEL DE FILTROS AVANÇADOS -->
-    <div class="card no-print" style="padding: 14px; margin-bottom: 15px; border-top: 3px solid #00F5D4;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-        <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 4px;">🔍 Pesquisa Rápida:</label>
-          <input type="text" id="inputPesquisa" oninput="filtrarDocumentos()" placeholder="Cliente, equipamento, RS ou ORC..." style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; font-size: 0.85rem;">
-        </div>
-
-        <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 4px;">📂 Tipo de Registro:</label>
-          <select id="selectTipoFiltro" onchange="filtrarDocumentos()" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF; font-size: 0.85rem;">
-            <option value="todos">Todos (RS e Orçamentos)</option>
-            <option value="rs">Apenas Relatórios (RS)</option>
-            <option value="orcamento">Apenas Orçamentos (ORC)</option>
-          </select>
-        </div>
-
-        <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 4px;">👤 Filtrar por Cliente:</label>
-          <select id="selectClienteFiltro" onchange="filtrarDocumentos()" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF; font-size: 0.85rem;">
-            <option value="">Todos os Clientes</option>
-          </select>
-        </div>
-
-        <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 4px;">📅 De / Até:</label>
-          <div style="display: flex; gap: 5px;">
-            <input type="date" id="dataInicio" onchange="filtrarDocumentos()" style="width: 50%; padding: 7px; border: 1px solid #CBD5E1; border-radius: 4px; font-size: 0.8rem;">
-            <input type="date" id="dataFim" onchange="filtrarDocumentos()" style="width: 50%; padding: 7px; border: 1px solid #CBD5E1; border-radius: 4px; font-size: 0.8rem;">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- FORMULÁRIO DE NOVO ORÇAMENTO (OCULTO POR PADRÃO) -->
-    <section class="card no-print" id="budgetFormSection" style="display: none; border-top: 4px solid var(--electric-cyan); margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 id="formTitleOrc" style="color: #0B132B; font-size: 1.2rem; margin: 0;">Novo Orçamento</h3>
-        <button type="button" onclick="toggleBudgetForm()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748B;">&times;</button>
-      </div>
-
-      <form id="budgetForm">
-        <input type="hidden" id="editIndexOrc" value="">
-        <div class="grid-2" style="margin-bottom: 12px;">
-          <div>
-            <label for="orcNumber"><strong>Nº do Orçamento:</strong></label>
-            <input type="text" id="orcNumber" value="ORC-0001" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-          <div>
-            <label for="orcDate"><strong>Data:</strong></label>
-            <input type="date" id="orcDate" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-        </div>
-
-        <div class="grid-2" style="margin-bottom: 12px;">
-          <div>
-            <label for="orcClient"><strong>Cliente:</strong></label>
-            <select id="orcClient" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background: #fff;"></select>
-          </div>
-          <div>
-            <label for="orcEquipment"><strong>Equipamento / Máquina:</strong></label>
-            <input type="text" id="orcEquipment" placeholder="Ex: Laser Amada / SCM" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-        </div>
-
-        <div style="margin-bottom: 12px;">
-          <label for="orcDesc"><strong>Dados do Serviço / Escopo:</strong></label>
-          <textarea id="orcDesc" rows="4" placeholder="Descreva os serviços..." style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit;"></textarea>
-        </div>
-
-        <div class="grid-2" style="margin-bottom: 12px;">
-          <div>
-            <label for="orcPaymentOption"><strong>Forma de Recebimento / Conta Bancária:</strong></label>
-            <select id="orcPaymentOption" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background: #FFF;">
-              <option value="banco1" id="optionBank1Label">Conta Bancária 1</option>
-              <option value="banco2" id="optionBank2Label">Conta Bancária 2</option>
-              <option value="boleto">Boleto Bancário</option>
-            </select>
-          </div>
-          <div>
-            <label for="orcTotal"><strong>Valor Total (R$):</strong></label>
-            <input type="number" step="0.01" id="orcTotal" placeholder="0.00" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-          <label style="margin-bottom: 5px; display: block;"><strong>Condições Comerciais (Opções Rápidas):</strong></label>
-          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px;">
-            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0; line-height: 1.4;">
-              <input type="checkbox" class="term-check" value="Pagamento a combinar." checked style="margin-top: 2px;" onchange="atualizarTermosCompletos()">
-              <span>Pagamento a combinar.</span>
-            </label>
-            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0; line-height: 1.4;">
-              <input type="checkbox" class="term-check" value="Impostos inclusos." checked style="margin-top: 2px;" onchange="atualizarTermosCompletos()">
-              <span>Impostos inclusos.</span>
-            </label>
-            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0; line-height: 1.4;">
-              <input type="checkbox" class="term-check" value="Despesas com deslocamento, alimentação e hotel já incluso no orçamento." checked style="margin-top: 2px;" onchange="atualizarTermosCompletos()">
-              <span>Despesas com deslocamento, alimentação e hotel já incluso no orçamento.</span>
-            </label>
-          </div>
-
-          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
-            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; cursor: pointer; margin: 0;">
-              <input type="checkbox" id="checkNotIncluded" checked onchange="atualizarTermosCompletos()">
-              <span style="font-weight: bold;">Não estão inclusos:</span>
-            </label>
-            <textarea id="orcNotIncludedText" rows="2" placeholder="óleos, peças, espelhos" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit; font-size: 11px;" oninput="atualizarTermosCompletos()"></textarea>
-          </div>
-
-          <label for="orcTerms" style="margin-top: 8px; display: block;"><strong>Resumo das Condições Comerciais:</strong></label>
-          <textarea id="orcTerms" rows="3" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; font-family:inherit; background: #FFF;"></textarea>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <button type="submit" class="btn" style="background-color: #22C55E; color: #FFF; font-weight: bold; padding: 10px 20px;">Guardar Orçamento</button>
-          <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 10px 20px;" onclick="toggleBudgetForm()">Cancelar</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- LISTA UNIFICADA DE CARDS -->
+  <main style="padding-top: 20px; padding-bottom: 80px;">
     <section>
-      <div id="unifiedCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
-        <p style="text-align: center; color: #64748B; grid-column: 1 / -1; padding: 30px;">A carregar registros da nuvem...</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Central de Relatórios & Orçamentos</h2>
+        <a href="novo-relatorio.html" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; text-decoration: none; padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-plus"></i> Novo Relatório
+        </a>
+      </div>
+
+      <div id="reportCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+        <p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>
       </div>
     </section>
-
   </main>
 
-  <!-- MODAL DE PRÉ-VISUALIZAÇÃO DE RS -->
-  <div id="reportPreviewModal" class="modal-preview">
+  <div id="reportPreviewModal">
     <div class="modal-content-wrapper">
       <div class="action-toolbar">
         <div>
-          <strong id="modalTitleRs" style="color: #00F5D4; font-size: 1rem;">Relatório de Serviço</strong>
+          <strong id="modalTitleRs" style="color: var(--electric-cyan); font-size: 1rem;">Relatório de Serviço</strong>
           <span id="loadingStatusRs" style="font-size: 0.8rem; margin-left: 8px; color: #FCD34D;">⏳ A preparar...</span>
         </div>
         <div class="toolbar-buttons">
-          <button class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 6px 12px; font-size: 0.85rem;" onclick="compartilharPDFRs()">📤 Partilhar PDF</button>
-          <button class="btn" style="background-color: #22C55E; color: white; font-weight: bold; padding: 6px 12px; font-size: 0.85rem;" onclick="descarregarPDFRs()">📥 Descarregar</button>
-          <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem;" onclick="fecharModalRs()">✖ Fechar</button>
+          <button class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 6px 12px; font-size: 0.85rem;" onclick="compartilharPDF()">📤 Partilhar PDF</button>
+          <button class="btn" style="background-color: #22C55E; color: white; font-weight: bold; padding: 6px 12px; font-size: 0.85rem;" onclick="descarregarPDF()">📥 Descarregar</button>
+          <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem;" onclick="closeModal()">✖ Fechar</button>
         </div>
       </div>
-      <div class="report-scroll-container">
+      <div class="report-scroll-container" id="reportScrollContainer">
         <div id="reportRenderArea"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DE PRÉ-VISUALIZAÇÃO DE ORÇAMENTO -->
-  <div id="budgetPreviewModal" class="modal-preview">
-    <div class="modal-content-wrapper">
-      <div class="action-toolbar">
-        <div>
-          <strong id="modalTitleOrc" style="color: #00F5D4; font-size: 1rem;">Orçamento</strong>
-          <span id="loadingStatusOrc" style="font-size: 0.8rem; margin-left: 8px; color: #FCD34D;">⏳ A preparar...</span>
-        </div>
-        <div class="toolbar-buttons">
-          <button class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 6px 12px; font-size: 0.85rem;" onclick="compartilharPDFOrcamento()">📤 Partilhar PDF</button>
-          <button class="btn" style="background-color: #22C55E; color: white; font-weight: bold; padding: 6px 12px; font-size: 0.85rem;" onclick="descarregarPDFOrcamento()">📥 Descarregar PDF</button>
-          <button class="btn" style="background-color: #EF4444; color: white; padding: 6px 12px; font-size: 0.85rem;" onclick="fecharModalOrc()">✖ Fechar</button>
-        </div>
-      </div>
-      <div class="report-scroll-container">
-        <div id="budgetRenderArea"></div>
       </div>
     </div>
   </div>
@@ -348,9 +222,35 @@
     </a>
   </nav>
 
-  <script src="relatorios.js?v=2"></script>
+  <!-- SCRIPT EXTERNO SEPARADO -->
+  <script src="historico.js?v=2"></script>
 
-  <!-- SCRIPT DE PERMISSÕES E MENU SÍNCRONO -->
+  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const imgLogo = document.getElementById('logo-cliente');
+      if (imgLogo) {
+        const logoSalva = localStorage.getItem('rg_logo_base64');
+        if (logoSalva && logoSalva.startsWith('data:image')) {
+          imgLogo.src = logoSalva;
+        } else {
+          imgLogo.src = 'marca.png';
+        }
+      }
+
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      const navHoras = document.getElementById('nav-item-horas');
+      const dNavHoras = document.getElementById('d-nav-horas');
+
+      if (navHoras) navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      if (dNavHoras) dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+    });
+  </script>
+
+  <!-- SCRIPT SÍNCRONO INSTANTÂNEO -->
   <script>
     (function() {
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
@@ -361,21 +261,22 @@
         document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
       }
     })();
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const bottomNav = document.getElementById('mainBottomNav');
-      if (bottomNav) {
-        const activeItem = bottomNav.querySelector('a.active');
-        if (activeItem) {
-          setTimeout(() => {
-            bottomNav.scrollTo({
-              left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
-              behavior: 'smooth'
-            });
-          }, 100);
-        }
-      }
-    });
   </script>
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const bottomNav = document.getElementById('mainBottomNav');
+    if (bottomNav) {
+      const activeItem = bottomNav.querySelector('a.active');
+      if (activeItem) {
+        setTimeout(() => {
+          bottomNav.scrollTo({
+            left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
+            behavior: 'smooth'
+          });
+        }, 100);
+      }
+    }
+  });
+</script>
 </body>
 </html>
