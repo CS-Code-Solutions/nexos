@@ -1,355 +1,335 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<script>
-  (function() {
-    const logoSalva = localStorage.getItem('rg_logo_base64');
-    if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-    }
-  })();
-</script>
+/**
+ * NexOS - Painel Super Admin (admin.js)
+ * CS Code Solutions
+ */
 
-  <link rel="icon" href="nexosico.png" type="image/png">
-  <link rel="manifest" href="manifest.json">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NexOS - Painel Super Admin (CS Code Solutions)</title>
-  
-  <link rel="stylesheet" href="style.css">
-  
-  <!-- FontAwesome para os ícones -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <script src="global-modal.js"></script>
-  
-  <!-- Firebase SDKs Compat -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+let todosTenants = [];
+let tenantParaExcluir = null;
 
-  <!-- Inicialização do Firebase e Sincronização -->
-  <script src="firebase-init.js?v=2"></script>
-  <script src="firebase-sync.js?v=2"></script>
+// Proteção de Rota e Inicialização
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
 
-  <style>
-    .desktop-nav {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    .desktop-nav a {
-      color: #94A3B8;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: color 0.2s;
-    }
-    .desktop-nav a:hover, 
-    .desktop-nav a.active {
-      color: #00F5D4;
-    }
-    @media (max-width: 768px) {
-      .desktop-nav {
-        display: none !important;
-      }
-    }
-    @media (min-width: 769px) {
-      #mainBottomNav {
-        display: none !important;
-      }
-    }
-  </style>
-</head>
-<body>
+  const userRole = localStorage.getItem('rg_user_role');
+  if (userRole !== 'super_admin') {
+    alert('Acesso restrito ao Super Admin.');
+    window.location.href = 'index.html';
+    return;
+  }
 
-  <!-- CABEÇALHO DO SUPER ADMIN COM MENU DESKTOP -->
-  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #EF4444; position: sticky; top: 0; z-index: 100;">
-    
-    <!-- LADO ESQUERDO: LOGO + SELO SUPER ADMIN -->
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain;">
-      <span style="background: #EF4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">Super Admin</span>
-    </div>
-    
-    <!-- CENTRO: MENU DESKTOP -->
-    <nav class="desktop-nav">
-      <a href="index.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
-      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
-    </nav>
+  await carregarTenants();
+});
 
-    <!-- LADO DIREITO: BOTÃO SAIR -->
-    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
-      <i class="fa-solid fa-power-off"></i>
-    </button>
-  </header>
+// Carregar lista de clientes / tenants do Firestore
+async function carregarTenants() {
+  const container = document.getElementById('adminTenantList');
+  if (!container) return;
 
-  <main style="max-width: 1000px; margin: 20px auto; padding: 0 15px; padding-top: 20px; padding-bottom: 80px;">
-    
-    <!-- CARD DE BOAS-VINDAS E AÇÃO DE NOVO CLIENTE -->
-    <section class="card" style="border-top: 4px solid #EF4444; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-        <div>
-          <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 5px;">Painel de Controlo Global</h2>
-          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Inquilinos, White-Label e Feature Flags | <strong>CS Code Solutions</strong></p>
-        </div>
-        <button type="button" class="btn" onclick="abrirModalCliente()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 18px;">
-          <i class="fa-solid fa-user-plus"></i> Novo Cliente
-        </button>
-      </div>
-    </section>
+  try {
+    container.innerHTML = '<p style="text-align: center; color: #64748B; padding: 20px;">A carregar dados do Firestore...</p>';
 
-    <!-- LISTA DE CLIENTES -->
-    <section class="card" style="border-top: 4px solid var(--electric-cyan);">
-      <h3 style="color: #0B132B; font-size: 1.25rem; margin-bottom: 15px;"><i class="fa-solid fa-users-gear"></i> Clientes Registados no Sistema</h3>
-      
-      <div id="adminTenantList" style="display: flex; flex-direction: column; gap: 15px;">
-        <p style="text-align: center; color: #64748B; padding: 20px;">A carregar dados do Firestore...</p>
-      </div>
-    </section>
+    const snapshot = await db.collection('rg_config').get();
+    todosTenants = [];
 
-  </main>
-
-  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
-  <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 78vh; overflow: hidden; margin: auto;">
-      
-      <!-- Cabeçalho Fixo do Modal -->
-      <div style="background: var(--deep-navy); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan); flex-shrink: 0;">
-        <h3 id="modalTenantTitle" style="margin: 0; font-size: 1.05rem; color: var(--electric-cyan);">Configurar Cliente</h3>
-        <button type="button" onclick="fecharModalCliente()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: white;">&times;</button>
-      </div>
-
-      <!-- Corpo com Rolagem Interna -->
-      <div style="padding: 15px; overflow-y: auto; flex-grow: 1; box-sizing: border-box;">
-        <form id="tenantForm">
-          
-          <div class="form-group" style="margin-bottom: 12px;">
-            <label for="tenantUid"><strong>UID do Cliente (ID no Firestore):</strong></label>
-            <input type="text" id="tenantUid" placeholder="Deixe em branco para gerar automático ou informe o UID" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background: #F8FAFC;">
-            <small style="color: #64748B;">Se criado pelo painel, será gerado um ID automático caso esteja vazio.</small>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 12px;">
-            <label for="tenantNome"><strong>Nome / Razão Social:</strong></label>
-            <input type="text" id="tenantNome" required style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-
-          <div class="form-group" style="margin-bottom: 12px;">
-            <label for="tenantEmail"><strong>E-mail de Acesso:</strong></label>
-            <input type="email" id="tenantEmail" required placeholder="cliente@empresa.com" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-          </div>
-
-          <!-- WHITE-LABEL: LOGO E MARCA D'ÁGUA -->
-          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">🎨 Identidade Visual (White-Label)</h4>
-            
-            <div class="form-group" style="margin-bottom: 10px;">
-              <label><strong>Logótipo da Empresa (Mantém PNG original):</strong></label>
-              <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
-                <input type="file" id="tenantLogoFile" accept="image/*" onchange="processarUploadLogo(event)" style="font-size: 0.85rem;">
-              </div>
-              <input type="hidden" id="tenantLogoBase64">
-              <div id="logoPreviewContainer" style="margin-top: 8px; display: none;">
-                <img id="logoPreviewImg" src="" alt="Pré-visualização" style="max-height: 40px; border: 1px solid #CBD5E1; padding: 2px; background: #fff;">
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 0;">
-              <label for="tenantWatermark"><strong>Texto da Marca d'Água nos PDFs:</strong></label>
-              <input type="text" id="tenantWatermark" placeholder="Ex: NOME DA EMPRESA LTDA" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
-            </div>
-          </div>
-
-          <!-- FEATURE FLAGS: PÁGINAS GERAIS E MÓDULOS -->
-          <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">📑 Controlo de Páginas Gerais</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="pageClientes" checked style="width: 16px; height: 16px;"> Página Clientes
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="pageMaquinas" checked style="width: 16px; height: 16px;"> Página Máquinas
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="pageRelatorios" checked style="width: 16px; height: 16px;"> Central de Relatórios & Orçamentos
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="pageManutencoes" checked style="width: 16px; height: 16px;"> Página Planejamento
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="modHorasExtras" style="width: 16px; height: 16px;"> Módulo de Horas Extras
-              </label>
-            </div>
-
-            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">⏰ Formatos de Registro de Horários</h4>
-            <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 15px; background: #FFF; padding: 8px; border: 1px solid #E2E8F0; border-radius: 4px;">
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="criterioHorarioIntervalo" checked style="width: 16px; height: 16px;"> ☀️🌙 Permitir "Com Intervalo" (Manhã / Tarde - 4 campos)
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="criterioHorarioDireto" checked style="width: 16px; height: 16px;"> ⚡ Permitir "Direto / Turno Único" (Início / Fim - 2 campos)
-              </label>
-            </div>
-
-            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">⚙️ Critérios e Campos Opcionais (Relatórios)</h4>
-            <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="criterioEmpreitada" checked style="width: 16px; height: 16px;"> Regime de Empreitada (Valor Fechado)
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="criterioHoraTrabalhada" checked style="width: 16px; height: 16px;"> Cobrar Hora Trabalhada
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="criterioHoraDeslocamento" checked style="width: 16px; height: 16px;"> Cobrar Hora de Deslocamento / KM
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="criterioHospedagem" checked style="width: 16px; height: 16px;"> Adicionar Hospedagem
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="criterioOutrasDespesas" checked style="width: 16px; height: 16px;"> Adicionar Outras Despesas / Alimentação
-              </label>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <!-- Rodapé do Modal -->
-      <div style="background: #F1F5F9; padding: 10px 15px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #CBD5E1; flex-shrink: 0;">
-        <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 8px 16px;" onclick="fecharModalCliente()">Cancelar</button>
-        <button type="submit" form="tenantForm" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 8px 20px;">Guardar Configurações</button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- MODAL CUSTOMIZADO PARA CONFIRMAÇÃO DE EXCLUSÃO -->
-  <div id="deleteConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2100; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 480px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden; margin: auto; border-top: 4px solid #EF4444;">
-      
-      <div style="background: #FFF; padding: 15px 20px 5px 20px; display: flex; align-items: center; gap: 12px;">
-        <div style="background: #FEE2E2; color: #EF4444; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
-        <div>
-          <h3 style="margin: 0; font-size: 1.1rem; color: #0B132B;">Confirmar Exclusão de Cliente</h3>
-          <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #EF4444; font-weight: bold;">Esta ação é irreversível!</p>
-        </div>
-      </div>
-
-      <div style="padding: 15px 20px;">
-        <p style="font-size: 0.9rem; color: #475569; margin: 0 0 12px 0;">
-          Para confirmar a exclusão do registro <strong id="deleteTenantUid" style="color: #0B132B;"></strong>, digite exatamente o nome do cliente abaixo:
-        </p>
-        
-        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 8px 12px; border-radius: 4px; font-weight: bold; color: #0B132B; margin-bottom: 12px; font-size: 0.95rem; text-align: center; word-break: break-all;" id="deleteTenantNameTarget"></div>
-
-        <input type="text" id="deleteTenantInputConfirm" autocomplete="off" placeholder="Digite o nome exato aqui..." style="width: 100%; padding: 10px; border: 2px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box;" oninput="validarDigitacaoExclusao()">
-        
-        <small id="deleteErrorMsg" style="color: #EF4444; font-size: 0.8rem; display: none; margin-top: 6px; font-weight: bold;">O nome digitado não coincide.</small>
-      </div>
-
-      <div style="background: #F8FAFC; padding: 12px 20px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
-        <button type="button" class="btn" onclick="fecharModalExclusao()" style="background-color: #64748B; color: white; padding: 8px 16px;">Cancelar</button>
-        <button type="button" id="btnConfirmarExclusaoModal" disabled class="btn" onclick="executarExclusaoTenant()" style="background-color: #EF4444; color: white; font-weight: bold; padding: 8px 18px; opacity: 0.5; cursor: not-allowed;">Excluir Cliente</button>
-      </div>
-
-    </div>
-  </div>
-
-  <footer class="no-print">
-    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
-  </footer>
-
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
-  <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="index.html">
-      <i class="fa-solid fa-address-book"></i>
-      <span>Cadastros</span>
-    </a>
-    <a href="relatorios.html">
-      <i class="fa-solid fa-file-lines"></i>
-      <span>Relatórios</span>
-    </a>
-    <a href="manutencoes.html">
-      <i class="fa-solid fa-calendar-check"></i>
-      <span>Plan</span>
-    </a>
-    <a href="horas-extras.html" id="nav-item-horas">
-      <i class="fa-solid fa-clock"></i>
-      <span>Horas</span>
-    </a>
-    <a href="configuracao.html" class="active" id="nav-item-config">
-      <i class="fa-solid fa-gear"></i>
-      <span>Config</span>
-    </a>
-  </nav>
-
-  <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="admin.js?v=2"></script>
-
-  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const imgLogo = document.getElementById('logo-cliente');
-      if (imgLogo) {
-        const logoSalva = localStorage.getItem('rg_logo_base64');
-        if (logoSalva && logoSalva.startsWith('data:image')) {
-          imgLogo.src = logoSalva;
-        } else {
-          imgLogo.src = 'marca.png';
-        }
-      }
-
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      const navHoras = document.getElementById('nav-item-horas');
-      const dNavHoras = document.getElementById('d-nav-horas');
-
-      if (navHoras) {
-        navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
-      }
-      if (dNavHoras) {
-        dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
-      }
+    snapshot.forEach(doc => {
+      todosTenants.push({
+        uid: doc.id,
+        ...doc.data()
+      });
     });
-  </script>
 
-  <!-- SCRIPT SÍNCRONO INSTANTÂNEO -->
-  <script>
-    (function() {
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
+    renderizarTenants(todosTenants);
+  } catch (err) {
+    console.error('Erro ao carregar tenants:', err);
+    container.innerHTML = `<p style="text-align: center; color: #EF4444; padding: 20px; font-weight: bold;">Erro ao carregar clientes: ${err.message}</p>`;
+  }
+}
 
-      if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
+// Renderizar cards dos clientes
+function renderizarTenants(lista) {
+  const container = document.getElementById('adminTenantList');
+  if (!container) return;
+
+  if (lista.length === 0) {
+    container.innerHTML = '<p style="text-align: center; color: #64748B; padding: 20px;">Nenhum cliente registado.</p>';
+    return;
+  }
+
+  let html = '';
+  lista.forEach(t => {
+    const safeUid = escapeHTML(t.uid || '');
+    const safeNome = escapeHTML(t.nomeEmpresa || t.name || 'Sem Nome');
+    const safeEmail = escapeHTML(t.email || t.emailAcesso || '-');
+    const safeLogo = t.logoBase64 || t.logoUrl || 'marca.png';
+
+    html += `
+      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 5px solid #EF4444; border-radius: 6px; padding: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px;">
+          <img src="${safeLogo}" alt="Logo" style="max-height: 45px; max-width: 90px; object-fit: contain; border: 1px solid #CBD5E1; padding: 2px; border-radius: 4px; background: #FFF;">
+          <div>
+            <h4 style="margin: 0 0 4px 0; color: #0B132B; font-size: 1.1rem;">${safeNome}</h4>
+            <p style="margin: 0; font-size: 0.85rem; color: #64748B;"><strong>E-mail:</strong> ${safeEmail}</p>
+            <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94A3B8;"><strong>UID:</strong> ${safeUid}</p>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn" style="background-color: #3B82F6; color: white; font-weight: bold; padding: 8px 14px; font-size: 0.85rem;" onclick="editarTenant('${safeUid}')">
+            <i class="fa-solid fa-pen-to-square"></i> Editar
+          </button>
+          <button type="button" class="btn" style="background-color: #EF4444; color: white; font-weight: bold; padding: 8px 14px; font-size: 0.85rem;" onclick="abrirModalExclusao('${safeUid}', '${safeNome.replace(/'/g, "\\'")}')">
+            <i class="fa-solid fa-trash"></i> Excluir
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// Abrir modal para novo cliente
+window.abrirModalCliente = function() {
+  document.getElementById('tenantForm').reset();
+  const uidInput = document.getElementById('tenantUid');
+  if (uidInput) {
+    uidInput.value = '';
+    uidInput.disabled = false;
+  }
+  
+  document.getElementById('tenantLogoBase64').value = '';
+  
+  const imgPreview = document.getElementById('logoPreviewImg');
+  const previewContainer = document.getElementById('logoPreviewContainer');
+  if (imgPreview) imgPreview.src = '';
+  if (previewContainer) previewContainer.style.display = 'none';
+
+  document.getElementById('modalTenantTitle').textContent = 'Configurar Novo Cliente';
+  document.getElementById('tenantModal').style.display = 'flex';
+};
+
+// Fechar modal de cliente
+window.fecharModalCliente = function() {
+  document.getElementById('tenantModal').style.display = 'none';
+};
+
+// Editar Cliente / Tenant
+window.editarTenant = async function(uid) {
+  try {
+    let tenant = todosTenants.find(t => t.uid === uid);
+    
+    // Se não estiver em memória, procura diretamente no Firestore
+    if (!tenant) {
+      const doc = await db.collection('rg_config').doc(uid).get();
+      if (doc.exists) {
+        tenant = { uid: doc.id, ...doc.data() };
       }
-    })();
-  </script>
-  <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const bottomNav = document.getElementById('mainBottomNav');
-    if (bottomNav) {
-      const activeItem = bottomNav.querySelector('a.active');
-      if (activeItem) {
-        setTimeout(() => {
-          bottomNav.scrollTo({
-            left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
-            behavior: 'smooth'
-          });
-        }, 100);
-      }
+    }
+
+    if (!tenant) {
+      alert('Dados do cliente não encontrados.');
+      return;
+    }
+
+    const uidInput = document.getElementById('tenantUid');
+    if (uidInput) {
+      uidInput.value = tenant.uid || '';
+      uidInput.disabled = true; // Bloqueia edição do UID
+    }
+
+    document.getElementById('tenantNome').value = tenant.nomeEmpresa || tenant.name || '';
+    document.getElementById('tenantEmail').value = tenant.email || tenant.emailAcesso || '';
+    document.getElementById('tenantWatermark').value = tenant.watermark || tenant.marcaDagua || '';
+
+    // Logótipo
+    const logoVal = tenant.logoBase64 || tenant.logoUrl || '';
+    document.getElementById('tenantLogoBase64').value = logoVal;
+    const imgPreview = document.getElementById('logoPreviewImg');
+    const previewContainer = document.getElementById('logoPreviewContainer');
+    if (logoVal && imgPreview && previewContainer) {
+      imgPreview.src = logoVal;
+      previewContainer.style.display = 'block';
+    } else if (previewContainer) {
+      previewContainer.style.display = 'none';
+    }
+
+    // Checkboxes / Feature Flags com verificações seguras
+    setCheckbox('pageClientes', tenant.pageClientes !== false);
+    setCheckbox('pageMaquinas', tenant.pageMaquinas !== false);
+    setCheckbox('pageRelatorios', tenant.pageRelatorios !== false && tenant.pageRS !== false);
+    setCheckbox('pageOrcamentos', tenant.pageOrcamentos !== false);
+    setCheckbox('pageManutencoes', tenant.pageManutencoes !== false);
+    setCheckbox('modHorasExtras', tenant.modHorasExtras === true);
+
+    setCheckbox('criterioHorarioIntervalo', tenant.criterioHorarioIntervalo !== false);
+    setCheckbox('criterioHorarioDireto', tenant.criterioHorarioDireto !== false);
+
+    setCheckbox('criterioEmpreitada', tenant.criterioEmpreitada !== false);
+    setCheckbox('criterioHoraTrabalhada', tenant.criterioHoraTrabalhada !== false);
+    setCheckbox('criterioHoraDeslocamento', tenant.criterioHoraDeslocamento !== false);
+    setCheckbox('criterioHospedagem', tenant.criterioHospedagem !== false);
+    setCheckbox('criterioOutrasDespesas', tenant.criterioOutrasDespesas !== false);
+
+    document.getElementById('modalTenantTitle').textContent = `Editar Cliente - ${tenant.nomeEmpresa || tenant.name || tenant.uid}`;
+    document.getElementById('tenantModal').style.display = 'flex';
+  } catch (err) {
+    console.error('Erro ao carregar cliente para edição:', err);
+    alert('Erro ao carregar dados do cliente.');
+  }
+};
+
+// Auxiliares para manipular checkboxes de forma segura
+function setCheckbox(id, checkedVal) {
+  const el = document.getElementById(id);
+  if (el) el.checked = Boolean(checkedVal);
+}
+
+function getCheckbox(id) {
+  const el = document.getElementById(id);
+  return el ? el.checked : false;
+}
+
+// Processar Upload da Logo
+window.processarUploadLogo = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    document.getElementById('tenantLogoBase64').value = base64;
+    
+    const imgPreview = document.getElementById('logoPreviewImg');
+    const previewContainer = document.getElementById('logoPreviewContainer');
+    if (imgPreview && previewContainer) {
+      imgPreview.src = base64;
+      previewContainer.style.display = 'block';
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+// Submeter Formulário do Tenant
+const tenantFormEl = document.getElementById('tenantForm');
+if (tenantFormEl) {
+  tenantFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const uidInput = document.getElementById('tenantUid');
+    let uid = uidInput ? uidInput.value.trim() : '';
+    if (!uid) {
+      uid = 'tenant_' + Date.now();
+    }
+
+    const payload = {
+      nomeEmpresa: document.getElementById('tenantNome').value.trim(),
+      email: document.getElementById('tenantEmail').value.trim(),
+      logoBase64: document.getElementById('tenantLogoBase64').value,
+      watermark: document.getElementById('tenantWatermark').value.trim(),
+
+      pageClientes: getCheckbox('pageClientes'),
+      pageMaquinas: getCheckbox('pageMaquinas'),
+      pageRelatorios: getCheckbox('pageRelatorios'),
+      pageRS: getCheckbox('pageRelatorios'), // compatibilidade retroativa
+      pageOrcamentos: getCheckbox('pageOrcamentos'),
+      pageManutencoes: getCheckbox('pageManutencoes'),
+      modHorasExtras: getCheckbox('modHorasExtras'),
+
+      criterioHorarioIntervalo: getCheckbox('criterioHorarioIntervalo'),
+      criterioHorarioDireto: getCheckbox('criterioHorarioDireto'),
+
+      criterioEmpreitada: getCheckbox('criterioEmpreitada'),
+      criterioHoraTrabalhada: getCheckbox('criterioHoraTrabalhada'),
+      criterioHoraDeslocamento: getCheckbox('criterioHoraDeslocamento'),
+      criterioHospedagem: getCheckbox('criterioHospedagem'),
+      criterioOutrasDespesas: getCheckbox('criterioOutrasDespesas'),
+
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+      await db.collection('rg_config').doc(uid).set(payload, { merge: true });
+      alert('Configurações do cliente salvas com sucesso!');
+      fecharModalCliente();
+      await carregarTenants();
+    } catch (err) {
+      console.error('Erro ao salvar tenant:', err);
+      alert('Erro ao salvar no Firestore: ' + err.message);
     }
   });
-</script>
-</body>
-</html>
+}
+
+// Modal de Confirmação de Exclusão
+window.abrirModalExclusao = function(uid, nome) {
+  tenantParaExcluir = { uid, nome };
+  document.getElementById('deleteTenantUid').textContent = uid;
+  document.getElementById('deleteTenantNameTarget').textContent = nome;
+  document.getElementById('deleteTenantInputConfirm').value = '';
+  document.getElementById('deleteErrorMsg').style.display = 'none';
+  
+  const btn = document.getElementById('btnConfirmarExclusaoModal');
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  }
+
+  document.getElementById('deleteConfirmModal').style.display = 'flex';
+};
+
+window.fecharModalExclusao = function() {
+  document.getElementById('deleteConfirmModal').style.display = 'none';
+  tenantParaExcluir = null;
+};
+
+window.validarDigitacaoExclusao = function() {
+  if (!tenantParaExcluir) return;
+
+  const digitado = document.getElementById('deleteTenantInputConfirm').value.trim();
+  const esperado = tenantParaExcluir.nome.trim();
+  const btn = document.getElementById('btnConfirmarExclusaoModal');
+  const errorMsg = document.getElementById('deleteErrorMsg');
+
+  if (digitado === esperado) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    errorMsg.style.display = 'none';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+    if (digitado.length >= esperado.length) {
+      errorMsg.style.display = 'block';
+    } else {
+      errorMsg.style.display = 'none';
+    }
+  }
+};
+
+window.executarExclusaoTenant = async function() {
+  if (!tenantParaExcluir) return;
+
+  try {
+    await db.collection('rg_config').doc(tenantParaExcluir.uid).delete();
+    alert('Cliente excluído com sucesso!');
+    fecharModalExclusao();
+    await carregarTenants();
+  } catch (err) {
+    console.error('Erro ao excluir tenant:', err);
+    alert('Erro ao excluir do Firestore: ' + err.message);
+  }
+};
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
