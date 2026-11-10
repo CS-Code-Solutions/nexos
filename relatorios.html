@@ -133,6 +133,16 @@
     .signature-area { margin-top: 6px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; break-inside: avoid; }
     .signature-box { text-align: center; width: 45%; font-size: 9px; }
     .signature-box img { max-width: 130px; height: 32px; object-fit: contain; display: block; margin: 0 auto; }
+
+    /* Estilo dos botões de filtro tipo Pill */
+    .btn-filtro {
+      transition: all 0.2s ease;
+    }
+    .btn-filtro.active {
+      background-color: #0B132B !important;
+      color: #00F5D4 !important;
+      border-color: #00F5D4 !important;
+    }
   </style>
 </head>
 <body>
@@ -161,25 +171,59 @@
   </header>
 
   <main style="padding-top: 20px; padding-bottom: 80px;">
-    <section>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-        <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Central de Relatórios & Orçamentos</h2>
-        <a href="novo-relatorio.html" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; text-decoration: none; padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-plus"></i> Novo Relatório
+    
+    <!-- BARRA SUPERIOR COM TÍTULO E BOTÕES DE AÇÃO -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;" class="no-print">
+      <h2 style="color: #0B132B; margin: 0; font-size: 1.4rem;">Central de Relatórios & Orçamentos</h2>
+      
+      <div style="display: flex; gap: 8px;">
+        <a href="novo-relatorio.html" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; text-decoration: none; padding: 9px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-plus"></i> + Novo RS
         </a>
+        <button type="button" class="btn" onclick="abrirNovoOrcamento()" style="background-color: var(--tech-blue); color: white; font-weight: bold; padding: 9px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-calculator"></i> + Novo Orçamento
+        </button>
       </div>
+    </div>
 
+    <!-- CAMPO DE PESQUISA E BOTÕES DE FILTRO -->
+    <div class="card no-print" style="padding: 12px; margin-bottom: 15px; border-top: none;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        
+        <!-- Campo de Pesquisa -->
+        <input type="text" id="inputPesquisaRelatorios" oninput="filtrarRelatoriosEOrcamentos()" placeholder="🔍 Pesquisar por número (RS/ORC), cliente ou máquina..." style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem;">
+        
+        <!-- Botões de Filtro -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-filtro active" id="btnFiltroTodos" onclick="filtrarPorTipo('todos')" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 20px; border: 1px solid #CBD5E1; background: #F8FAFC; color: #475569; font-weight: bold; cursor: pointer;">
+            Todos
+          </button>
+          <button type="button" class="btn-filtro" id="btnFiltroRS" onclick="filtrarPorTipo('rs')" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 20px; border: 1px solid #CBD5E1; background: #F8FAFC; color: #475569; font-weight: bold; cursor: pointer;">
+            📄 Relatórios (RS)
+          </button>
+          <button type="button" class="btn-filtro" id="btnFiltroORC" onclick="filtrarPorTipo('orc')" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 20px; border: 1px solid #CBD5E1; background: #F8FAFC; color: #475569; font-weight: bold; cursor: pointer;">
+            📊 Orçamentos (ORC)
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARDS DE EXIBIÇÃO -->
+    <section>
       <div id="reportCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
         <p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>
       </div>
     </section>
+
   </main>
 
+  <!-- MODAL DE PRÉ-VISUALIZAÇÃO / IMPRESSÃO DE PDF -->
   <div id="reportPreviewModal">
     <div class="modal-content-wrapper">
       <div class="action-toolbar">
         <div>
-          <strong id="modalTitleRs" style="color: var(--electric-cyan); font-size: 1rem;">Relatório de Serviço</strong>
+          <strong id="modalTitleRs" style="color: var(--electric-cyan); font-size: 1rem;">Documento</strong>
           <span id="loadingStatusRs" style="font-size: 0.8rem; margin-left: 8px; color: #FCD34D;">⏳ A preparar...</span>
         </div>
         <div class="toolbar-buttons">
@@ -222,10 +266,10 @@
     </a>
   </nav>
 
-  <!-- SCRIPT EXTERNO SEPARADO -->
+  <!-- SCRIPT EXTERNO DA CENTRAL UNIFICADA -->
   <script src="historico.js?v=2"></script>
 
-  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
+  <!-- SCRIPT DE PERMISSÕES E LOGO -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const imgLogo = document.getElementById('logo-cliente');
