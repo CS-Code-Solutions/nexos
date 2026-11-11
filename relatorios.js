@@ -369,53 +369,53 @@ window.openReportPreview = async function(index) {
 
         <div class="section-box">
           <div class="section-title">Dados da Empresa / Prestador de Serviço</div>
-          <div class="grid-2">
-            <p><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
-            <p><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
-            <p><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
-            <p><strong>Telefone / WhatsApp:</strong> ${escapeHTML(config.contact)}</p>
-            <p style="grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
+            <p style="margin: 1px 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
+            <p style="margin: 1px 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
+            <p style="margin: 1px 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
+            <p style="margin: 1px 0;"><strong>Telefone / WhatsApp:</strong> ${escapeHTML(config.contact)}</p>
+            <p style="grid-column: span 2; margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
           </div>
         </div>
 
         <div class="section-box">
           <div class="section-title">Dados do Cliente</div>
-          <div class="grid-2">
-            <p><strong>Nome / Razão Social:</strong> ${escapeHTML(rep.client)}</p>
-            <p><strong>CPF / CNPJ:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
-            <p><strong>E-mail:</strong> ${escapeHTML(clientObj.email || '-')}</p>
-            <p><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
+            <p style="margin: 1px 0;"><strong>Nome / Razão Social:</strong> ${escapeHTML(rep.client)}</p>
+            <p style="margin: 1px 0;"><strong>CPF / CNPJ:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
+            <p style="margin: 1px 0;"><strong>E-mail:</strong> ${escapeHTML(clientObj.email || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
           </div>
         </div>
 
         <div class="section-box">
           <div class="section-title">Dados do Equipamento / Máquina</div>
-          <div class="grid-2">
-            <p><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
-            <p><strong>Marca:</strong> ${escapeHTML(rep.brand || '-')}</p>
-            <p><strong>Modelo:</strong> ${escapeHTML(rep.model || '-')}</p>
-            <p><strong>Matrícula / N° de Série:</strong> ${escapeHTML(rep.serialNumber || '-')}</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
+            <p style="margin: 1px 0;"><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Marca:</strong> ${escapeHTML(rep.brand || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Modelo:</strong> ${escapeHTML(rep.model || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Matrícula / N° de Série:</strong> ${escapeHTML(rep.serialNumber || '-')}</p>
           </div>
         </div>
 
         <div class="section-box">
           <div class="section-title">Registro do Serviço Realizado</div>
-          <div class="grid-2" style="margin-bottom: 2px;">
-            <p><strong>Tipo de Manutenção:</strong> ${escapeHTML(rep.serviceNature || '-')}</p>
-            <p><strong>Área de Serviço:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px; margin-bottom: 2px;">
+            <p style="margin: 1px 0;"><strong>Tipo de Manutenção:</strong> ${escapeHTML(rep.serviceNature || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Área de Serviço:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
           </div>
-          <p><strong>Descrição Detalhada:</strong></p>
-          <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 9px;">${escapeHTML(rep.desc || '-')}</p>
+          <p style="margin: 2px 0 1px 0; font-size: 8.5px;"><strong>Descrição Detalhada:</strong></p>
+          <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 8.5px;">${escapeHTML(rep.desc || '-')}</p>
         </div>
 
         <div class="section-box">
           <div class="section-title">Critérios de Cobrança e Valor Total</div>
-          <div style="font-size: 9px; margin-bottom: 2px;">
-            ${rep.temHora === 'sim' ? `<p>• <strong>Serviço / Horas:</strong> ${textoHoras}</p>${detalhesDiasHtml}` : ''}
-            ${rep.temDeslocamento === 'sim' ? `<p>• <strong>Hora de Deslocamento:</strong> ${rep.tempoDeslocamentoHoras || 0}h a R$ ${Number(rep.valorHoraDeslocamento || 0).toFixed(2)}/h</p>` : ''}
-            ${rep.temHospedagem === 'sim' ? `<p>• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : ''}
-            ${rep.temOutras === 'sim' ? `<p>• <strong>Outras Despesas:</strong> R$ ${Number(rep.valorOutras || 0).toFixed(2)}</p>` : ''}
-            ${rep.temEmpreitada === 'sim' ? `<p>• <strong>Regime de Empreitada:</strong> ${textoHoras}</p>` : ''}
+          <div style="font-size: 8.5px; margin-bottom: 2px;">
+            ${rep.temHora === 'sim' ? `<p style="margin: 1px 0;">• <strong>Serviço / Horas:</strong> ${textoHoras}</p>${detalhesDiasHtml}` : ''}
+            ${rep.temDeslocamento === 'sim' ? `<p style="margin: 1px 0;">• <strong>Hora de Deslocamento:</strong> ${rep.tempoDeslocamentoHoras || 0}h a R$ ${Number(rep.valorHoraDeslocamento || 0).toFixed(2)}/h</p>` : ''}
+            ${rep.temHospedagem === 'sim' ? `<p style="margin: 1px 0;">• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : ''}
+            ${rep.temOutras === 'sim' ? `<p style="margin: 1px 0;">• <strong>Outras Despesas:</strong> R$ ${Number(rep.valorOutras || 0).toFixed(2)}</p>` : ''}
+            ${rep.temEmpreitada === 'sim' ? `<p style="margin: 1px 0;">• <strong>Regime de Empreitada:</strong> ${textoHoras}</p>` : ''}
           </div>
           <p style="font-size: 9.5px; font-weight: bold; color: #0D9488; border-top: 1px solid #CBD5E1; padding-top: 2px; margin-top: 2px;">Valor Total Estimado: R$ ${valorTotal.toFixed(2)}</p>
         </div>
@@ -528,67 +528,80 @@ window.openBudgetPreview = async function(index) {
   let nomeConta2 = config.nomeConta2 || 'Conta Bancária 2';
 
   if (opt === 'banco1') {
-    bancoInfoHtml = `<p><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta1)})</p><p><strong>Banco:</strong> ${escapeHTML(config.bank1 || '-')}</p><p><strong>Agência:</strong> ${escapeHTML(config.agency1 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account1 || '-')}</p>`;
+    bancoInfoHtml = `<p style="margin: 1px 0;"><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta1)})</p><p style="margin: 1px 0;"><strong>Banco:</strong> ${escapeHTML(config.bank1 || '-')} | <strong>Agência:</strong> ${escapeHTML(config.agency1 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account1 || '-')}</p>`;
   } else if (opt === 'banco2') {
-    bancoInfoHtml = `<p><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta2)})</p><p><strong>Banco:</strong> ${escapeHTML(config.bank2 || '-')}</p><p><strong>Agência:</strong> ${escapeHTML(config.agency2 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account2 || '-')}</p>`;
+    bancoInfoHtml = `<p style="margin: 1px 0;"><strong>Forma de Recebimento:</strong> Transferência Bancária (${escapeHTML(nomeConta2)})</p><p style="margin: 1px 0;"><strong>Banco:</strong> ${escapeHTML(config.bank2 || '-')} | <strong>Agência:</strong> ${escapeHTML(config.agency2 || '-')} | <strong>Conta:</strong> ${escapeHTML(config.account2 || '-')}</p>`;
   } else {
-    bancoInfoHtml = `<p><strong>Forma de Recebimento:</strong> Boleto Bancário</p><p><em>Instruções: O boleto será emitido e enviado conforme prazo comercial acordado.</em></p>`;
+    bancoInfoHtml = `<p style="margin: 1px 0;"><strong>Forma de Recebimento:</strong> Boleto Bancário</p><p style="margin: 1px 0;"><em>Instruções: O boleto será emitido e enviado conforme prazo comercial acordado.</em></p>`;
   }
 
-  const termsList = (b.terms || '').split('\n').map(t => `<p>• ${escapeHTML(t)}</p>`).join('');
+  const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 1px 0;">• ${escapeHTML(t)}</p>`).join('');
   const techSignature = config.techSignature || '';
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
 
   document.getElementById('budgetRenderArea').innerHTML = `
-    <div class="print-body">
+    <div class="print-body" id="pdfContentToPrintOrc">
       <div class="watermark">${escapeHTML(config.name)}</div>
+
       <div class="print-header">
         <div style="display: flex; align-items: center; max-width: 140px; height: 35px;">
           <img src="${logoSrc}" alt="Logo" style="max-height: 32px; width: auto; max-width: 140px; display: block;">
         </div>
-        <div style="text-align: center; flex-grow: 1;"><h1 style="font-size: 11px; margin: 0; font-weight: bold;">ORÇAMENTO DE SERVIÇO</h1></div>
-        <div class="print-header-info"><h2>Nº: ${escapeHTML(b.number || 'ORC-0001')}</h2><p>Data: ${escapeHTML(b.date || '-')}</p></div>
-      </div>
-      <div class="section-box">
-        <div class="section-title">DADOS DA EMPRESA</div>
-        <p><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
-        <p><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
-        <p><strong>Contato:</strong> ${escapeHTML(config.contact)} | <strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
-        <p><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
-      </div>
-      <div class="section-box">
-        <div class="section-title">CLIENTE & EQUIPAMENTO</div>
-        <div class="grid-2">
-          <div>
-            <p><strong>Cliente:</strong> ${escapeHTML(b.client || '-')}</p>
-            <p><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
-            <p><strong>E-mail:</strong> ${escapeHTML(clientObj.email || '-')}</p>
-          </div>
-          <div>
-            <p><strong>Equipamento:</strong> ${escapeHTML(b.equipment || '-')}</p>
-            <p><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
-            <p><strong>Contacto:</strong> ${escapeHTML(clientObj.phone || '-')}</p>
-          </div>
+        <div style="text-align: center; flex-grow: 1;">
+          <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">ORÇAMENTO DE SERVIÇO</h1>
+        </div>
+        <div class="print-header-info">
+          <h1>Nº: ${escapeHTML(b.number || 'ORC-0001')}</h1>
+          <p>Data: ${escapeHTML(b.date || '-')}</p>
         </div>
       </div>
+
       <div class="section-box">
-        <div class="section-title">ESCOPO DOS SERVIÇOS</div>
-        <p style="white-space: pre-wrap; margin-top: 1px;">${escapeHTML(b.desc || '-')}</p>
+        <div class="section-title">Dados da Empresa / Prestador de Serviço</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
+          <p style="margin: 1px 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
+          <p style="margin: 1px 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
+          <p style="margin: 1px 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
+          <p style="margin: 1px 0;"><strong>Contato:</strong> ${escapeHTML(config.contact)}</p>
+          <p style="grid-column: span 2; margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
+        </div>
       </div>
+
       <div class="section-box">
-        <div class="section-title">CONDIÇÕES COMERCIAIS & PAGAMENTO</div>
-        ${termsList}
-        <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 2px 0;">
-        ${bancoInfoHtml}
+        <div class="section-title">Dados do Cliente & Equipamento</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
+          <p style="margin: 1px 0;"><strong>Cliente:</strong> ${escapeHTML(b.client || '-')}</p>
+          <p style="margin: 1px 0;"><strong>Equipamento:</strong> ${escapeHTML(b.equipment || '-')}</p>
+          <p style="margin: 1px 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
+          <p style="margin: 1px 0;"><strong>Contacto:</strong> ${escapeHTML(clientObj.phone || '-')}</p>
+          <p style="margin: 1px 0;"><strong>E-mail:</strong> ${escapeHTML(clientObj.email || '-')}</p>
+          <p style="margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
+        </div>
       </div>
-      <div class="section-box" style="text-align: right; background: #F1F5F9; border-color: #00F5D4;">
-        <p style="font-size: 11px; font-weight: bold; color: #0B132B;">VALOR TOTAL DO ORÇAMENTO: R$ ${Number(b.total || 0).toFixed(2)}</p>
+
+      <div class="section-box">
+        <div class="section-title">Escopo dos Serviços</div>
+        <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 8.5px;">${escapeHTML(b.desc || '-')}</p>
       </div>
-      <div style="margin-top: 6px; display: flex; justify-content: center; page-break-inside: avoid;">
-        <div style="text-align: center; width: 60%;">
-          ${techSignature ? `<img src="${techSignature}" alt="Assinatura" style="max-width: 110px; max-height: 32px; width: auto; display: block; margin: 0 auto;">` : '<div style="height: 30px;"></div>'}
-          <p style="margin: 1px 0;">________________________________________</p>
-          <p style="margin: 1px 0; font-size: 8.5px;"><strong>Assinatura do Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico Responsável')}</p>
+
+      <div class="section-box">
+        <div class="section-title">Condições Comerciais & Pagamento</div>
+        <div style="font-size: 8.5px;">
+          ${termsList}
+          <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 3px 0;">
+          ${bancoInfoHtml}
+        </div>
+      </div>
+
+      <div class="section-box" style="text-align: right; background: #F1F5F9 !important; border-color: #00F5D4; padding: 6px 8px;">
+        <p style="font-size: 10px; font-weight: bold; color: #0B132B; margin: 0;">VALOR TOTAL DO ORÇAMENTO: R$ ${Number(b.total || 0).toFixed(2)}</p>
+      </div>
+
+      <div class="signature-area" style="display: flex; justify-content: center; align-items: flex-end; margin-top: 10px; page-break-inside: avoid;">
+        <div class="signature-box" style="text-align: center; width: 50%;">
+          ${techSignature ? `<img src="${techSignature}" alt="Assinatura" style="max-height: 35px; width: auto; max-width: 140px; display: block; margin: 0 auto 2px auto;">` : '<div style="height: 35px;"></div>'}
+          <p style="margin: 0; font-size: 8.5px;">________________________________________</p>
+          <p style="margin: 2px 0 0 0; font-size: 8.5px;"><strong>Assinatura do Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico Responsável')}</p>
         </div>
       </div>
     </div>
