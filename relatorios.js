@@ -75,54 +75,37 @@ async function carregarApelidosContas() {
 }
 
 async function renderizarTudo() {
+  const container = document.getElementById('unifiedCardsContainer');
   try {
-    const rawRS = await DataSync.load('rg_reports');
-    const rawORC = await DataSync.load('rg_orcamentos');
+    // Adiciona um timeout de segurança de 5 segundos para nunca travar eterno
+    const loadWithTimeout = (key) => Promise.race([
+      DataSync.load(key),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    ]);
+
+    let rawRS = [];
+    let rawORC = [];
+
+    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Erro ao carregar rg_reports:", e); }
+    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Erro ao carregar rg_orcamentos:", e); }
 
     listaRelatoriosRS = normalizarLista(rawRS);
     listaOrcamentos = normalizarLista(rawORC);
+    
     filtrarDocumentos();
   } catch (err) {
-    console.error("Erro ao carregar lista:", err);
+    console.error("Erro crítico ao carregar histórico:", err);
+    if (container) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 35px 20px; border-radius: 8px; border: 1px dashed #EF4444;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 2rem; color: #EF4444; margin-bottom: 10px;"></i>
+          <p style="color: #64748B; margin-bottom: 10px;">Erro ao carregar os dados da nuvem. Verifique a sua conexão.</p>
+          <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Tentar Novamente</button>
+        </div>
+      `;
+    }
   }
 }
-
-function getValidDateTimestamp(dateStr) {
-  if (!dateStr) return 0;
-  let cleanStr = String(dateStr).trim();
-  if (cleanStr.includes('/')) {
-    const p = cleanStr.split('/');
-    if (p.length === 3) cleanStr = `${p[2]}-${p[1]}-${p[0]}`;
-  }
-  const d = new Date(`${cleanStr}T00:00:00`);
-  return isNaN(d.getTime()) ? 0 : d.getTime();
-}
-
-window.filtrarDocumentos = function() {
-  const container = document.getElementById('unifiedCardsContainer');
-  if (!container) return;
-
-  const busca = (document.getElementById('inputPesquisa')?.value || '').toLowerCase().trim();
-  const tipoFiltro = document.getElementById('selectTipoFiltro')?.value || 'todos';
-  const clienteFiltro = document.getElementById('selectClienteFiltro')?.value || '';
-
-  let unificados = [];
-
-  if (tipoFiltro === 'todos' || tipoFiltro === 'rs') {
-    listaRelatoriosRS.forEach((r, idx) => {
-      if (!r || typeof r !== 'object') return;
-      unificados.push({
-        tipoDoc: 'RS',
-        origemIndex: idx,
-        numero: r.number || r.numero || `RS-${1000 + idx}`,
-        data: r.date || r.data || '',
-        cliente: r.client || r.cliente || '-',
-        equipamento: r.equipment || r.equipamento || '-',
-        detalheExtra: r.serviceNature || r.naturezaServico || 'Corretiva'
-      });
-    });
-  }
-
   const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
   const isSuperAdmin = (localStorage.getItem('rg_user_role') === 'super_admin');
 
