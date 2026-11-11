@@ -274,6 +274,42 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
+// FUNÇÃO AUXILIAR DE COMPRESSÃO DE IMAGEM PARA EVITAR ESTOURO DE MEMÓRIA NO PDF
+function comprimirImagemBase64(base64Str, maxWidth = 800, maxHeight = 800, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (!base64Str || !base64Str.startsWith('data:image')) {
+      resolve(base64Str);
+      return;
+    }
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64Str);
+  });
+}
+
 window.openReportPreview = async function(index) {
   const rep = listaRelatoriosRS[index];
   if (!rep) { alert("Relatório não encontrado."); return; }
@@ -312,13 +348,17 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   
   if (rep.anexos && rep.anexos.length > 0) {
-    // AJUSTADO: max-height de 140px optimizado para caber 4 ou mais anexos perfeitamente em grelha 2x2 sem estourar a memória
-    let itemsHtml = rep.anexos.map(anexo => `
-      <div style="width: 48%; text-align: center; page-break-inside: avoid; margin-bottom: 12px; border: 1px solid #CBD5E1; padding: 8px; background: #FFF; border-radius: 4px; box-sizing: border-box;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 140px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
-      </div>
-    `).join('');
+    // Processamento assíncrono para compactar todas as imagens dos anexos antes de injetar no HTML
+    let itemsHtml = '';
+    for (const anexo of rep.anexos) {
+      const imgOtimizada = await comprimirImagemBase64(anexo.imagem, 700, 700, 0.75);
+      itemsHtml += `
+        <div style="width: 48%; text-align: center; page-break-inside: avoid; margin-bottom: 12px; border: 1px solid #CBD5E1; padding: 8px; background: #FFF; border-radius: 4px; box-sizing: border-box;">
+          <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo)}</div>
+          <img src="${imgOtimizada}" style="max-width: 100%; max-height: 140px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+        </div>
+      `;
+    }
 
     anexosHtml = `
       <div style="page-break-before: always; height: 1px; margin-top: 10px;"></div>
@@ -514,7 +554,7 @@ function getPdfOptions(filename) {
   return {
     margin: [10, 0, 10, 0],
     filename,
-    image: { type: 'jpeg', quality: 0.95 }, // Leve ajuste na qualidade para processar múltiplos anexos sem pesar o canvas
+    image: { type: 'jpeg', quality: 0.92 },
     html2canvas: { 
       scale: 2, 
       useCORS: true, 
@@ -536,7 +576,7 @@ window.descarregarPDFRs = async () => {
     await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
   } catch (e) {
     console.error("Erro ao gerar PDF:", e);
-    alert("Erro ao gerar PDF com múltiplos anexos. Verifique o tamanho das imagens.");
+    alert("Erro ao gerar PDF. Tente com menos imagens ou imagens menores.");
   } finally {
     if (container) container.style.overflow = 'auto';
     document.getElementById('loadingStatusRs').textContent = 'Pronto';
@@ -556,7 +596,7 @@ window.compartilharPDFRs = async () => {
       await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
     }
   } catch (e) {
-    console.error("Erro ao compartilhar PDF:", e);
+    console.error("Erro ao partilhar PDF:", e);
     await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
   } finally {
     if (container) container.style.overflow = 'auto';
