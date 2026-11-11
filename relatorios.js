@@ -295,17 +295,22 @@ window.openReportPreview = async function(index) {
   activeReportData = { number: numDoc, client: clientName };
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
-  let anexosHtml = '';
+ let anexosHtml = '';
   if (rep.anexos && rep.anexos.length > 0) {
     let itemsHtml = rep.anexos.map(anexo => `
       <div style="text-align: center; page-break-inside: avoid; margin-top: 15px; border: 1px solid #CBD5E1; padding: 10px; background: #FFF;">
         <div style="text-align: left; font-weight: bold; margin-bottom: 5px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 280px; display: block; margin: 0 auto;">
+        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
       </div>
     `).join('');
-    anexosHtml = `<div style="page-break-before: always; height: 1px; margin-top: 15px;"></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 8px;"><img src="${logoSrc}" style="height: 40px;"><h1 style="font-size: 12px; text-transform: uppercase;">Anexos / Fotos</h1></div>
-      ${itemsHtml}`;
+    
+    anexosHtml = `
+      <div style="page-break-before: always; height: 1px; margin-top: 15px;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px;">
+        <h1 style="font-size: 12px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
+      </div>
+      ${itemsHtml}
+    `;
   }
 
   document.getElementById('reportRenderArea').innerHTML = `
