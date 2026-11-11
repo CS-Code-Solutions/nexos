@@ -39,7 +39,8 @@ function normalizarLista(dados) {
   if (Array.isArray(dados.reports)) return dados.reports;
   if (Array.isArray(dados.orcamentos)) return dados.orcamentos;
   if (typeof dados === 'object') {
-    return Object.values(dados).filter(item => item && typeof item === 'object');
+    const valores = Object.values(dados).filter(item => item && typeof item === 'object');
+    if (valores.length > 0) return valores;
   }
   return [];
 }
@@ -80,6 +81,10 @@ async function carregarApelidosContas() {
 
 async function renderizarTudo() {
   const container = document.getElementById('unifiedCardsContainer');
+  if (!container) return;
+
+  container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>`;
+
   try {
     const loadWithTimeout = (key) => Promise.race([
       DataSync.load(key),
@@ -89,23 +94,22 @@ async function renderizarTudo() {
     let rawRS = [];
     let rawORC = [];
 
-    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Erro ao carregar rg_reports:", e); }
-    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Erro ao carregar rg_orcamentos:", e); }
+    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Aviso ao carregar rg_reports:", e); }
+    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Aviso ao carregar rg_orcamentos:", e); }
 
     listaRelatoriosRS = normalizarLista(rawRS);
     listaOrcamentos = normalizarLista(rawORC);
+
     filtrarDocumentos();
   } catch (err) {
-    console.error("Erro ao carregar lista:", err);
-    if (container) {
-      container.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 35px 20px; border-radius: 8px; border: 1px dashed #EF4444;">
-          <i class="fa-solid fa-triangle-exclamation" style="font-size: 2rem; color: #EF4444; margin-bottom: 10px;"></i>
-          <p style="color: #64748B; margin-bottom: 10px;">Erro ao carregar os dados da nuvem. Verifique a sua conexão.</p>
-          <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Tentar Novamente</button>
-        </div>
-      `;
-    }
+    console.error("Erro crítico ao carregar lista:", err);
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 35px 20px; border-radius: 8px; border: 1px dashed #EF4444;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2rem; color: #EF4444; margin-bottom: 10px;"></i>
+        <p style="color: #64748B; margin-bottom: 10px;">Erro ao carregar os dados da nuvem. Verifique a sua conexão.</p>
+        <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Tentar Novamente</button>
+      </div>
+    `;
   }
 }
 
@@ -243,7 +247,7 @@ window.filtrarDocumentos = function() {
 window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
 window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
-// Sistema de Exclusão Segura por Modal (Evita falsos cliques)
+// Sistema de Exclusão Segura por Modal
 window.deleteReport = (index) => {
   indexParaExcluir = index;
   tipoDocumentoExcluir = 'RS';
@@ -780,7 +784,7 @@ window.compartilharPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
   const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
-  const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]`);
+  const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
   const animacao = iniciarAnimacaoSalvando(btnShare);
 
   try {
