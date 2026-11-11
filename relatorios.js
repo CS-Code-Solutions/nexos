@@ -312,9 +312,9 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   if (rep.anexos && rep.anexos.length > 0) {
     let itemsHtml = rep.anexos.map(anexo => `
-      <div style="text-align: center; page-break-inside: avoid; margin-top: 10px; border: 1px solid #CBD5E1; padding: 8px; background: #FFF;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 10px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 130px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+      <div style="text-align: center; page-break-inside: avoid; margin-top: 15px; border: 1px solid #CBD5E1; padding: 10px; background: #FFF; border-radius: 4px;">
+        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px;">${escapeHTML(anexo.titulo)}</div>
+        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 250px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
       </div>
     `).join('');
     anexosHtml = `
@@ -327,8 +327,9 @@ window.openReportPreview = async function(index) {
     `;
   }
 
+  // Estilo Inline blindado para garantir 794px e proteger os anexos
   document.getElementById('reportRenderArea').innerHTML = `
-    <div class="print-body">
+    <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
         
@@ -435,7 +436,7 @@ window.openBudgetPreview = async function(index) {
   const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 2px 0;">• ${escapeHTML(t)}</p>`).join('');
 
   document.getElementById('budgetRenderArea').innerHTML = `
-    <div class="print-body">
+    <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
         
@@ -507,15 +508,15 @@ window.fecharModalOrc = () => { document.getElementById('budgetPreviewModal').st
 
 function getPdfOptions(filename) {
   return {
-    margin: 0,
+    margin: [10, 0, 10, 0], // DEVOLVE as margens superior e inferior (10mm) para n\u00e3o cortar nas quebras de p\u00e1gina
     filename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
       scale: 2, 
       useCORS: true, 
       letterRendering: true, 
-      windowWidth: 794,
-      width: 794
+      scrollY: 0, // A CHAVE DO PROBLEMA: for\u00e7a o scroll a renderizar tudo o que est\u00e1 escondido no modal mobile
+      windowWidth: 794
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] }
