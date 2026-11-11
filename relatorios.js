@@ -28,17 +28,39 @@ let listaOrcamentos = [];
 let activeReportData = {};
 let activeBudgetData = {};
 
+/**
+ * Normaliza os dados carregados do Firestore/DataSync garantindo que retornem sempre como Array,
+ * mesmo se estiverem encapsulados em .items, .reports, .orcamentos ou chaves de objeto.
+ */
+function normalizarLista(dados) {
+  if (!dados) return [];
+  if (Array.isArray(dados)) return dados;
+  if (Array.isArray(dados.items)) return dados.items;
+  if (Array.isArray(dados.reports)) return dados.reports;
+  if (Array.isArray(dados.orcamentos)) return dados.orcamentos;
+  if (typeof dados === 'object') {
+    return Object.values(dados).filter(item => item && typeof item === 'object');
+  }
+  return [];
+}
+
 async function carregarOpcoesClientes() {
   const selectFiltro = document.getElementById('selectClienteFiltro');
   
   try {
-    const clients = await DataSync.load('rg_clients') || [];
-    if (!Array.isArray(clients)) return;
+    const rawClients = await DataSync.load('rg_clients');
+    const clients = normalizarLista(rawClients);
+    if (!clients.length) return;
 
     if (selectFiltro) {
       const valFiltroAtual = selectFiltro.value;
       selectFiltro.innerHTML = '<option value="">Todos os Clientes</option>';
-      clients.forEach(c => selectFiltro.innerHTML += `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`);
+      clients.forEach(c => {
+        const nome = c.name || c.nome || c.razacaosocial || '';
+        if (nome) {
+          selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
+        }
+      });
       selectFiltro.value = valFiltroAtual;
     }
   } catch (e) {}
@@ -59,10 +81,11 @@ async function carregarApelidosContas() {
 
 async function renderizarTudo() {
   try {
-    listaRelatoriosRS = await DataSync.load('rg_reports') || [];
-    listaOrcamentos = await DataSync.load('rg_orcamentos') || [];
-    if (!Array.isArray(listaRelatoriosRS)) listaRelatoriosRS = [];
-    if (!Array.isArray(listaOrcamentos)) listaOrcamentos = [];
+    const rawRS = await DataSync.load('rg_reports');
+    const rawORC = await DataSync.load('rg_orcamentos');
+
+    listaRelatoriosRS = normalizarLista(rawRS);
+    listaOrcamentos = normalizarLista(rawORC);
 
     filtrarDocumentos();
   } catch (err) {
@@ -84,15 +107,21 @@ window.filtrarDocumentos = function() {
   // Mapeia Relatórios RS
   if (tipoFiltro === 'todos' || tipoFiltro === 'rs') {
     listaRelatoriosRS.forEach((r, idx) => {
-      if (!r) return;
+      if (!r || typeof r !== 'object') return;
+      const numDoc = r.number || r.numero || `RS-${1000 + idx}`;
+      const cliDoc = r.client || r.cliente || '-';
+      const eqDoc = r.equipment || r.equipamento || '-';
+      const dtDoc = r.date || r.data || '';
+      const detDoc = r.serviceNature || r.naturezaServico || r.type || 'Corretiva';
+
       unificados.push({
         tipoDoc: 'RS',
         origemIndex: idx,
-        numero: r.number || `RS-${1000 + idx}`,
-        data: r.date || '',
-        cliente: r.client || '-',
-        equipamento: r.equipment || '-',
-        detalheExtra: r.serviceNature || r.type || 'Corretiva',
+        numero: numDoc,
+        data: dtDoc,
+        cliente: cliDoc,
+        equipamento: eqDoc,
+        detalheExtra: detDoc,
         objetoOriginal: r
       });
     });
@@ -106,15 +135,21 @@ window.filtrarDocumentos = function() {
   if (isSuperAdmin || showOrcamentos) {
     if (tipoFiltro === 'todos' || tipoFiltro === 'orc') {
       listaOrcamentos.forEach((o, idx) => {
-        if (!o) return;
+        if (!o || typeof o !== 'object') return;
+        const numDoc = o.number || o.numero || `ORC-${String(idx + 1).padStart(4, '0')}`;
+        const cliDoc = o.client || o.cliente || '-';
+        const eqDoc = o.equipment || o.equipamento || '-';
+        const dtDoc = o.date || o.data || '';
+        const valorDoc = o.total || o.valorTotal || 0;
+
         unificados.push({
           tipoDoc: 'ORC',
           origemIndex: idx,
-          numero: o.number || `ORC-${String(idx + 1).padStart(4, '0')}`,
-          data: o.date || '',
-          cliente: o.client || '-',
-          equipamento: o.equipment || '-',
-          detalheExtra: `R$ ${Number(o.total || 0).toFixed(2)}`,
+          numero: numDoc,
+          data: dtDoc,
+          cliente: cliDoc,
+          equipamento: eqDoc,
+          detalheExtra: `R$ ${Number(valorDoc).toFixed(2)}`,
           objetoOriginal: o
         });
       });
@@ -129,10 +164,10 @@ window.filtrarDocumentos = function() {
     if (clienteFiltro && item.cliente !== clienteFiltro) return false;
 
     if (busca) {
-      const numClean = item.numero.toLowerCase();
-      const cliClean = item.cliente.toLowerCase();
-      const eqClean = item.equipamento.toLowerCase();
-      const detClean = item.detalheExtra.toLowerCase();
+      const numClean = String(item.numero).toLowerCase();
+      const cliClean = String(item.cliente).toLowerCase();
+      const eqClean = String(item.equipamento).toLowerCase();
+      const detClean = String(item.detalheExtra).toLowerCase();
       return numClean.includes(busca) || cliClean.includes(busca) || eqClean.includes(busca) || detClean.includes(busca);
     }
 
@@ -154,17 +189,17 @@ window.filtrarDocumentos = function() {
     const isRS = item.tipoDoc === 'RS';
     const badgeCor = isRS ? '#2563EB' : '#10B981';
     const badgeTexto = isRS ? 'RELATÓRIO RS' : 'ORÇAMENTO';
-    const safeNum = escapeHTML(item.numero);
+    const safeNum = escapeHTML(String(item.numero));
 
     let dataForm = item.data || '-';
-    if (dataForm.includes('-')) {
+    if (typeof dataForm === 'string' && dataForm.includes('-')) {
       const p = dataForm.split('-');
       if (p.length === 3) dataForm = `${p[2]}/${p[1]}/${p[0]}`;
     }
 
-    const safeClient = escapeHTML(item.cliente);
-    const safeEquipment = escapeHTML(item.equipamento);
-    const safeDetalhe = escapeHTML(item.detalheExtra);
+    const safeClient = escapeHTML(String(item.cliente));
+    const safeEquipment = escapeHTML(String(item.equipamento));
+    const safeDetalhe = escapeHTML(String(item.detalheExtra));
 
     htmlCards += `
       <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid ${badgeCor}; border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 165px; overflow: hidden;">
@@ -212,19 +247,36 @@ window.filtrarDocumentos = function() {
   container.innerHTML = htmlCards;
 };
 
-/* --- AÇÕES DE EDICÃO E EXCLUSÃO DE RS --- */
+/* --- AÇÕES DE EDICÃO E EXCLUSÃO DE RS E ORÇAMENTO --- */
 window.editReport = function(index) {
   window.location.href = `novo-relatorio.html?edit=${index}`;
+};
+
+window.editBudget = function(index) {
+  window.location.href = `novo-orcamento.html?edit=${index}`;
 };
 
 window.deleteReport = async function(index) {
   if (confirm('Deseja realmente excluir este relatório de serviço?')) {
     try {
-      let reports = await DataSync.load('rg_reports') || [];
+      let rawData = await DataSync.load('rg_reports');
+      let reports = normalizarLista(rawData);
       reports.splice(index, 1);
       await DataSync.save('rg_reports', reports);
       await renderizarTudo();
     } catch (e) { alert('Erro ao excluir relatório.'); }
+  }
+};
+
+window.deleteBudget = async function(index) {
+  if (confirm('Deseja realmente excluir este orçamento?')) {
+    try {
+      let rawData = await DataSync.load('rg_orcamentos');
+      let budgets = normalizarLista(rawData);
+      budgets.splice(index, 1);
+      await DataSync.save('rg_orcamentos', budgets);
+      await renderizarTudo();
+    } catch (e) { alert('Erro ao excluir orçamento.'); }
   }
 };
 
@@ -274,8 +326,10 @@ window.openReportPreview = async function(index) {
       if (savedCfg.exists) config = { ...defaultConfig, ...savedCfg.data() };
     } catch (e) {}
 
-    let clients = await DataSync.load('rg_clients') || [];
-    const clientObj = clients.find(c => c.name === rep.client) || {};
+    const rawClients = await DataSync.load('rg_clients');
+    let clients = normalizarLista(rawClients);
+    const clientName = rep.client || rep.cliente;
+    const clientObj = clients.find(c => (c.name || c.nome) === clientName) || {};
 
     let valorTotal = 0;
     let textoHoras = "Não cobrado";
@@ -305,15 +359,16 @@ window.openReportPreview = async function(index) {
       valorTotal = valorHorasTotal + valorDeslocamentoTotal + valorHospedagemTotal + valorOutrasTotal;
     }
 
-    activeReportData = { number: rep.number, client: rep.client };
+    const numDoc = rep.number || rep.numero || 'RS-1000';
+    activeReportData = { number: numDoc, client: clientName };
 
-    let dataFormatada = rep.date || '-';
-    if (rep.date && rep.date.includes('-')) {
-      const p = rep.date.split('-');
+    let dataFormatada = rep.date || rep.data || '-';
+    if (typeof dataFormatada === 'string' && dataFormatada.includes('-')) {
+      const p = dataFormatada.split('-');
       if (p.length === 3) dataFormatada = `${p[2]}/${p[1]}/${p[0]}`;
     }
 
-    const numeroLimpo = escapeHTML(String(rep.number || 'RS-1000')).replace(/^RS-?/i, '');
+    const numeroLimpo = escapeHTML(String(numDoc)).replace(/^RS-?/i, '');
     const clientSignature = rep.signature || rep.assinatura || rep.clientSignature || '';
     const techSignature = config.techSignature || '';
     const nomeTecnico = config.tech || 'Técnico Responsável';
@@ -381,31 +436,31 @@ window.openReportPreview = async function(index) {
         <div class="section-box">
           <div class="section-title">Dados do Cliente</div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
-            <p style="margin: 1px 0;"><strong>Nome / Razão Social:</strong> ${escapeHTML(rep.client)}</p>
+            <p style="margin: 1px 0;"><strong>Nome / Razão Social:</strong> ${escapeHTML(clientName || '-')}</p>
             <p style="margin: 1px 0;"><strong>CPF / CNPJ:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
             <p style="margin: 1px 0;"><strong>E-mail:</strong> ${escapeHTML(clientObj.email || '-')}</p>
-            <p style="margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || clientObj.endereco || '-')}</p>
           </div>
         </div>
 
         <div class="section-box">
           <div class="section-title">Dados do Equipamento / Máquina</div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
-            <p style="margin: 1px 0;"><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
-            <p style="margin: 1px 0;"><strong>Marca:</strong> ${escapeHTML(rep.brand || '-')}</p>
-            <p style="margin: 1px 0;"><strong>Modelo:</strong> ${escapeHTML(rep.model || '-')}</p>
-            <p style="margin: 1px 0;"><strong>Matrícula / N° de Série:</strong> ${escapeHTML(rep.serialNumber || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || rep.equipamento || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Marca:</strong> ${escapeHTML(rep.brand || rep.marca || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Modelo:</strong> ${escapeHTML(rep.model || rep.modelo || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Matrícula / N° de Série:</strong> ${escapeHTML(rep.serialNumber || rep.serie || '-')}</p>
           </div>
         </div>
 
         <div class="section-box">
           <div class="section-title">Registro do Serviço Realizado</div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px; margin-bottom: 2px;">
-            <p style="margin: 1px 0;"><strong>Tipo de Manutenção:</strong> ${escapeHTML(rep.serviceNature || '-')}</p>
-            <p style="margin: 1px 0;"><strong>Área de Serviço:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Tipo de Manutenção:</strong> ${escapeHTML(rep.serviceNature || rep.naturezaServico || '-')}</p>
+            <p style="margin: 1px 0;"><strong>Área de Serviço:</strong> ${escapeHTML(rep.serviceArea || rep.areaServico || '-')}</p>
           </div>
           <p style="margin: 2px 0 1px 0; font-size: 8.5px;"><strong>Descrição Detalhada:</strong></p>
-          <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 8.5px;">${escapeHTML(rep.desc || '-')}</p>
+          <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 8.5px;">${escapeHTML(rep.desc || rep.descricao || '-')}</p>
         </div>
 
         <div class="section-box">
@@ -439,7 +494,7 @@ window.openReportPreview = async function(index) {
     `;
 
     document.getElementById('reportRenderArea').innerHTML = fullReportHtml;
-    document.getElementById('modalTitleRs').textContent = `RS-${numeroLimpo} (${rep.client})`;
+    document.getElementById('modalTitleRs').textContent = `RS-${numeroLimpo} (${clientName})`;
     document.getElementById('loadingStatusRs').textContent = 'Pronto';
     document.getElementById('reportPreviewModal').style.display = 'flex';
   } catch (err) {
@@ -515,15 +570,18 @@ window.openBudgetPreview = async function(index) {
     if (configDoc.exists) config = { ...defaultConfig, ...configDoc.data() };
   } catch (e) {}
 
-  let clients = await DataSync.load('rg_clients') || [];
-  const clientObj = clients.find(c => c.name === b.client) || {};
+  const rawClients = await DataSync.load('rg_clients');
+  let clients = normalizarLista(rawClients);
+  const clientName = b.client || b.cliente;
+  const clientObj = clients.find(c => (c.name || c.nome) === clientName) || {};
 
   activeBudgetData = b;
-  document.getElementById('modalTitleOrc').textContent = `Orçamento - ${b.number || 'ORC-0001'}`;
+  const numDoc = b.number || b.numero || 'ORC-0001';
+  document.getElementById('modalTitleOrc').textContent = `Orçamento - ${numDoc}`;
   document.getElementById('loadingStatusOrc').textContent = 'Pronto';
 
   let bancoInfoHtml = '';
-  const opt = b.paymentOption || 'banco1';
+  const opt = b.paymentOption || b.opcaoPagamento || 'banco1';
   let nomeConta1 = config.nomeConta1 || 'Conta Bancária 1';
   let nomeConta2 = config.nomeConta2 || 'Conta Bancária 2';
 
@@ -535,9 +593,10 @@ window.openBudgetPreview = async function(index) {
     bancoInfoHtml = `<p style="margin: 1px 0;"><strong>Forma de Recebimento:</strong> Boleto Bancário</p><p style="margin: 1px 0;"><em>Instruções: O boleto será emitido e enviado conforme prazo comercial acordado.</em></p>`;
   }
 
-  const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 1px 0;">• ${escapeHTML(t)}</p>`).join('');
+  const termsList = (b.terms || b.termos || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 1px 0;">• ${escapeHTML(t)}</p>`).join('');
   const techSignature = config.techSignature || '';
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
+  const valorTotalOrc = b.total || b.valorTotal || 0;
 
   document.getElementById('budgetRenderArea').innerHTML = `
     <div class="print-body" id="pdfContentToPrintOrc">
@@ -551,8 +610,8 @@ window.openBudgetPreview = async function(index) {
           <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">ORÇAMENTO DE SERVIÇO</h1>
         </div>
         <div class="print-header-info">
-          <h1>Nº: ${escapeHTML(b.number || 'ORC-0001')}</h1>
-          <p>Data: ${escapeHTML(b.date || '-')}</p>
+          <h1>Nº: ${escapeHTML(numDoc)}</h1>
+          <p>Data: ${escapeHTML(b.date || b.data || '-')}</p>
         </div>
       </div>
 
@@ -570,18 +629,18 @@ window.openBudgetPreview = async function(index) {
       <div class="section-box">
         <div class="section-title">Dados do Cliente & Equipamento</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 8.5px;">
-          <p style="margin: 1px 0;"><strong>Cliente:</strong> ${escapeHTML(b.client || '-')}</p>
-          <p style="margin: 1px 0;"><strong>Equipamento:</strong> ${escapeHTML(b.equipment || '-')}</p>
+          <p style="margin: 1px 0;"><strong>Cliente:</strong> ${escapeHTML(clientName || '-')}</p>
+          <p style="margin: 1px 0;"><strong>Equipamento:</strong> ${escapeHTML(b.equipment || b.equipamento || '-')}</p>
           <p style="margin: 1px 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
-          <p style="margin: 1px 0;"><strong>Contacto:</strong> ${escapeHTML(clientObj.phone || '-')}</p>
+          <p style="margin: 1px 0;"><strong>Contacto:</strong> ${escapeHTML(clientObj.phone || clientObj.telefone || '-')}</p>
           <p style="margin: 1px 0;"><strong>E-mail:</strong> ${escapeHTML(clientObj.email || '-')}</p>
-          <p style="margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
+          <p style="margin: 1px 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || clientObj.endereco || '-')}</p>
         </div>
       </div>
 
       <div class="section-box">
         <div class="section-title">Escopo dos Serviços</div>
-        <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 8.5px;">${escapeHTML(b.desc || '-')}</p>
+        <p style="white-space: pre-wrap; margin-top: 1px; background: #FFF; padding: 3px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 8.5px;">${escapeHTML(b.desc || b.descricao || '-')}</p>
       </div>
 
       <div class="section-box">
@@ -594,7 +653,7 @@ window.openBudgetPreview = async function(index) {
       </div>
 
       <div class="section-box" style="text-align: right; background: #F1F5F9 !important; border-color: #00F5D4; padding: 6px 8px;">
-        <p style="font-size: 10px; font-weight: bold; color: #0B132B; margin: 0;">VALOR TOTAL DO ORÇAMENTO: R$ ${Number(b.total || 0).toFixed(2)}</p>
+        <p style="font-size: 10px; font-weight: bold; color: #0B132B; margin: 0;">VALOR TOTAL DO ORÇAMENTO: R$ ${Number(valorTotalOrc).toFixed(2)}</p>
       </div>
 
       <div class="signature-area" style="display: flex; justify-content: center; align-items: flex-end; margin-top: 10px; page-break-inside: avoid;">
@@ -614,7 +673,7 @@ window.fecharModalOrc = function() { document.getElementById('budgetPreviewModal
 
 window.compartilharPDFOrcamento = async function() {
   const element = document.getElementById('budgetRenderArea');
-  const filename = `Orcamento_${activeBudgetData.number || 'ORC-0001'}.pdf`;
+  const filename = `Orcamento_${activeBudgetData.number || activeBudgetData.numero || 'ORC-0001'}.pdf`;
   const opt = { 
     margin: [6, 6, 6, 6], 
     filename: filename, 
@@ -630,7 +689,7 @@ window.compartilharPDFOrcamento = async function() {
     const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: `Orçamento ${activeBudgetData.number}`, text: `Segue orçamento para ${activeBudgetData.client}.` });
+      await navigator.share({ files: [file], title: `Orçamento ${activeBudgetData.number || activeBudgetData.numero}`, text: `Segue orçamento para ${activeBudgetData.client || activeBudgetData.cliente}.` });
       document.getElementById('loadingStatusOrc').textContent = 'Partilhado!';
     } else {
       html2pdf().from(element).set(opt).save();
@@ -643,7 +702,7 @@ window.compartilharPDFOrcamento = async function() {
 
 window.descarregarPDFOrcamento = function() {
   const element = document.getElementById('budgetRenderArea');
-  const filename = `Orcamento_${activeBudgetData.number || 'ORC-0001'}.pdf`;
+  const filename = `Orcamento_${activeBudgetData.number || activeBudgetData.numero || 'ORC-0001'}.pdf`;
   const opt = { 
     margin: [6, 6, 6, 6], 
     filename: filename, 
