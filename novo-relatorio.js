@@ -244,7 +244,13 @@ window.gerarCamposDias = function(dadosSalvos = []) {
   });
 
   container.innerHTML = '';
-  let hojeStr = new Date().toISOString().split('T')[0];
+  
+  // Garante a data local exata sem virar o dia por fuso horário
+  const agoraLocal = new Date();
+  const ano = agoraLocal.getFullYear();
+  const mes = String(agoraLocal.getMonth() + 1).padStart(2, '0');
+  const dia = String(agoraLocal.getDate()).padStart(2, '0');
+  let hojeStr = `${ano}-${mes}-${dia}`;
 
   const permiteIntervalo = window.configHorariosTenant ? window.configHorariosTenant.intervalo : true;
   const permiteDireto = window.configHorariosTenant ? window.configHorariosTenant.direto : true;
@@ -390,8 +396,8 @@ window.converterAnexo = function(event) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      const MAX_WIDTH = 1000;
-      const MAX_HEIGHT = 1000;
+      const MAX_WIDTH = 800;
+      const MAX_HEIGHT = 800;
       let width = img.width;
       let height = img.height;
 
@@ -413,7 +419,7 @@ window.converterAnexo = function(event) {
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(img, 0, 0, width, height);
-      tempAnexoBase64 = canvas.toDataURL('image/png');
+      tempAnexoBase64 = canvas.toDataURL('image/jpeg', 0.85); // Compressão otimizada para múltiplos anexos
     };
     img.src = e.target.result;
   };
@@ -532,7 +538,13 @@ if (repEquipmentEl) {
 
 async function verificarModoEdicao() {
   const repDateEl = document.getElementById('repDate');
-  if (repDateEl) repDateEl.valueAsDate = new Date();
+  if (repDateEl && !repDateEl.value) {
+    const agoraLocal = new Date();
+    const ano = agoraLocal.getFullYear();
+    const mes = String(agoraLocal.getMonth() + 1).padStart(2, '0');
+    const dia = String(agoraLocal.getDate()).padStart(2, '0');
+    repDateEl.value = `${ano}-${mes}-${dia}`;
+  }
   
   const urlParams = new URLSearchParams(window.location.search);
   const editIndex = urlParams.get('edit');
@@ -654,7 +666,7 @@ async function verificarModoEdicao() {
   }
 }
 
-/* --- NOVA LÓGICA DE SALVAMENTO DIRETO --- */
+/* --- SALVAMENTO SEGURO COM MÚLTIPLOS ANEXOS --- */
 window.salvarRelatorioFinal = async function() {
   const editIndex = document.getElementById('editIndex').value;
   const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
@@ -732,7 +744,7 @@ window.salvarRelatorioFinal = async function() {
     valorHospedagem: String(document.getElementById('valorHospedagem').value || '0'),
 
     temOutras: String(document.getElementById('selectOutras').value || 'nao'),
-    valorOutras: String(document.getElementById('valorOutras').value || '0'),
+    valorOutras: String(document.getElementById('repValorOutras') ? document.getElementById('repValorOutras').value : (document.getElementById('valorOutras')?.value || '0')),
 
     signature: String(clientSigData || ''),
     anexos: cleanAnexos
@@ -762,7 +774,7 @@ window.salvarRelatorioFinal = async function() {
         config.nextRsNumber = String(maxNum + 1);
         await DataSync.save('rg_config', config);
       } catch (configErr) {
-        console.warn('Erro ao guardar nº seguinte, mas guardado mesmo assim.', configErr);
+        console.warn('Erro ao guardar nº seguinte.', configErr);
       }
     }
 
@@ -772,7 +784,7 @@ window.salvarRelatorioFinal = async function() {
     window.location.href = 'relatorios.html';
 
   } catch (err) {
-    alert('Erro Crítico ao salvar relatório: ' + err.message);
+    alert('Erro ao salvar relatório (possível limite de tamanho com anexos pesados): ' + err.message);
   }
 };
 
