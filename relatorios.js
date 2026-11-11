@@ -274,35 +274,42 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
-// ROTINA DE COMPRESSÃO LEVE (BASEADA NO PADRÃO QUE FUNCIONA PERFEITAMENTE)
-function otimizarImagemBase64(base64Str, maxWidth = 800, maxHeight = 800, quality = 0.55) {
-  return new Promise((resolve) => {
-    if (!base64Str || !base64Str.startsWith('data:image')) {
-      resolve(base64Str);
-      return;
+// OTIMIZADOR DE IMAGENS IDÊNTICO AO PROJETO FUNCIONAL
+function otimizarImagemBase64(base64Str, callback) {
+  if (!base64Str || !base64Str.startsWith('data:image')) {
+    callback(base64Str);
+    return;
+  }
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    let width = img.width;
+    let height = img.height;
+    const maxDim = 1000;
+
+    if (width > height && width > maxDim) {
+      height = Math.round((height * maxDim) / width);
+      width = maxDim;
+    } else if (height > maxDim) {
+      width = Math.round((width * maxDim) / height);
+      height = maxDim;
     }
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
 
-      if (width > height && width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      } else if (height > maxHeight) {
-        width = Math.round((width * maxHeight) / height);
-        height = maxHeight;
-      }
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
 
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(base64Str);
-    img.src = base64Str;
+    callback(canvas.toDataURL('image/jpeg', 0.5));
+  };
+  img.onerror = () => callback(base64Str);
+  img.src = base64Str;
+}
+
+// FUNÇÃO WRAPPER EM PROMISE PARA FACILITAR O AWAIT NO LOOP DE ANEXOS
+function otimizarImagemAsync(base64Str) {
+  return new Promise((resolve) => {
+    otimizarImagemBase64(base64Str, (otimizada) => resolve(otimizada));
   });
 }
 
@@ -344,31 +351,47 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   
   if (rep.anexos && rep.anexos.length > 0) {
-    // COMPRESSÃO ASSÍNCRONA E GRELHA LADO A LADO (2 COLUNAS) COM QUEBRA DE PÁGINA LIMPA
+    // MONTAGEM DA GRELHA DE FOTOS EXATAMENTE IGUAL AO PROJETO FUNCIONAL (BLOCOS DE 4)
+    let todasFotosPDF = [];
+    rep.anexos.forEach(a => {
+      if (a && a.imagem) {
+        todasFotosPDF.push({
+          src: a.imagem,
+          titulo: a.titulo || 'Foto do Equipamento',
+          desc: a.desc || ''
+        });
+      }
+    });
+
     let blocosAnexosHTML = '';
-    for (let i = 0; i < rep.anexos.length; i += 4) {
-      const chunk = rep.anexos.slice(i, i + 4);
+    for (let i = 0; i < todasFotosPDF.length; i += 4) {
+      const chunk = todasFotosPDF.slice(i, i + 4);
+      const numPaginaFoto = Math.floor(i / 4) + 1;
       let itensChunkHtml = '';
       
-      for (const anexo of chunk) {
-        const imagemOtimizada = await otimizarImagemBase64(anexo.imagem, 700, 700, 0.55);
+      for (const f of chunk) {
+        const imagemOtimizada = await otimizarImagemAsync(f.src);
         itensChunkHtml += `
-          <div style="width: 48%; border: 1px solid #CBD5E1; padding: 8px; border-radius: 6px; text-align: center; background: #FFF; box-sizing: border-box; margin-bottom: 10px; page-break-inside: avoid;">
-            <div style="height: 180px; background: #F8FAFC; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-              <img src="${imagemOtimizada}" style="max-width: 100%; max-height: 180px; width: auto; height: auto; display: block;">
+          <div style="width: 48%; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; text-align: center; background: #fafafa; box-sizing: border-box; margin-bottom: 10px; page-break-inside: avoid;">
+            <div style="height: 200px; background: #f1f5f9; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+              <img src="${imagemOtimizada}" style="max-width: 100%; max-height: 200px; width: auto; height: auto; display: block;">
             </div>
             <div style="text-align: left; padding: 0 2px;">
-              <div style="font-weight: bold; font-size: 11px; color: #0B132B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo || 'Foto do Equipamento')}</div>
+              <div style="font-weight: bold; font-size: 11px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(f.titulo)}</div>
+              <div style="font-size: 10px; color: #475569; margin-top: 2px; line-height: 1.25; height: 22px; overflow: hidden;">${escapeHTML(f.desc)}</div>
             </div>
           </div>
         `;
       }
 
       blocosAnexosHTML += `
-        <div style="page-break-before: always; width: 794px; background: #FFF; box-sizing: border-box;">
-          <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 12px;">
+        <div style="page-break-before: always; width: 794px; background: #FFF; box-sizing: border-box; padding: 25px 35px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; margin-bottom: 12px;">
+            <div>
+              <h1 style="font-size: 13px; font-weight: bold; margin: 0; text-transform: uppercase;">Registo Fotográfico e Anexos</h1>
+              <p style="color: #666; margin-top: 2px; font-size: 10px;">Página ${numPaginaFoto}</p>
+            </div>
             <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
-            <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
           </div>
           <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
             ${itensChunkHtml}
