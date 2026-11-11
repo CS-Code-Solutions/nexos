@@ -87,15 +87,15 @@ async function renderizarTudo() {
   }
 }
 
-// Converte a data para um timestamp válido (Corrige o bug de o relatório sumir da lista)
+// Converte a data para timestamp garantindo precisão local
 function getValidDateTimestamp(dateStr) {
   if (!dateStr) return 0;
   if (dateStr.includes('/')) {
     const parts = dateStr.split('/');
-    if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`).getTime();
+    if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[2]}T00:00:00`).getTime();
   }
-  const d = new Date(dateStr);
-  return isNaN(d) ? 0 : d.getTime();
+  const d = new Date(`${dateStr}T00:00:00`);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
 window.filtrarDocumentos = function() {
@@ -143,7 +143,7 @@ window.filtrarDocumentos = function() {
     }
   }
 
-  // Ordenação Segura à Prova de Erros (Mais recente primeiro)
+  // Ordenação correta: Mais recente primeiro
   unificados.sort((a, b) => getValidDateTimestamp(b.data) - getValidDateTimestamp(a.data));
 
   const filtrados = unificados.filter(item => {
@@ -302,7 +302,7 @@ window.openReportPreview = async function(index) {
   }
 
   document.getElementById('reportRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative;">
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; padding: 0 4px;">
       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 85px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
       
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 10px; margin-bottom: 15px; position: relative; z-index: 1;">
@@ -408,7 +408,7 @@ window.openBudgetPreview = async function(index) {
   const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 2px 0;">• ${escapeHTML(t)}</p>`).join('');
 
   document.getElementById('budgetRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative;">
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; padding: 0 4px;">
       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 85px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
       
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 10px; margin-bottom: 15px; position: relative; z-index: 1;">
@@ -478,7 +478,14 @@ window.fecharModalRs = () => { document.getElementById('reportPreviewModal').sty
 window.fecharModalOrc = () => { document.getElementById('budgetPreviewModal').style.display = 'none'; };
 
 function getPdfOptions(filename) {
-  return { margin: [6, 6, 6, 6], filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'] } };
+  return {
+    margin: [10, 10, 10, 10],
+    filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, windowWidth: 780 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
 }
 
 window.descarregarPDFRs = () => {
