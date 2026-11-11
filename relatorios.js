@@ -274,42 +274,258 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
-// OTIMIZADOR DE IMAGENS COMPATÍVEL COM O PADRÃO QUE FUNCIONA
-function otimizarImagemBase64(base64Str, callback) {
-  if (!base64Str || !base64Str.startsWith('data:image')) {
-    callback(base64Str);
-    return;
-  }
-  const img = new Image();
-  img.onload = function() {
-    const canvas = document.createElement('canvas');
-    let width = img.width;
-    let height = img.height;
-    const maxDim = 1000;
+/**
+ * NexOS - Otimizador de imagens para PDF
+ * Redimensiona imagens grandes e reduz seu peso,
+ * mantendo a proporção original.
+ */
+async function otimizarImagemParaPDF(src, maxDimensao = 1600, qualidade = 0.82) {
+  if (!src) return '';
 
-    if (width > height && width > maxDim) {
-      height = Math.round((height * maxDim) / width);
-      width = maxDim;
-    } else if (height > maxDim) {
-      width = Math.round((width * maxDim) / height);
-      height = maxDim;
+  return new Promise((resolve) => {
+    const img = new Image();
+
+    if (!src.startsWith('data:') && !src.startsWith('blob:')) {
+      img.crossOrigin = 'anonymous';
     }
 
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
+    img.onload = () => {
+      try {
+        const larguraOriginal = img.naturalWidth;
+        const alturaOriginal = img.naturalHeight;
 
-    callback(canvas.toDataURL('image/jpeg', 0.5));
-  };
-  img.onerror = () => callback(base64Str);
-  img.src = base64Str;
+        if (!larguraOriginal || !alturaOriginal) {
+          resolve(src);
+          return;
+        }
+
+        const escala = Math.min(
+          1,
+          maxDimensao / Math.max(larguraOriginal, alturaOriginal)
+        );
+
+        const novaLargura = Math.round(larguraOriginal * escala);
+        const novaAltura = Math.round(alturaOriginal * escala);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = novaLargura;
+        canvas.height = novaAltura;
+
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          resolve(src);
+          return;
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, novaLargura, novaAltura);
+
+        ctx.drawImage(img, 0, 0, novaLargura, novaAltura);
+
+        const imagemOtimizada = canvas.toDataURL(
+          'image/jpeg',
+          qualidade
+        );
+
+        resolve(imagemOtimizada);
+      } catch (erro) {
+        console.warn('Não foi possível otimizar uma imagem:', erro);
+        resolve(src);
+      }
+    };
+
+    img.onerror = () => {
+      console.warn('Não foi possível carregar uma imagem para otimização.');
+      resolve(src);
+    };
+
+    img.src = src;
+  });
 }
 
-function otimizarImagemAsync(base64Str) {
-  return new Promise((resolve) => {
-    otimizarImagemBase64(base64Str, (otimizada) => resolve(otimizada));
-  });
+/**
+ * Aguarda as imagens do relatório estarem carregadas
+ * antes de iniciar a conversão para PDF.
+ */
+async function aguardarImagensPDF(elemento) {
+  if (!elemento) return;
+
+  const imagens = Array.from(elemento.querySelectorAll('img'));
+
+  await Promise.all(
+    imagens.map(async (img) => {
+      if (img.complete && img.naturalWidth > 0) return;
+
+      if (typeof img.decode === 'function') {
+        try {
+          await img.decode();
+        } catch (e) {
+          // Continua mesmo se uma imagem específica falhar.
+        }
+      } else {
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }
+    })
+  );
+}
+
+/**
+ * NexOS - Montagem do registro fotográfico do RS
+ *
+ * - Duas colunas por página.
+ * - Até quatro imagens por página.
+ * - Imagens otimizadas antes da montagem.
+ * - Cabeçalho repetido em cada página.
+ */
+async function gerarAnexosPdfHtml(anexos, logoSrc) {
+  if (!Array.isArray(anexos) || anexos.length === 0) {
+    return '';
+  }
+
+  const anexosPreparados = await Promise.all(
+    anexos.map(async (anexo) => ({
+      titulo: anexo.titulo || 'Anexo',
+      imagem: await otimizarImagemParaPDF(anexo.imagem)
+    }))
+  );
+
+  let htmlPaginas = '';
+
+  for (let i = 0; i < anexosPreparados.length; i += 4) {
+    const grupo = anexosPreparados.slice(i, i + 4);
+    const numeroPagina = Math.floor(i / 4) + 1;
+
+    let cardsHtml = '';
+
+    grupo.forEach((anexo) => {
+      cardsHtml += `
+        <div style="
+          width: 48%;
+          height: 320px;
+          box-sizing: border-box;
+          border: 1px solid #CBD5E1;
+          border-radius: 6px;
+          padding: 9px;
+          background: #FFFFFF;
+          display: flex;
+          flex-direction: column;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          margin-bottom: 10px;
+        ">
+
+          <div style="
+            font-weight: bold;
+            font-size: 11px;
+            color: #0B132B;
+            text-align: left;
+            margin-bottom: 7px;
+            min-height: 16px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+          ">
+            ${escapeHTML(anexo.titulo)}
+          </div>
+
+          <div style="
+            height: 275px;
+            width: 100%;
+            background: #F1F5F9;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+          ">
+            <img
+              src="${escapeHTML(anexo.imagem)}"
+              alt="${escapeHTML(anexo.titulo)}"
+              style="
+                max-width: 100%;
+                max-height: 100%;
+                width: auto;
+                height: auto;
+                object-fit: contain;
+                display: block;
+              "
+            >
+          </div>
+
+        </div>
+      `;
+    });
+
+    htmlPaginas += `
+      <div class="anexos-pdf-pagina" style="
+        page-break-before: always;
+        break-before: page;
+        width: 100%;
+        box-sizing: border-box;
+        background: #FFFFFF;
+        padding-top: 5px;
+        font-family: Arial, sans-serif;
+        color: #0B132B;
+      ">
+
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 2px solid #00F5D4;
+          padding-bottom: 8px;
+          margin-bottom: 12px;
+        ">
+          <img
+            src="${escapeHTML(logoSrc)}"
+            style="
+              height: 35px;
+              width: auto;
+              max-width: 130px;
+              object-fit: contain;
+            "
+          >
+
+          <div style="text-align: right;">
+            <h1 style="
+              font-size: 12px;
+              text-transform: uppercase;
+              margin: 0;
+              font-weight: bold;
+            ">
+              Anexos / Fotos do Equipamento
+            </h1>
+
+            <p style="
+              margin: 3px 0 0;
+              font-size: 9px;
+              color: #64748B;
+            ">
+              Registro fotográfico - Página ${numeroPagina}
+            </p>
+          </div>
+        </div>
+
+        <div style="
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 10px 0;
+          width: 100%;
+        ">
+          ${cardsHtml}
+        </div>
+
+      </div>
+    `;
+  }
+
+  return htmlPaginas;
 }
 
 window.openReportPreview = async function(index) {
@@ -347,60 +563,14 @@ window.openReportPreview = async function(index) {
   activeReportData = { number: numDoc, client: clientName };
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
-  let anexosHtml = '';
   
-  if (rep.anexos && rep.anexos.length > 0) {
-    let todasFotosPDF = [];
-    rep.anexos.forEach(a => {
-      if (a && a.imagem) {
-        todasFotosPDF.push({
-          src: a.imagem,
-          titulo: a.titulo || 'Foto do Equipamento',
-          desc: a.desc || ''
-        });
-      }
-    });
+  // Montagem otimizada das páginas de anexos.
+  const anexosHtml = await gerarAnexosPdfHtml(
+    rep.anexos || [],
+    logoSrc
+  );
 
-    let htmlPaginas = '';
-    for (let i = 0; i < todasFotosPDF.length; i += 4) {
-      const chunk = todasFotosPDF.slice(i, i + 4);
-      const numPaginaFoto = Math.floor(i / 4) + 1;
-
-      htmlPaginas += `
-        <div style="page-break-before: always;" class="pdf-page">
-          <div class="pdf-header">
-            <div>
-              <h1 class="pdf-title">REGISTO FOTOGRÁFICO E EVIDÊNCIAS</h1>
-              <p style="color: #666; margin-top:2px;">Página ${numPaginaFoto}</p>
-            </div>
-            <div style="font-weight:bold; font-size: 16px; color: #00F5D4;">${escapeHTML(config.name)}</div>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 10px;">
-      `;
-
-      for (const f of chunk) {
-        const imagemOtimizada = await otimizarImagemAsync(f.src);
-        htmlPaginas += `
-          <div style="width: 48%; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; text-align: center; background: #fafafa; box-sizing: border-box; margin-bottom: 10px;">
-            <div style="height: 250px; background: #f1f5f9; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-              <img src="${imagemOtimizada}" style="max-width: 100%; max-height: 250px; width: auto; height: auto; display: block;">
-            </div>
-            <div style="text-align: left; padding: 0 2px;">
-              <div style="font-weight: bold; font-size: 11px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(f.titulo || 'Sem Título')}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; line-height: 1.25; height: 25px; overflow: hidden;">${escapeHTML(f.desc || '')}</div>
-            </div>
-          </div>
-        `;
-      }
-
-      htmlPaginas += `
-          </div>
-        </div>
-      `;
-    }
-    anexosHtml = htmlPaginas;
-  }
-
+  // Estilo Inline blindado para garantir 794px e proteger os anexos
   document.getElementById('reportRenderArea').innerHTML = `
     <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
@@ -583,11 +753,10 @@ function getPdfOptions(filename) {
   return {
     margin: [10, 0, 10, 0],
     filename,
-    image: { type: 'jpeg', quality: 0.92 },
+    image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
-      scale: 1.5, 
+      scale: 2, 
       useCORS: true, 
-      allowTaint: true,
       letterRendering: true, 
       scrollY: 0,
       windowWidth: 794
@@ -598,75 +767,149 @@ function getPdfOptions(filename) {
 }
 
 window.descarregarPDFRs = async () => {
-  document.getElementById('loadingStatusRs').textContent = 'A descarregar...';
-  const container = document.querySelector('#reportPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
+  const status = document.getElementById('loadingStatusRs');
+  const area = document.getElementById('reportRenderArea');
 
   try {
-    await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
-  } catch (e) {
-    console.error("Erro ao gerar PDF:", e);
-    alert("Erro ao gerar PDF. Verifique se as imagens são válidas.");
-  } finally {
-    if (container) container.style.overflow = 'auto';
-    document.getElementById('loadingStatusRs').textContent = 'Pronto';
+    status.textContent = 'Preparando imagens...';
+    await aguardarImagensPDF(area);
+
+    status.textContent = 'Gerando PDF...';
+    await html2pdf()
+      .from(area)
+      .set(getPdfOptions(`RS_${activeReportData.number}.pdf`))
+      .save();
+
+    status.textContent = 'Pronto';
+  } catch (erro) {
+    console.error('Erro ao gerar PDF:', erro);
+    status.textContent = 'Erro ao gerar PDF';
+    alert('Não foi possível gerar o PDF. Tente novamente.');
   }
 };
 
 window.compartilharPDFRs = async () => {
-  document.getElementById('loadingStatusRs').textContent = 'A gerar PDF...';
-  const container = document.querySelector('#reportPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
+  const status = document.getElementById('loadingStatusRs');
+  const area = document.getElementById('reportRenderArea');
+  const nomeArquivo = `RS_${activeReportData.number}.pdf`;
 
   try {
-    const blob = await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) {
-      await navigator.share({ files: [new File([blob], `RS_${activeReportData.number}.pdf`, { type: 'application/pdf' })], title: `RS ${activeReportData.number}` });
+    status.textContent = 'Preparando imagens...';
+    await aguardarImagensPDF(area);
+
+    status.textContent = 'Gerando PDF...';
+    const blob = await html2pdf()
+      .from(area)
+      .set(getPdfOptions(nomeArquivo))
+      .outputPdf('blob');
+
+    const arquivo = new File(
+      [blob],
+      nomeArquivo,
+      { type: 'application/pdf' }
+    );
+
+    if (
+      navigator.canShare &&
+      navigator.canShare({ files: [arquivo] })
+    ) {
+      await navigator.share({
+        files: [arquivo],
+        title: `RS ${activeReportData.number}`
+      });
     } else {
-      await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
+      await html2pdf()
+        .from(area)
+        .set(getPdfOptions(nomeArquivo))
+        .save();
     }
-  } catch (e) {
-    console.error("Erro ao partilhar PDF:", e);
-    await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
-  } finally {
-    if (container) container.style.overflow = 'auto';
-    document.getElementById('loadingStatusRs').textContent = 'Pronto';
+
+    status.textContent = 'Pronto';
+  } catch (erro) {
+    console.error('Erro ao compartilhar PDF:', erro);
+    try {
+      await html2pdf()
+        .from(area)
+        .set(getPdfOptions(nomeArquivo))
+        .save();
+      status.textContent = 'Pronto';
+    } catch (erroPDF) {
+      console.error('Erro no download alternativo:', erroPDF);
+      status.textContent = 'Erro ao gerar PDF';
+      alert('Não foi possível gerar ou compartilhar o PDF.');
+    }
   }
 };
 
 window.descarregarPDFOrcamento = async () => {
-  document.getElementById('loadingStatusOrc').textContent = 'A descarregar...';
-  const container = document.querySelector('#budgetPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
+  const status = document.getElementById('loadingStatusOrc');
+  const area = document.getElementById('budgetRenderArea');
 
   try {
-    await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
-  } catch (e) {
-    console.error("Erro ao gerar Orçamento:", e);
-  } finally {
-    if (container) container.style.overflow = 'auto';
-    document.getElementById('loadingStatusOrc').textContent = 'Pronto';
+    status.textContent = 'Preparando imagens...';
+    await aguardarImagensPDF(area);
+
+    status.textContent = 'Gerando PDF...';
+    await html2pdf()
+      .from(area)
+      .set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`))
+      .save();
+
+    status.textContent = 'Pronto';
+  } catch (erro) {
+    console.error('Erro ao gerar Orçamento:', erro);
+    status.textContent = 'Erro ao gerar PDF';
   }
 };
 
 window.compartilharPDFOrcamento = async () => {
-  document.getElementById('loadingStatusOrc').textContent = 'A gerar PDF...';
-  const container = document.querySelector('#budgetPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
+  const status = document.getElementById('loadingStatusOrc');
+  const area = document.getElementById('budgetRenderArea');
+  const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
 
   try {
-    const blob = await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) {
-      await navigator.share({ files: [new File([blob], `Orcamento_${activeBudgetData.number}.pdf`, { type: 'application/pdf' })], title: `Orçamento ${activeBudgetData.number}` });
+    status.textContent = 'Preparando imagens...';
+    await aguardarImagensPDF(area);
+
+    status.textContent = 'Gerando PDF...';
+    const blob = await html2pdf()
+      .from(area)
+      .set(getPdfOptions(nomeArquivo))
+      .outputPdf('blob');
+
+    const arquivo = new File(
+      [blob],
+      nomeArquivo,
+      { type: 'application/pdf' }
+    );
+
+    if (
+      navigator.canShare &&
+      navigator.canShare({ files: [arquivo] })
+    ) {
+      await navigator.share({
+        files: [arquivo],
+        title: `Orçamento ${activeBudgetData.number}`
+      });
     } else {
-      await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
+      await html2pdf()
+        .from(area)
+        .set(getPdfOptions(nomeArquivo))
+        .save();
     }
-  } catch (e) {
-    console.error("Erro ao partilhar Orçamento:", e);
-    await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
-  } finally {
-    if (container) container.style.overflow = 'auto';
-    document.getElementById('loadingStatusOrc').textContent = 'Pronto';
+
+    status.textContent = 'Pronto';
+  } catch (erro) {
+    console.error('Erro ao compartilhar Orçamento:', erro);
+    try {
+      await html2pdf()
+        .from(area)
+        .set(getPdfOptions(nomeArquivo))
+        .save();
+      status.textContent = 'Pronto';
+    } catch (erroPDF) {
+      status.textContent = 'Erro ao gerar PDF';
+    }
   }
 };
 
