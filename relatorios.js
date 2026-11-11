@@ -87,14 +87,15 @@ async function renderizarTudo() {
   }
 }
 
-// Converte a data para timestamp garantindo precisão local
+// Converte de forma ultra segura para timestamp qualquer formato de data
 function getValidDateTimestamp(dateStr) {
   if (!dateStr) return 0;
-  if (dateStr.includes('/')) {
-    const parts = dateStr.split('/');
-    if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[2]}T00:00:00`).getTime();
+  let cleanStr = String(dateStr).trim();
+  if (cleanStr.includes('/')) {
+    const p = cleanStr.split('/');
+    if (p.length === 3) cleanStr = `${p[2]}-${p[1]}-${p[0]}`; // Converte DD/MM/YYYY para YYYY-MM-DD
   }
-  const d = new Date(`${dateStr}T00:00:00`);
+  const d = new Date(`${cleanStr}T00:00:00`);
   return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
