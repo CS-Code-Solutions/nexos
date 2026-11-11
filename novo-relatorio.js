@@ -24,11 +24,30 @@ let paintingClient = false;
 let hasSignature = false;
 let tempAnexoBase64 = '';
 
+function normalizarLista(dados) {
+  if (!dados) return [];
+  if (Array.isArray(dados)) return dados;
+  if (Array.isArray(dados.items)) return dados.items;
+  if (Array.isArray(dados.reports)) return dados.reports;
+  if (Array.isArray(dados.orcamentos)) return dados.orcamentos;
+  if (typeof dados === 'object') {
+    return Object.values(dados).filter(item => item && typeof item === 'object');
+  }
+  return [];
+}
+
+window.avancarParaStep1 = function() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+  document.getElementById('ind-step2').classList.remove('active');
+  document.getElementById('ind-step1').classList.add('active');
+};
+
 window.avancarParaStep2 = function() {
   const reqFields = document.querySelectorAll('#step1 [required]');
   let isValid = true;
   reqFields.forEach(f => {
-    if(!f.value) { 
+    if (!f.value) { 
       isValid = false; 
       f.style.borderColor = '#EF4444'; 
     } else { 
@@ -36,7 +55,7 @@ window.avancarParaStep2 = function() {
     }
   });
   
-  if(!isValid) {
+  if (!isValid) {
     alert('Por favor, preencha todos os campos obrigatórios no Passo 1.');
     return;
   }
@@ -56,7 +75,7 @@ window.avancarParaStep2 = function() {
 window.confirmarAssinatura = function() {
   const editIndex = document.getElementById('editIndex').value;
   
-  if(!hasSignature && !editIndex) {
+  if (!hasSignature && !editIndex) {
     alert('O cliente/responsável precisa desenhar a assinatura antes de salvar.');
     return;
   }
@@ -434,9 +453,10 @@ async function loadClients() {
   const select = document.getElementById('repClient');
   if (!select) return;
   try {
-    const clients = await DataSync.load('rg_clients') || [];
+    const rawClients = await DataSync.load('rg_clients');
+    const clients = normalizarLista(rawClients);
     select.innerHTML = '<option value="">Selecione um cliente...</option>';
-    clients.forEach(c => { select.innerHTML += `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`; });
+    clients.forEach(c => { select.innerHTML += `<option value="${escapeHTML(c.name || c.nome)}">${escapeHTML(c.name || c.nome)}</option>`; });
   } catch (e) { console.error("Erro ao carregar clientes", e); }
 }
 
@@ -448,7 +468,8 @@ async function carregarMaquinasDoCliente(clientName, selectedEquipment = '') {
 
   if (!clientName) return;
   try {
-    const machines = await DataSync.load('rg_machines') || [];
+    const rawMachines = await DataSync.load('rg_machines');
+    const machines = normalizarLista(rawMachines);
     clientMachines = machines.filter(m => m.client === clientName || m.cliente === clientName);
 
     clientMachines.forEach((m, idx) => {
@@ -518,11 +539,12 @@ async function verificarModoEdicao() {
 
   if (editIndex !== null) {
     try {
-      let reports = await DataSync.load('rg_reports') || [];
+      let rawReports = await DataSync.load('rg_reports');
+      let reports = normalizarLista(rawReports);
       const rep = reports[editIndex];
       if (rep) {
         document.getElementById('editIndex').value = editIndex;
-        document.getElementById('formTitle').textContent = `Editar Relatório - ${rep.number}`;
+        document.getElementById('formTitle').textContent = `Editar Relatório - ${rep.number || 'RS-1000'}`;
         document.getElementById('repNumber').value = rep.number || '';
         document.getElementById('repDate').value = rep.date || '';
         document.getElementById('repClient').value = rep.client || '';
@@ -603,24 +625,28 @@ async function verificarModoEdicao() {
     } catch (e) {}
   } else {
     try {
-      let reports = await DataSync.load('rg_reports') || [];
+      let rawReports = await DataSync.load('rg_reports');
+      let reports = normalizarLista(rawReports);
       let config = await DataSync.load('rg_config') || {};
       let nextNum = 1000;
-      if (config.nextRsNumber) {
-        nextNum = Number(config.nextRsNumber);
-      } else if (reports.length > 0) {
-        let maxNum = 999;
-        reports.forEach(r => {
-          if (r.number) {
-            const match = r.number.match(/\d+/);
-            if (match) {
-              const num = parseInt(match[0], 10);
-              if (num > maxNum) maxNum = num;
-            }
+
+      let maxNum = 999;
+      reports.forEach(r => {
+        if (r && r.number) {
+          const match = String(r.number).match(/\d+/);
+          if (match) {
+            const num = parseInt(match[0], 10);
+            if (num > maxNum) maxNum = num;
           }
-        });
+        }
+      });
+
+      if (config.nextRsNumber && Number(config.nextRsNumber) > maxNum) {
+        nextNum = Number(config.nextRsNumber);
+      } else {
         nextNum = maxNum + 1;
       }
+
       document.getElementById('repNumber').value = `RS-${nextNum}`;
     } catch (e) {
       document.getElementById('repNumber').value = 'RS-1000';
@@ -715,17 +741,27 @@ if (reportFormEl) {
     };
 
     try {
-      let reports = await DataSync.load('rg_reports') || [];
-      if (!Array.isArray(reports)) reports = [];
+      let rawReports = await DataSync.load('rg_reports');
+      let reports = normalizarLista(rawReports);
 
       if (editIndex !== '') {
         reports[editIndex] = reportData;
       } else {
         reports.push(reportData);
         let config = await DataSync.load('rg_config') || {};
-        const matchNum = numRsStr.match(/\d+/);
-        const currentNum = matchNum ? parseInt(matchNum[0], 10) : (1000 + reports.length);
-        config.nextRsNumber = String(currentNum + 1);
+        
+        let maxNum = 999;
+        reports.forEach(r => {
+          if (r && r.number) {
+            const m = String(r.number).match(/\d+/);
+            if (m) {
+              const val = parseInt(m[0], 10);
+              if (val > maxNum) maxNum = val;
+            }
+          }
+        });
+        
+        config.nextRsNumber = String(maxNum + 1);
         await DataSync.save('rg_config', config);
       }
 
@@ -744,10 +780,5 @@ window.resetForm = function() {
 
 function escapeHTML(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
