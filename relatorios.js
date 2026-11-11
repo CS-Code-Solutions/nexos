@@ -11,25 +11,22 @@ let activeBudgetData = {};
 let indexParaExcluir = null;
 let tipoDocumentoExcluir = null;
 
-// TRAVA DE SEGURANÇA: Impede que o Firebase atropele os carregamentos
+// TRAVA DE SEGURANÇA: Impede múltiplos carregamentos simultâneos
 let isRendering = false;
 
 firebase.auth().onAuthStateChanged((user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    // Usamos setTimeout para colocar as funções na fila sem congelar a thread principal (evita a tela travada)
     setTimeout(() => carregarOpcoesClientes(), 0);
     setTimeout(() => carregarApelidosContas(), 0);
     setTimeout(() => renderizarTudo(), 0);
 
     try {
       if (typeof DataSync !== 'undefined') {
-        // Os listeners também recebem um atraso para não baterem no render inicial
         DataSync.listen('rg_reports', () => setTimeout(() => renderizarTudo(), 500));
         DataSync.listen('rg_orcamentos', () => setTimeout(() => renderizarTudo(), 500));
         DataSync.listen('rg_clients', () => setTimeout(() => carregarOpcoesClientes(), 500));
-        DataSync.listen('rg_config', () => setTimeout(() => carregarApelidosContas(), 500));
       }
     } catch(e) {
       console.warn("Aviso ao ativar sincronização:", e);
@@ -56,7 +53,7 @@ function normalizarLista(dados) {
   return [];
 }
 
-// FUNÇÃO BLINDADA: Tenta carregar. Se travar por 4s, devolve vazio e DESTRAVA a tela.
+// FUNÇÃO BLINDADA: Se a nuvem demorar mais de 4 segundos, destrava a tela automaticamente
 async function safeLoad(key) {
   try {
     if (typeof DataSync === 'undefined' || !DataSync.load) return [];
@@ -95,7 +92,6 @@ async function carregarApelidosContas() {
     const tenantId = localStorage.getItem('rg_tenant_id') || (typeof DataSync !== 'undefined' ? DataSync.getUid() : null);
     if (!tenantId || typeof db === 'undefined') return;
     
-    // Escudo de 4 segundos também para a consulta ao banco de dados puro
     const configDoc = await Promise.race([
       db.collection('rg_config').doc(tenantId).get(),
       new Promise(resolve => setTimeout(() => resolve({ exists: false }), 4000))
@@ -112,24 +108,21 @@ async function carregarApelidosContas() {
 }
 
 async function renderizarTudo() {
-  // SISTEMA DE CATRACA: impede que o Firebase rode esta função simultaneamente
   if (isRendering) return;
   isRendering = true;
 
-  const container = document.getElementById('unifiedCardsContainer');
+  // Procura de forma segura por qualquer um dos nomes de contêineres do HTML
+  const container = document.getElementById('unifiedCardsContainer') || document.getElementById('reportCardsContainer');
   if (!container) {
     isRendering = false;
     return;
   }
 
-  // Só mostra o texto "Carregando" se a tela estiver literalmente vazia (evita a tela piscar)
   if (listaRelatoriosRS.length === 0 && listaOrcamentos.length === 0) {
     container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1; padding: 20px;"><i class="fa-solid fa-circle-notch fa-spin"></i> A carregar histórico da nuvem...</p>`;
   }
 
   try {
-    // BUSCA EM PARALELO COM SEGURANÇA: Puxa RS e Orçamentos ao mesmo tempo. 
-    // Se a nuvem travar por mais de 4s, ignora o travamento e exibe a tela mesmo assim!
     const [rawRS, rawORC] = await Promise.all([
       safeLoad('rg_reports'),
       safeLoad('rg_orcamentos')
@@ -139,7 +132,7 @@ async function renderizarTudo() {
     listaOrcamentos = rawORC;
 
     if (typeof window.filtrarDocumentos === 'function') {
-      window.filtrarDocumentos(); // Aciona a exibição imediata dos cards
+      window.filtrarDocumentos();
     }
   } catch (err) {
     console.error("Erro crítico:", err);
@@ -151,7 +144,7 @@ async function renderizarTudo() {
       </div>
     `;
   } finally {
-    isRendering = false; // Libera a trava para a próxima atualização
+    isRendering = false;
   }
 }
 
@@ -167,10 +160,10 @@ function getValidDateTimestamp(dateStr) {
 }
 
 window.filtrarDocumentos = function() {
-  const container = document.getElementById('unifiedCardsContainer');
+  const container = document.getElementById('unifiedCardsContainer') || document.getElementById('reportCardsContainer');
   if (!container) return;
 
-  const busca = (document.getElementById('inputPesquisa')?.value || '').toLowerCase().trim();
+  const busca = (document.getElementById('inputPesquisa')?.value || document.getElementById('inputPesquisaRelatorios')?.value || '').toLowerCase().trim();
   const tipoFiltro = document.getElementById('selectTipoFiltro')?.value || 'todos';
   const clienteFiltro = document.getElementById('selectClienteFiltro')?.value || '';
 
@@ -297,7 +290,6 @@ window.deleteReport = (index) => {
     tipoDocumentoExcluir = 'RS';
     modalExclusao.style.display = 'flex';
   } else {
-    // Confirmação nativa infalível caso o modal customizado não exista na página
     if (confirm('Deseja realmente excluir este relatório de serviço?')) {
       indexParaExcluir = index;
       tipoDocumentoExcluir = 'RS';
@@ -366,9 +358,6 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
-/**
- * NexOS - Otimizador de imagens para PDF (Seguro)
- */
 function otimizarImagemParaPDF(src, maxDimensao = 1200, qualidade = 0.75) {
   return new Promise((resolve) => {
     if (!src) { resolve(null); return; }
@@ -424,9 +413,6 @@ async function aguardarImagensPDF(elemento) {
   );
 }
 
-/**
- * Montagem rápida e segura do HTML dos anexos
- */
 async function gerarAnexosPdfHtml(anexos, logoSrc) {
   if (!Array.isArray(anexos) || anexos.length === 0) return '';
 
@@ -715,15 +701,13 @@ function getPdfOptions(filename) {
   };
 }
 
-// Helper avançado com etapas animadas no status do modal e botão "Salvando..."
 async function executarComProgresso(statusEl, btn, callback) {
   const textoOriginal = btn ? btn.textContent : '';
   if (btn) {
     btn.disabled = true;
-    // Adiciona um ícone girando para dar sensação visual de trabalho
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Aguarde...';
   }
-  document.body.style.cursor = 'wait'; // Muda o cursor do mouse para indicar carregamento
+  document.body.style.cursor = 'wait';
 
   try {
     if (statusEl) statusEl.textContent = `⏳ 1/4 - Salvando informações...`;
@@ -734,10 +718,9 @@ async function executarComProgresso(statusEl, btn, callback) {
     await new Promise(r => setTimeout(r, 300)); 
 
     if (statusEl) statusEl.textContent = `⏳ 3/4 - Montando documento PDF...`;
-    // ESTA PAUSA É CRUCIAL: Dá tempo do navegador mostrar o texto "Montando..." antes de travar tudo gerando o PDF
     await new Promise(r => setTimeout(r, 500)); 
 
-    await callback.etapaPdf(); // O processamento pesado ocorre aqui
+    await callback.etapaPdf();
 
     if (statusEl) statusEl.textContent = `✅ 4/4 - Finalizando relatório...`;
     await new Promise(r => setTimeout(r, 300));
@@ -751,7 +734,7 @@ async function executarComProgresso(statusEl, btn, callback) {
       btn.disabled = false;
       btn.textContent = textoOriginal;
     }
-    document.body.style.cursor = 'default'; // Volta o cursor ao normal
+    document.body.style.cursor = 'default';
   }
 }
 
