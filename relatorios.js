@@ -243,7 +243,7 @@ window.filtrarDocumentos = function() {
 window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
 window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
-// Exclusão Segura com Modal
+// Sistema de Exclusão Segura por Modal (Evita falsos cliques)
 window.deleteReport = (index) => {
   indexParaExcluir = index;
   tipoDocumentoExcluir = 'RS';
@@ -273,7 +273,7 @@ window.deleteBudget = (index) => {
 };
 
 window.executarExclusaoConfirmada = async function() {
-  if (indexParaExcluir === null) return;
+  if (indexParaExcluir === null || indexParaExcluir === undefined) return;
 
   if (tipoDocumentoExcluir === 'RS') {
     listaRelatoriosRS.splice(indexParaExcluir, 1);
@@ -284,7 +284,7 @@ window.executarExclusaoConfirmada = async function() {
   }
 
   fecharModalExclusao();
-  renderizarTudo();
+  await renderizarTudo();
 };
 
 window.fecharModalExclusao = function() {
@@ -780,7 +780,7 @@ window.compartilharPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
   const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
-  const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
+  const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]`);
   const animacao = iniciarAnimacaoSalvando(btnShare);
 
   try {
