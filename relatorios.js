@@ -274,7 +274,7 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
-// OTIMIZADOR DE IMAGENS IDÊNTICO AO PROJETO FUNCIONAL
+// OTIMIZADOR DE IMAGENS COMPATÍVEL COM O PADRÃO QUE FUNCIONA
 function otimizarImagemBase64(base64Str, callback) {
   if (!base64Str || !base64Str.startsWith('data:image')) {
     callback(base64Str);
@@ -306,7 +306,6 @@ function otimizarImagemBase64(base64Str, callback) {
   img.src = base64Str;
 }
 
-// FUNÇÃO WRAPPER EM PROMISE PARA FACILITAR O AWAIT NO LOOP DE ANEXOS
 function otimizarImagemAsync(base64Str) {
   return new Promise((resolve) => {
     otimizarImagemBase64(base64Str, (otimizada) => resolve(otimizada));
@@ -351,7 +350,6 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   
   if (rep.anexos && rep.anexos.length > 0) {
-    // MONTAGEM DA GRELHA DE FOTOS EXATAMENTE IGUAL AO PROJETO FUNCIONAL (BLOCOS DE 4)
     let todasFotosPDF = [];
     rep.anexos.forEach(a => {
       if (a && a.imagem) {
@@ -363,43 +361,44 @@ window.openReportPreview = async function(index) {
       }
     });
 
-    let blocosAnexosHTML = '';
+    let htmlPaginas = '';
     for (let i = 0; i < todasFotosPDF.length; i += 4) {
       const chunk = todasFotosPDF.slice(i, i + 4);
       const numPaginaFoto = Math.floor(i / 4) + 1;
-      let itensChunkHtml = '';
-      
+
+      htmlPaginas += `
+        <div style="page-break-before: always;" class="pdf-page">
+          <div class="pdf-header">
+            <div>
+              <h1 class="pdf-title">REGISTO FOTOGRÁFICO E EVIDÊNCIAS</h1>
+              <p style="color: #666; margin-top:2px;">Página ${numPaginaFoto}</p>
+            </div>
+            <div style="font-weight:bold; font-size: 16px; color: #00F5D4;">${escapeHTML(config.name)}</div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 10px;">
+      `;
+
       for (const f of chunk) {
         const imagemOtimizada = await otimizarImagemAsync(f.src);
-        itensChunkHtml += `
-          <div style="width: 48%; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; text-align: center; background: #fafafa; box-sizing: border-box; margin-bottom: 10px; page-break-inside: avoid;">
-            <div style="height: 200px; background: #f1f5f9; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
-              <img src="${imagemOtimizada}" style="max-width: 100%; max-height: 200px; width: auto; height: auto; display: block;">
+        htmlPaginas += `
+          <div style="width: 48%; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; text-align: center; background: #fafafa; box-sizing: border-box; margin-bottom: 10px;">
+            <div style="height: 250px; background: #f1f5f9; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+              <img src="${imagemOtimizada}" style="max-width: 100%; max-height: 250px; width: auto; height: auto; display: block;">
             </div>
             <div style="text-align: left; padding: 0 2px;">
-              <div style="font-weight: bold; font-size: 11px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(f.titulo)}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; line-height: 1.25; height: 22px; overflow: hidden;">${escapeHTML(f.desc)}</div>
+              <div style="font-weight: bold; font-size: 11px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(f.titulo || 'Sem Título')}</div>
+              <div style="font-size: 10px; color: #475569; margin-top: 2px; line-height: 1.25; height: 25px; overflow: hidden;">${escapeHTML(f.desc || '')}</div>
             </div>
           </div>
         `;
       }
 
-      blocosAnexosHTML += `
-        <div style="page-break-before: always; width: 794px; background: #FFF; box-sizing: border-box; padding: 25px 35px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; margin-bottom: 12px;">
-            <div>
-              <h1 style="font-size: 13px; font-weight: bold; margin: 0; text-transform: uppercase;">Registo Fotográfico e Anexos</h1>
-              <p style="color: #666; margin-top: 2px; font-size: 10px;">Página ${numPaginaFoto}</p>
-            </div>
-            <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
-          </div>
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-            ${itensChunkHtml}
+      htmlPaginas += `
           </div>
         </div>
       `;
     }
-    anexosHtml = blocosAnexosHTML;
+    anexosHtml = htmlPaginas;
   }
 
   document.getElementById('reportRenderArea').innerHTML = `
