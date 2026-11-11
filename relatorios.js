@@ -7,7 +7,7 @@ let listaOrcamentos = [];
 let activeReportData = {};
 let activeBudgetData = {};
 
-// Variáveis para controlar a exclusão segura por modal
+// Variáveis para controlar a exclusão segura
 let indexParaExcluir = null;
 let tipoDocumentoExcluir = null;
 
@@ -247,30 +247,33 @@ window.filtrarDocumentos = function() {
 window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
 window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
-// Sistema de Exclusão Segura por Modal
+// Sistema de Exclusão Blindada e Segura com Confirmação Real
 window.deleteReport = (index) => {
-  indexParaExcluir = index;
-  tipoDocumentoExcluir = 'RS';
-  
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
   if (modalExclusao) {
+    indexParaExcluir = index;
+    tipoDocumentoExcluir = 'RS';
     modalExclusao.style.display = 'flex';
   } else {
+    // Confirmação nativa infalível caso o modal customizado não exista na página
     if (confirm('Deseja realmente excluir este relatório de serviço?')) {
+      indexParaExcluir = index;
+      tipoDocumentoExcluir = 'RS';
       executarExclusaoConfirmada();
     }
   }
 };
 
 window.deleteBudget = (index) => {
-  indexParaExcluir = index;
-  tipoDocumentoExcluir = 'ORC';
-  
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
   if (modalExclusao) {
+    indexParaExcluir = index;
+    tipoDocumentoExcluir = 'ORC';
     modalExclusao.style.display = 'flex';
   } else {
     if (confirm('Deseja realmente excluir este orçamento?')) {
+      indexParaExcluir = index;
+      tipoDocumentoExcluir = 'ORC';
       executarExclusaoConfirmada();
     }
   }
@@ -670,153 +673,115 @@ function getPdfOptions(filename) {
   };
 }
 
-// Helper para animar "Salvando..." com pontos dinâmicos (... .. .)
-function iniciarAnimacaoSalvando(botao) {
-  if (!botao) return null;
-  const textoOriginal = botao.textContent;
-  botao.disabled = true;
-  let pontos = '';
-  const interval = setInterval(() => {
-    pontos = pontos.length >= 3 ? '' : pontos + '.';
-    botao.textContent = `Salvando${pontos}`;
-  }, 400);
+// Helper avançado com etapas animadas no status do modal e botão "Salvando..."
+async function executarComProgresso(statusEl, btn, callback) {
+  const textoOriginal = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+  }
 
-  return {
-    parar: () => {
-      clearInterval(interval);
-      botao.textContent = textoOriginal;
-      botao.disabled = false;
+  try {
+    if (statusEl) statusEl.textContent = `⏳ 1/4 - Salvando informações...`;
+    await new Promise(r => setTimeout(r, 250));
+
+    if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens...`;
+    await callback.etapaImagens();
+
+    if (statusEl) statusEl.textContent = `⏳ 3/4 - Gerando documento PDF...`;
+    await callback.etapaPdf();
+
+    if (statusEl) statusEl.textContent = `✅ 4/4 - Finalizando relatório...`;
+    await new Promise(r => setTimeout(r, 200));
+
+    if (statusEl) statusEl.textContent = 'Pronto';
+  } catch (erro) {
+    console.error('Erro no processo:', erro);
+    if (statusEl) statusEl.textContent = 'Erro ao gerar documento';
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
     }
-  };
+  }
 }
 
 window.descarregarPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
   const area = document.getElementById('reportRenderArea');
-  const btnDownload = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFRs"]');
-  const animacao = iniciarAnimacaoSalvando(btnDownload);
+  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFRs"]');
 
-  try {
-    status.textContent = 'A preparar imagens...';
-    await aguardarImagensPDF(area);
-
-    status.textContent = 'Gerando PDF...';
-    await html2pdf()
-      .from(area)
-      .set(getPdfOptions(`RS_${activeReportData.number}.pdf`))
-      .save();
-
-    status.textContent = 'Pronto';
-  } catch (erro) {
-    console.error('Erro ao gerar PDF:', erro);
-    status.textContent = 'Erro ao gerar PDF';
-    alert('Não foi possível gerar o PDF. Verifique as imagens.');
-  } finally {
-    if (animacao) animacao.parar();
-  }
+  await executarComProgresso(status, btn, {
+    etapaImagens: async () => { await aguardarImagensPDF(area); },
+    etapaPdf: async () => {
+      await html2pdf()
+        .from(area)
+        .set(getPdfOptions(`RS_${activeReportData.number}.pdf`))
+        .save();
+    }
+  });
 };
 
 window.compartilharPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
   const area = document.getElementById('reportRenderArea');
   const nomeArquivo = `RS_${activeReportData.number}.pdf`;
-  const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFRs"]');
-  const animacao = iniciarAnimacaoSalvando(btnShare);
+  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFRs"]');
 
-  try {
-    status.textContent = 'A preparar imagens...';
-    await aguardarImagensPDF(area);
-
-    status.textContent = 'A gerar PDF...';
-    const blob = await html2pdf()
-      .from(area)
-      .set(getPdfOptions(nomeArquivo))
-      .outputPdf('blob');
-
-    const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
-
-    if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
-      await navigator.share({ files: [arquivo], title: `RS ${activeReportData.number}` });
-    } else {
-      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
+  await executarComProgresso(status, btn, {
+    etapaImagens: async () => { await aguardarImagensPDF(area); },
+    etapaPdf: async () => {
+      const blob = await html2pdf()
+        .from(area)
+        .set(getPdfOptions(nomeArquivo))
+        .outputPdf('blob');
+      const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        await navigator.share({ files: [arquivo], title: `RS ${activeReportData.number}` });
+      } else {
+        await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
+      }
     }
-
-    status.textContent = 'Pronto';
-  } catch (erro) {
-    console.error('Erro ao partilhar:', erro);
-    try {
-      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
-      status.textContent = 'Pronto';
-    } catch (e) {
-      status.textContent = 'Erro ao gerar PDF';
-    }
-  } finally {
-    if (animacao) animacao.parar();
-  }
+  });
 };
 
 window.descarregarPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
-  const btnDownload = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFOrcamento"]');
-  const animacao = iniciarAnimacaoSalvando(btnDownload);
+  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFOrcamento"]');
 
-  try {
-    status.textContent = 'A preparar imagens...';
-    await aguardarImagensPDF(area);
-
-    status.textContent = 'A gerar PDF...';
-    await html2pdf()
-      .from(area)
-      .set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`))
-      .save();
-
-    status.textContent = 'Pronto';
-  } catch (erro) {
-    console.error('Erro ao gerar Orçamento:', erro);
-    status.textContent = 'Erro ao gerar PDF';
-  } finally {
-    if (animacao) animacao.parar();
-  }
+  await executarComProgresso(status, btn, {
+    etapaImagens: async () => { await aguardarImagensPDF(area); },
+    etapaPdf: async () => {
+      await html2pdf()
+        .from(area)
+        .set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`))
+        .save();
+    }
+  });
 };
 
 window.compartilharPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
   const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
-  const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
-  const animacao = iniciarAnimacaoSalvando(btnShare);
+  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
 
-  try {
-    status.textContent = 'A preparar imagens...';
-    await aguardarImagensPDF(area);
-
-    status.textContent = 'A gerar PDF...';
-    const blob = await html2pdf()
-      .from(area)
-      .set(getPdfOptions(nomeArquivo))
-      .outputPdf('blob');
-
-    const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
-
-    if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
-      await navigator.share({ files: [arquivo], title: `Orçamento ${activeBudgetData.number}` });
-    } else {
-      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
+  await executarComProgresso(status, btn, {
+    etapaImagens: async () => { await aguardarImagensPDF(area); },
+    etapaPdf: async () => {
+      const blob = await html2pdf()
+        .from(area)
+        .set(getPdfOptions(nomeArquivo))
+        .outputPdf('blob');
+      const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        await navigator.share({ files: [arquivo], title: `Orçamento ${activeBudgetData.number}` });
+      } else {
+        await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
+      }
     }
-
-    status.textContent = 'Pronto';
-  } catch (erro) {
-    console.error('Erro ao partilhar Orçamento:', erro);
-    try {
-      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
-      status.textContent = 'Pronto';
-    } catch (e) {
-      status.textContent = 'Erro ao gerar PDF';
-    }
-  } finally {
-    if (animacao) animacao.parar();
-  }
+  });
 };
 
 function escapeHTML(str) {
