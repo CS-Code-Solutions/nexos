@@ -245,7 +245,6 @@ window.gerarCamposDias = function(dadosSalvos = []) {
 
   container.innerHTML = '';
   
-  // Garante a data local exata sem virar o dia por fuso horário
   const agoraLocal = new Date();
   const ano = agoraLocal.getFullYear();
   const mes = String(agoraLocal.getMonth() + 1).padStart(2, '0');
@@ -419,7 +418,7 @@ window.converterAnexo = function(event) {
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(img, 0, 0, width, height);
-      tempAnexoBase64 = canvas.toDataURL('image/jpeg', 0.85); // Compressão otimizada para múltiplos anexos
+      tempAnexoBase64 = canvas.toDataURL('image/jpeg', 0.85);
     };
     img.src = e.target.result;
   };
@@ -666,7 +665,6 @@ async function verificarModoEdicao() {
   }
 }
 
-/* --- SALVAMENTO SEGURO COM MÚLTIPLOS ANEXOS --- */
 window.salvarRelatorioFinal = async function() {
   const editIndex = document.getElementById('editIndex').value;
   const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
@@ -784,7 +782,7 @@ window.salvarRelatorioFinal = async function() {
     window.location.href = 'relatorios.html';
 
   } catch (err) {
-    alert('Erro ao salvar relatório (possível limite de tamanho com anexos pesados): ' + err.message);
+    alert('Erro ao salvar relatório: ' + err.message);
   }
 };
 
