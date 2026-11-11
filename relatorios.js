@@ -144,8 +144,14 @@ window.filtrarDocumentos = function() {
     }
   }
 
-// Ordenação correta: Mais recente no topo
-unificados.sort((a, b) => getValidDateTimestamp(b.data) - getValidDateTimestamp(a.data));
+  // Ordenação correta: Mais recente no topo (por data decrescente e número maior)
+  unificados.sort((a, b) => {
+    const diffTime = getValidDateTimestamp(b.data) - getValidDateTimestamp(a.data);
+    if (diffTime !== 0) return diffTime;
+    const numA = parseInt(String(a.numero).replace(/\D/g, '')) || 0;
+    const numB = parseInt(String(b.numero).replace(/\D/g, '')) || 0;
+    return numB - numA;
+  });
 
   const filtrados = unificados.filter(item => {
     if (clienteFiltro && item.cliente !== clienteFiltro) return false;
@@ -302,10 +308,10 @@ window.openReportPreview = async function(index) {
       ${itemsHtml}`;
   }
 
-document.getElementById('reportRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; padding: 0 4px;">
+  document.getElementById('reportRenderArea').innerHTML = `
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 794px; margin: 0 auto; box-sizing: border-box; overflow: hidden; padding: 25px; background: #FFFFFF;">
       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 85px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
-     
+      
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 10px; margin-bottom: 15px; position: relative; z-index: 1;">
         <img src="${logoSrc}" style="height: 45px; width: auto; max-width: 150px; object-fit: contain;">
         <div style="text-align: right;">
@@ -409,7 +415,7 @@ window.openBudgetPreview = async function(index) {
   const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 2px 0;">• ${escapeHTML(t)}</p>`).join('');
 
   document.getElementById('budgetRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; padding: 0 4px;">
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 794px; margin: 0 auto; box-sizing: border-box; overflow: hidden; padding: 25px; background: #FFFFFF;">
       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 85px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
       
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 10px; margin-bottom: 15px; position: relative; z-index: 1;">
