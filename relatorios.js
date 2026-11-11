@@ -144,8 +144,8 @@ window.filtrarDocumentos = function() {
     }
   }
 
-  // Ordenação correta: Mais recente primeiro
-  unificados.sort((a, b) => getValidDateTimestamp(b.data) - getValidDateTimestamp(a.data));
+// Ordenação correta: Mais recente no topo
+unificados.sort((a, b) => getValidDateTimestamp(b.data) - getValidDateTimestamp(a.data));
 
   const filtrados = unificados.filter(item => {
     if (clienteFiltro && item.cliente !== clienteFiltro) return false;
@@ -480,10 +480,15 @@ window.fecharModalOrc = () => { document.getElementById('budgetPreviewModal').st
 
 function getPdfOptions(filename) {
   return {
-    margin: [10, 10, 10, 10],
+    margin: [8, 8, 8, 8],
     filename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, windowWidth: 780 },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true, 
+      letterRendering: true, 
+      windowWidth: 794 // Largura exata padrão A4 (96 DPI) para evitar distorções
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] }
   };
