@@ -79,12 +79,44 @@
     }
     .print-body { font-family: Arial, sans-serif; color: #0B132B; line-height: 1.15; font-size: 9px; position: relative; z-index: 1; width: 100%; max-width: 190mm; margin: 0 auto; }
     .print-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 4px; margin-bottom: 6px; width: 100%; }
-    .print-header img { height: 30px; width: auto; max-width: 120px; object-fit: contain; }
+    .print-header img { height: 32px; width: auto; max-width: 140px; display: block; }
     .print-header-info { text-align: right; flex-shrink: 0; }
     .print-header-info h1 { font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; }
     
     .section-box { border: 1px solid #CBD5E1; padding: 5px 7px; margin-bottom: 5px; border-radius: 4px; background: #FFFFFF !important; page-break-inside: avoid; }
     .section-title { font-weight: bold; font-size: 9.5px; color: #0B132B; margin-bottom: 2px; border-bottom: 1px solid #CBD5E1; padding-bottom: 2px; }
+
+    /* QUEBRA DE PÁGINA PARA ANEXOS */
+    .page-break {
+      page-break-before: always !important;
+      break-before: page !important;
+      clear: both;
+      display: block;
+      height: 1px;
+      margin-top: 10px;
+    }
+
+    /* ESTRUTURA DE ASSINATURAS LADO A LADO */
+    .signature-area {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-end !important;
+      gap: 15px !important;
+      margin-top: 10px !important;
+      page-break-inside: avoid !important;
+      width: 100% !important;
+    }
+    .signature-box {
+      flex: 1 !important;
+      text-align: center !important;
+    }
+    .signature-box img {
+      max-height: 35px !important;
+      width: auto !important;
+      max-width: 140px !important;
+      display: block !important;
+      margin: 0 auto 2px auto !important;
+    }
   </style>
 </head>
 <body>
@@ -96,12 +128,11 @@
 
     <nav class="desktop-nav">
       <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html"class="active" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
-
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Encerrar Sessão">
       <i class="fa-solid fa-power-off"></i>
@@ -206,7 +237,7 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-<!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
     <a href="cadastros.html">
       <i class="fa-solid fa-address-book"></i>
@@ -229,7 +260,6 @@
       <span>Config</span>
     </a>
   </nav>
-
 
   <script src="relatorios.js?v=2.0"></script>
 </body>
