@@ -4,7 +4,13 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const dateEl = document.getElementById('orcDate');
-  if (dateEl) dateEl.valueAsDate = new Date();
+  if (dateEl) {
+    const agoraLocal = new Date();
+    const ano = agoraLocal.getFullYear();
+    const mes = String(agoraLocal.getMonth() + 1).padStart(2, '0');
+    const dia = String(agoraLocal.getDate()).padStart(2, '0');
+    dateEl.value = `${ano}-${mes}-${dia}`;
+  }
 });
 
 firebase.auth().onAuthStateChanged(async (user) => {
