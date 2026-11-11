@@ -110,9 +110,7 @@ function getValidDateTimestamp(dateStr) {
   let cleanStr = String(dateStr).trim();
   if (cleanStr.includes('/')) {
     const p = cleanStr.split('/');
-    if (p.length === 3) cleanStr = `${p[2]}-${p[1]}-${p[0]}`;
-  }
-  const d = new Date(`${cleanStr}T00:00:00`);
+    if (p.length === 3) cleanStr = `${p[2]}-${p[1]}-${p[0]}`; } const d = new Date(`${cleanStr}T00:00:00`);
   return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
@@ -132,26 +130,7 @@ window.filtrarDocumentos = function() {
       unificados.push({
         tipoDoc: 'RS',
         origemIndex: idx,
-        numero: r.number || r.numero || `RS-${1000 + idx}`,
-        data: r.date || r.data || '',
-        cliente: r.client || r.cliente || '-',
-        equipamento: r.equipment || r.equipamento || '-',
-        detalheExtra: r.serviceNature || r.naturezaServico || 'Corretiva'
-      });
-    });
-  }
-
-  const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
-  const isSuperAdmin = (localStorage.getItem('rg_user_role') === 'super_admin');
-
-  if (isSuperAdmin || showOrcamentos) {
-    if (tipoFiltro === 'todos' || tipoFiltro === 'orc') {
-      listaOrcamentos.forEach((o, idx) => {
-        if (!o || typeof o !== 'object') return;
-        unificados.push({
-          tipoDoc: 'ORC',
-          origemIndex: idx,
-          numero: o.number || o.numero || `ORC-${String(idx + 1).padStart(4, '0')}`,
+        numero: r.number || r.numero || `RS-${1000 + idx}`, data: r.date \vert{}\vert{} r.data \vert{}\vert{} '', cliente: r.client \vert{}\vert{} r.cliente \vert{}\vert{} '-', equipamento: r.equipment \vert{}\vert{} r.equipamento \vert{}\vert{} '-', detalheExtra: r.serviceNature \vert{}\vert{} r.naturezaServico \vert{}\vert{} 'Corretiva' }); }); }  const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false'; const isSuperAdmin = (localStorage.getItem('rg_user_role') === 'super_admin');  if (isSuperAdmin \vert{}\vert{} showOrcamentos) { if (tipoFiltro === 'todos' \vert{}\vert{} tipoFiltro === 'orc') { listaOrcamentos.forEach((o, idx) => { if (!o \vert{}\vert{} typeof o !== 'object') return; unificados.push({ tipoDoc: 'ORC', origemIndex: idx, numero: o.number \vert{}\vert{} o.numero \vert{}\vert{} `ORC-${String(idx + 1).padStart(4, '0')}`,
           data: o.date || o.data || '',
           cliente: o.client || o.cliente || '-',
           equipamento: o.equipment || o.equipamento || '-',
@@ -236,8 +215,7 @@ window.filtrarDocumentos = function() {
   container.innerHTML = htmlCards;
 };
 
-window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
-window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
+window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; }; window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
 window.deleteReport = async (index) => {
   if (confirm('Deseja realmente excluir este relatório de serviço?')) {
@@ -267,11 +245,11 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
       }
       if (minDia > 0) {
         minutosTotais += minDia;
-        detalhesDiasHtml += `<span style="display: block; margin-left: 6px;">• Dia ${idx + 1}: ${Math.floor(minDia / 60)}h ${Math.round(minDia % 60)}m</span>`;
+        detalhesDiasHtml += `<span style="display: block; margin-left: 6px;">• Dia ${idx + 1}: ${Math.floor(minDia / 60)}h${Math.round(minDia % 60)}m</span>`;
       }
     });
   }
-  return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
+  return { totalHoursText: `${Math.floor(minutosTotais / 60)}h${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
 window.openReportPreview = async function(index) {
@@ -298,260 +276,15 @@ window.openReportPreview = async function(index) {
   } else {
     if (rep.temHora === 'sim') {
       const calc = calcularMinutosDiasTrabalho(rep.diasTrabalho || (rep.startManha ? [{ inicio: rep.startManha, fim: rep.endManha || rep.endTarde }] : []), Number(rep.valorHora) || 200);
-      valorHorasTotal = calc.valorHorasTotal; textoHoras = `${calc.totalHoursText} (R$ ${valorHorasTotal.toFixed(2)})`; detalhesDiasHtml = calc.detalhesDiasHtml;
-    }
-    valorTotal = valorHorasTotal + (rep.temDeslocamento === 'sim' ? (Number(rep.valorHoraDeslocamento) || 260) * (Number(rep.tempoDeslocamentoHoras) || 0) : 0) + (rep.temHospedagem === 'sim' ? Number(rep.valorHospedagem) || 0 : 0) + (rep.temOutras === 'sim' ? Number(rep.valorOutras) || 0 : 0);
-  }
-
-  const numDoc = rep.number || rep.numero || 'RS-1000';
-  let dataFormatada = rep.date || rep.data || '-';
-  if (typeof dataFormatada === 'string' && dataFormatada.includes('-')) { const p = dataFormatada.split('-'); if (p.length === 3) dataFormatada = `${p[2]}/${p[1]}/${p[0]}`; }
+      valorHorasTotal = calc.valorHorasTotal; textoHoras = `${calc.totalHoursText} (R$ ${valorHorasTotal.toFixed(2)})`; detalhesDiasHtml = calc.detalhesDiasHtml; } valorTotal = valorHorasTotal + (rep.temDeslocamento === 'sim' ? (Number(rep.valorHoraDeslocamento) \vert{}\vert{} 260) * (Number(rep.tempoDeslocamentoHoras) \vert{}\vert{} 0) : 0) + (rep.temHospedagem === 'sim' ? Number(rep.valorHospedagem) \vert{}\vert{} 0 : 0) + (rep.temOutras === 'sim' ? Number(rep.valorOutras) \vert{}\vert{} 0 : 0); }  const numDoc = rep.number \vert{}\vert{} rep.numero \vert{}\vert{} 'RS-1000'; let dataFormatada = rep.date \vert{}\vert{} rep.data \vert{}\vert{} '-'; if (typeof dataFormatada === 'string' && dataFormatada.includes('-')) { const p = dataFormatada.split('-'); if (p.length === 3) dataFormatada = `${p[2]}/${p[1]}/${p[0]}`; }
   activeReportData = { number: numDoc, client: clientName };
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
+  
   let anexosHtml = '';
   if (rep.anexos && rep.anexos.length > 0) {
-    let itemsHtml = rep.anexos.map(anexo => `
-      <div style="text-align: center; page-break-inside: avoid; margin-top: 15px; border: 1px solid #CBD5E1; padding: 10px; background: #FFF; border-radius: 4px;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 250px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
-      </div>
-    `).join('');
-    anexosHtml = `
-      <div style="page-break-before: always; height: 1px; margin-top: 10px;"></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 10px;">
-        <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
-        <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
-      </div>
-      ${itemsHtml}
-    `;
-  }
-
-  // Estilo Inline blindado para garantir 794px e proteger os anexos
-  document.getElementById('reportRenderArea').innerHTML = `
-    <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
-      <div style="position: relative; width: 100%; box-sizing: border-box;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
-          <img src="${logoSrc}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
-          <div style="text-align: right;">
-            <h1 style="font-size: 13px; margin: 0; font-weight: bold;">RELATÓRIO DE SERVIÇO (RS)</h1>
-            <p style="margin: 2px 0; font-size: 11px;"><strong>Nº:</strong> RS-${escapeHTML(numDoc).replace(/^RS-?/i, '')} | <strong>Data:</strong> ${dataFormatada}</p>
-          </div>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados da Empresa</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <p style="margin: 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
-            <p style="margin: 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
-            <p style="margin: 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
-            <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(config.contact)}</p>
-            <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
-          </div>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados do Cliente & Equipamento</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <p style="margin: 0;"><strong>Cliente:</strong> ${escapeHTML(clientName || '-')}</p>
-            <p style="margin: 0;"><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
-            <p style="margin: 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
-            <p style="margin: 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || clientObj.endereco || '-')}</p>
-            <p style="margin: 0;"><strong>Marca:</strong> ${escapeHTML(rep.brand || '-')}</p>
-            <p style="margin: 0;"><strong>Modelo:</strong> ${escapeHTML(rep.model || '-')}</p>
-            <p style="margin: 0; grid-column: span 2;"><strong>Nº de Série:</strong> ${escapeHTML(rep.serialNumber || '-')}</p>
-          </div>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Serviço Realizado</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-            <p style="margin: 0;"><strong>Tipo:</strong> ${escapeHTML(rep.serviceNature || '-')}</p>
-            <p style="margin: 0;"><strong>Área:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
-          </div>
-          <p style="white-space: pre-wrap; margin: 0; background: #FFF; padding: 6px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(rep.desc || '-')}</p>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Critérios de Cobrança</div>
-          <div style="margin-bottom: 4px; font-size: 10px;">
-            ${rep.temHora === 'sim' ? `<p style="margin: 2px 0;">• <strong>Horas:</strong> ${textoHoras}</p>${detalhesDiasHtml}` : ''}
-            ${rep.temDeslocamento === 'sim' ? `<p style="margin: 2px 0;">• <strong>Deslocamento:</strong> ${rep.tempoDeslocamentoHoras || 0}h a R$ ${Number(rep.valorHoraDeslocamento || 0).toFixed(2)}/h</p>` : ''}
-            ${rep.temHospedagem === 'sim' ? `<p style="margin: 2px 0;">• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : ''}
-            ${rep.temOutras === 'sim' ? `<p style="margin: 2px 0;">• <strong>Outras Despesas:</strong> R$ ${Number(rep.valorOutras || 0).toFixed(2)}</p>` : ''}
-            ${rep.temEmpreitada === 'sim' ? `<p style="margin: 2px 0;">• <strong>Empreitada:</strong> ${textoHoras}</p>` : ''}
-          </div>
-          <p style="font-size: 11px; font-weight: bold; color: #0D9488; border-top: 1px solid #CBD5E1; padding-top: 4px; margin: 0;">Valor Total Estimado: R$ ${valorTotal.toFixed(2)}</p>
-        </div>
-
-        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
-          <div style="text-align: center; width: 45%;">
-            ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
-            <p style="margin: 2px 0;">________________________________________</p>
-            <p style="margin: 0; font-size: 10px;"><strong>Técnico:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
-          </div>
-          <div style="text-align: center; width: 45%;">
-            ${rep.signature ? `<img src="${rep.signature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
-            <p style="margin: 2px 0;">________________________________________</p>
-            <p style="margin: 0; font-size: 10px;"><strong>Assinatura do Cliente</strong></p>
-          </div>
-        </div>
-        ${anexosHtml}
-      </div>
-    </div>
-  `;
-
-  document.getElementById('modalTitleRs').textContent = `RS-${escapeHTML(numDoc).replace(/^RS-?/i, '')} (${clientName})`;
-  document.getElementById('loadingStatusRs').textContent = 'Pronto';
-  document.getElementById('reportPreviewModal').style.display = 'flex';
-};
-
-window.openBudgetPreview = async function(index) {
-  const b = listaOrcamentos[index];
-  if (!b) return;
-
-  const defaultConfig = { name: 'NexOS', tech: 'Técnico Responsável', doc: '00.000.000/0000-00', email: '-', contact: '-', location: '-', nomeConta1: 'Conta 1', bank1: '', agency1: '', account1: '', nomeConta2: 'Conta 2', bank2: '', agency2: '', account2: '', techSignature: '' };
-  let config = { ...defaultConfig };
-  try {
-    const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
-    const configDoc = await db.collection('rg_config').doc(tenantId).get();
-    if (configDoc.exists) config = { ...defaultConfig, ...configDoc.data() };
-  } catch (e) {}
-
-  const rawClients = await DataSync.load('rg_clients');
-  const clients = normalizarLista(rawClients);
-  const clientObj = clients.find(c => (c.name || c.nome) === (b.client || b.cliente)) || {};
-
-  activeBudgetData = b;
-  const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
-  const opt = b.paymentOption || 'banco1';
-  
-  let bancoInfoHtml = '';
-  if (opt === 'banco1') bancoInfoHtml = `<p style="margin: 2px 0;"><strong>Recebimento:</strong> Transferência (${escapeHTML(config.nomeConta1)})</p><p style="margin: 2px 0;"><strong>Banco:</strong> ${escapeHTML(config.bank1)} | <strong>Agência:</strong> ${escapeHTML(config.agency1)} | <strong>Conta:</strong> ${escapeHTML(config.account1)}</p>`;
-  else if (opt === 'banco2') bancoInfoHtml = `<p style="margin: 2px 0;"><strong>Recebimento:</strong> Transferência (${escapeHTML(config.nomeConta2)})</p><p style="margin: 2px 0;"><strong>Banco:</strong> ${escapeHTML(config.bank2)} | <strong>Agência:</strong> ${escapeHTML(config.agency2)} | <strong>Conta:</strong> ${escapeHTML(config.account2)}</p>`;
-  else bancoInfoHtml = `<p style="margin: 2px 0;"><strong>Recebimento:</strong> Boleto Bancário</p>`;
-
-  const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 2px 0;">• ${escapeHTML(t)}</p>`).join('');
-
-  document.getElementById('budgetRenderArea').innerHTML = `
-    <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
-      <div style="position: relative; width: 100%; box-sizing: border-box;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
-          <img src="${logoSrc}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
-          <div style="text-align: right;">
-            <h1 style="font-size: 13px; margin: 0; font-weight: bold;">ORÇAMENTO DE SERVIÇO</h1>
-            <p style="margin: 2px 0; font-size: 11px;"><strong>Nº:</strong> ${escapeHTML(b.number || '-')} | <strong>Data:</strong> ${escapeHTML(b.date || '-')}</p>
-          </div>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados da Empresa</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <p style="margin: 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
-            <p style="margin: 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
-            <p style="margin: 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
-            <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(config.contact)}</p>
-            <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
-          </div>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados do Cliente</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <p style="margin: 0;"><strong>Cliente:</strong> ${escapeHTML(b.client || '-')}</p>
-            <p style="margin: 0;"><strong>Equipamento:</strong> ${escapeHTML(b.equipment || '-')}</p>
-            <p style="margin: 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
-            <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(clientObj.phone || '-')}</p>
-            <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
-          </div>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Escopo do Serviço</div>
-          <p style="white-space: pre-wrap; margin: 0; background: #FFF; padding: 6px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(b.desc || '-')}</p>
-        </div>
-
-        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Condições Comerciais</div>
-          <div style="font-size: 10px;">
-            ${termsList}
-            <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 6px 0;">
-            ${bancoInfoHtml}
-          </div>
-        </div>
-
-        <div style="text-align: right; background: #F1F5F9; border: 1px solid #00F5D4; padding: 8px; border-radius: 6px; margin-bottom: 12px;">
-          <p style="font-size: 13px; font-weight: bold; color: #0B132B; margin: 0;">VALOR TOTAL: R$ ${Number(b.total || 0).toFixed(2)}</p>
-        </div>
-
-        <div style="margin-top: 20px; display: flex; justify-content: center; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
-          <div style="text-align: center; width: 60%;">
-            ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
-            <p style="margin: 2px 0;">________________________________________</p>
-            <p style="margin: 0; font-size: 10px;"><strong>Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  document.getElementById('modalTitleOrc').textContent = `Orçamento - ${b.number}`;
-  document.getElementById('loadingStatusOrc').textContent = 'Pronto';
-  document.getElementById('budgetPreviewModal').style.display = 'flex';
-};
-
-window.fecharModalRs = () => { document.getElementById('reportPreviewModal').style.display = 'none'; };
-window.fecharModalOrc = () => { document.getElementById('budgetPreviewModal').style.display = 'none'; };
-
-function getPdfOptions(filename) {
-  return {
-    margin: [10, 0, 10, 0], // DEVOLVE as margens superior e inferior (10mm) para n\u00e3o cortar nas quebras de p\u00e1gina
-    filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { 
-      scale: 2, 
-      useCORS: true, 
-      letterRendering: true, 
-      scrollY: 0, // A CHAVE DO PROBLEMA: for\u00e7a o scroll a renderizar tudo o que est\u00e1 escondido no modal mobile
-      windowWidth: 794
-    },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['css', 'legacy'] }
-  };
-}
-
-window.descarregarPDFRs = () => {
-  document.getElementById('loadingStatusRs').textContent = 'A descarregar...';
-  html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save().then(() => document.getElementById('loadingStatusRs').textContent = 'Pronto');
-};
-window.compartilharPDFRs = async () => {
-  document.getElementById('loadingStatusRs').textContent = 'A gerar PDF...';
-  try {
-    const blob = await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) await navigator.share({ files: [new File([blob], `RS_${activeReportData.number}.pdf`, { type: 'application/pdf' })], title: `RS ${activeReportData.number}` });
-    else html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
-    document.getElementById('loadingStatusRs').textContent = 'Pronto';
-  } catch (e) { html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save(); }
-};
-
-window.descarregarPDFOrcamento = () => {
-  document.getElementById('loadingStatusOrc').textContent = 'A descarregar...';
-  html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save().then(() => document.getElementById('loadingStatusOrc').textContent = 'Pronto');
-};
-window.compartilharPDFOrcamento = async () => {
-  document.getElementById('loadingStatusOrc').textContent = 'A gerar PDF...';
-  try {
-    const blob = await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) await navigator.share({ files: [new File([blob], `Orcamento_${activeBudgetData.number}.pdf`, { type: 'application/pdf' })], title: `Orçamento ${activeBudgetData.number}` });
-    else html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
-    document.getElementById('loadingStatusOrc').textContent = 'Pronto';
-  } catch (e) { html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save(); }
-};
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-}
+    // ATUALIZAÇÃO AQUI: Grid lado a lado flexbox
+    let itemsHtml = `<div style="display: flex; flex-wrap: wrap; width: 100%;">`;
+    itemsHtml += rep.anexos.map((anexo, i) => `
+      <div style="width: 48%; margin-right: ${i % 2 === 0 ? '4%' : '0'}; box-sizing: border-box; text-align: center; page-break-inside: avoid; margin-bottom: 15px; border: 1px solid #CBD5E1; padding: 10px; background: #FFF; border-radius: 4px;">
+        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(an
