@@ -45,10 +45,12 @@ function atualizarSelectClientes() {
   const valorAtual = select.value;
   select.innerHTML = '<option value="">Selecione o cliente...</option>';
 
-  listaClientes.sort((a, b) => (a.name || '').localeCompare(b.name || '')).forEach(c => {
+  listaClientes.sort((a, b) => (a.name || a.nome || '').localeCompare(b.name || b.nome || '')).forEach(c => {
+    const nome = c.name || c.nome || '';
+    if (!nome) return;
     const opt = document.createElement('option');
-    opt.value = c.name;
-    opt.textContent = c.name;
+    opt.value = nome;
+    opt.textContent = nome;
     select.appendChild(opt);
   });
 
@@ -67,7 +69,7 @@ function renderizarListaAcordeao() {
       <div style="text-align: center; background: #FFF; padding: 35px 20px; border-radius: 8px; border: 1px dashed #CBD5E1;" class="card">
         <i class="fa-solid fa-users-slash" style="font-size: 2rem; color: #94A3B8; margin-bottom: 10px;"></i>
         <p style="color: #64748B; margin-bottom: 15px;">Nenhum cliente registado no sistema.</p>
-        <button type="button" class="btn" onclick="abrirFormCliente()" style="background-color: var(--tech-blue); color: white; padding: 8px 16px;">
+        <button type="button" class="btn" onclick="abrirFormCliente()" style="background-color: #1D4ED8; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
           + Cadastrar Primeiro Cliente
         </button>
       </div>
@@ -78,27 +80,48 @@ function renderizarListaAcordeao() {
   let html = '';
 
   listaClientes.forEach(cliente => {
-    const nomeCliente = cliente.name || 'Sem Nome';
+    const nomeCliente = cliente.name || cliente.nome || 'Sem Nome';
     const idCliente = cliente.id || ('c_' + Math.random().toString(36).substring(2, 7));
     cliente.id = idCliente;
+
+    const contato = cliente.contact || cliente.contato || '';
+    const telefone = cliente.phone || cliente.telefone || '';
+    const email = cliente.email || '';
+    const documento = cliente.document || cliente.cpf_cnpj || cliente.cnpj || cliente.cpf || '';
+    const endereco = cliente.address || cliente.endereco || cliente.morada || '';
 
     // Filtra máquinas vinculadas a este cliente
     const maquinasDoCliente = listaMaquinas.filter(m => (m.client || m.cliente) === nomeCliente);
 
-    // Filtro de Busca
-    const atendeFiltroCliente = nomeCliente.toLowerCase().includes(termoBusca) || (cliente.contact || '').toLowerCase().includes(termoBusca);
+    // Filtro de Busca abrangente
+    const atendeFiltroCliente = nomeCliente.toLowerCase().includes(termoBusca) || 
+      contato.toLowerCase().includes(termoBusca) ||
+      email.toLowerCase().includes(termoBusca) ||
+      documento.toLowerCase().includes(termoBusca) ||
+      endereco.toLowerCase().includes(termoBusca);
+
     const maquinasFiltradas = maquinasDoCliente.filter(m => 
       (m.name || m.nome || '').toLowerCase().includes(termoBusca) || 
+      (m.brand || m.marca || '').toLowerCase().includes(termoBusca) || 
       (m.model || m.modelo || '').toLowerCase().includes(termoBusca) || 
-      (m.serialNumber || m.numserie || '').toLowerCase().includes(termoBusca)
+      (m.serialNumber || m.numserie || m.tag || '').toLowerCase().includes(termoBusca)
     );
 
     if (termoBusca !== '' && !atendeFiltroCliente && maquinasFiltradas.length === 0) {
-      return; // Oculta cliente se não casar com a pesquisa
+      return;
     }
 
     const qtdMaquinas = maquinasDoCliente.length;
     const badgeQtd = `<span style="background: ${qtdMaquinas > 0 ? '#E0F2FE' : '#F1F5F9'}; color: ${qtdMaquinas > 0 ? '#0369A1' : '#64748B'}; padding: 3px 8px; border-radius: 12px; font-size: 0.78rem; font-weight: bold;"><i class="fa-solid fa-gears"></i> ${qtdMaquinas} ${qtdMaquinas === 1 ? 'máquina' : 'máquinas'}</span>`;
+
+    // Linhas de detalhe do cliente
+    let detalhesClienteArr = [];
+    if (contato) detalhesClienteArr.push(`<i class="fa-solid fa-user"></i> ${escapeHTML(contato)}`);
+    if (telefone) detalhesClienteArr.push(`<i class="fa-solid fa-phone"></i> ${escapeHTML(telefone)}`);
+    if (email) detalhesClienteArr.push(`<i class="fa-solid fa-envelope"></i> ${escapeHTML(email)}`);
+    if (documento) detalhesClienteArr.push(`<i class="fa-solid fa-id-card"></i> ${escapeHTML(documento)}`);
+
+    let detalhesClienteHTML = detalhesClienteArr.join(' | ');
 
     html += `
       <div class="client-card" id="card_client_${idCliente}">
@@ -108,7 +131,8 @@ function renderizarListaAcordeao() {
               <strong style="font-size: 1.05rem; color: #0B132B;">${escapeHTML(nomeCliente)}</strong>
               ${badgeQtd}
             </div>
-            ${cliente.contact ? `<small style="color: #64748B; display: block; margin-top: 2px;"><i class="fa-solid fa-user"></i> ${escapeHTML(cliente.contact)} ${cliente.phone ? ' | ' + escapeHTML(cliente.phone) : ''}</small>` : ''}
+            ${detalhesClienteHTML ? `<small style="color: #64748B; display: block; margin-top: 4px;">${detalhesClienteHTML}</small>` : ''}
+            ${endereco ? `<small style="color: #64748B; display: block; margin-top: 2px;"><i class="fa-solid fa-location-dot"></i> ${escapeHTML(endereco)}</small>` : ''}
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <i class="fa-solid fa-chevron-down" id="icon_chevron_${idCliente}" style="color: #94A3B8; transition: transform 0.3s;"></i>
@@ -119,13 +143,13 @@ function renderizarListaAcordeao() {
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">
             <span style="font-size: 0.85rem; font-weight: bold; color: #475569;">Equipamentos Registados</span>
             <div style="display: flex; gap: 6px;">
-              <button type="button" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); padding: 4px 10px; font-size: 0.75rem; font-weight: bold;" onclick="event.stopPropagation(); abrirFormMaquina('${escapeHTML(nomeCliente)}')">
+              <button type="button" class="btn" style="background-color: #00F5D4; color: #0B132B; padding: 4px 10px; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;" onclick="event.stopPropagation(); abrirFormMaquina('${escapeHTML(nomeCliente)}')">
                 <i class="fa-solid fa-plus"></i> Add Máquina
               </button>
-              <button type="button" class="btn" style="background-color: #F59E0B; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold;" onclick="event.stopPropagation(); editarCliente('${idCliente}')">
+              <button type="button" class="btn" style="background-color: #F59E0B; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;" onclick="event.stopPropagation(); editarCliente('${idCliente}')">
                 <i class="fa-solid fa-pen"></i> Editar
               </button>
-              <button type="button" class="btn" style="background-color: #EF4444; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold;" onclick="event.stopPropagation(); excluirCliente('${idCliente}', '${escapeHTML(nomeCliente)}')">
+              <button type="button" class="btn" style="background-color: #EF4444; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;" onclick="event.stopPropagation(); excluirCliente('${idCliente}', '${escapeHTML(nomeCliente)}')">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -151,24 +175,30 @@ function gerarHtmlMaquinasInternas(maquinas, idCliente) {
     const mId = m.id || ('m_' + Math.random().toString(36).substring(2, 7));
     m.id = mId;
     const nomeMaq = m.name || m.nome || 'Máquina sem nome';
+    const marcaMaq = m.brand || m.marca || '';
     const modMaq = m.model || m.modelo || '';
-    const serieMaq = m.serialNumber || m.numserie || '';
+    const serieMaq = m.serialNumber || m.numserie || m.tag || '';
+
+    let infoComplementar = [];
+    if (marcaMaq) infoComplementar.push(`Marca: ${escapeHTML(marcaMaq)}`);
+    if (modMaq) infoComplementar.push(`Modelo: ${escapeHTML(modMaq)}`);
+    let stringComplementar = infoComplementar.join(' | ');
 
     return `
       <div class="machine-item">
         <div>
-          <strong style="font-size: 0.95rem; color: #0B132B;"><i class="fa-solid fa-gear" style="color: var(--tech-blue);"></i> ${escapeHTML(nomeMaq)}</strong>
-          ${modMaq ? `<span style="font-size: 0.8rem; color: #475569; margin-left: 8px;">(Modelo: ${escapeHTML(modMaq)})</span>` : ''}
-          ${serieMaq ? `<br><small style="font-size: 0.78rem; color: #64748B;">Nº Série: ${escapeHTML(serieMaq)}</small>` : ''}
+          <strong style="font-size: 0.95rem; color: #0B132B;"><i class="fa-solid fa-gear" style="color: #1D4ED8;"></i> ${escapeHTML(nomeMaq)}</strong>
+          ${stringComplementar ? `<span style="font-size: 0.8rem; color: #475569; margin-left: 8px;">(${stringComplementar})</span>` : ''}
+          ${serieMaq ? `<br><small style="font-size: 0.78rem; color: #64748B;">Nº Série / Tag: ${escapeHTML(serieMaq)}</small>` : ''}
         </div>
         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-          <button type="button" class="btn" style="background-color: #10B981; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold;" onclick="novaRSComMaquina('${escapeHTML(m.client || m.cliente)}', '${escapeHTML(nomeMaq)}')">
+          <button type="button" class="btn" style="background-color: #10B981; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;" onclick="novaRSComMaquina('${escapeHTML(m.client || m.cliente)}', '${escapeHTML(nomeMaq)}')">
             <i class="fa-solid fa-file-circle-plus"></i> Gerar RS
           </button>
-          <button type="button" class="btn" style="background-color: #F59E0B; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold;" onclick="editarMaquina('${mId}')">
+          <button type="button" class="btn" style="background-color: #F59E0B; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;" onclick="editarMaquina('${mId}')">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button type="button" class="btn" style="background-color: #EF4444; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold;" onclick="excluirMaquina('${mId}', '${escapeHTML(nomeMaq)}')">
+          <button type="button" class="btn" style="background-color: #EF4444; color: white; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;" onclick="excluirMaquina('${mId}', '${escapeHTML(nomeMaq)}')">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -219,9 +249,12 @@ window.editarCliente = function(id) {
   if (!cliente) return;
 
   clienteEmEdicaoId = id;
-  document.getElementById('c-nome').value = cliente.name || '';
-  document.getElementById('c-contato').value = cliente.contact || '';
-  document.getElementById('c-telefone').value = cliente.phone || '';
+  document.getElementById('c-nome').value = cliente.name || cliente.nome || '';
+  document.getElementById('c-contato').value = cliente.contact || cliente.contato || '';
+  document.getElementById('c-telefone').value = cliente.phone || cliente.telefone || '';
+  document.getElementById('c-email').value = cliente.email || '';
+  document.getElementById('c-documento').value = cliente.document || cliente.cpf_cnpj || cliente.cnpj || cliente.cpf || '';
+  document.getElementById('c-endereco').value = cliente.address || cliente.endereco || cliente.morada || '';
 
   document.getElementById('cliente-form-title').textContent = "Editar Cliente";
   document.getElementById('btn-submit-c').textContent = "Atualizar Cliente";
@@ -235,17 +268,34 @@ document.getElementById('cliente-form')?.addEventListener('submit', async (e) =>
   const name = document.getElementById('c-nome').value.trim();
   const contact = document.getElementById('c-contato').value.trim();
   const phone = document.getElementById('c-telefone').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  const documentVal = document.getElementById('c-documento').value.trim();
+  const address = document.getElementById('c-endereco').value.trim();
 
   if (!name) return;
 
   try {
     let list = await DataSync.load('rg_clients') || [];
 
+    const objetoCliente = {
+      name,
+      nome: name,
+      contact,
+      contato: contact,
+      phone,
+      telefone: phone,
+      email,
+      document: documentVal,
+      cpf_cnpj: documentVal,
+      address,
+      endereco: address
+    };
+
     if (clienteEmEdicaoId) {
       const idx = list.findIndex(c => c.id === clienteEmEdicaoId);
       if (idx !== -1) {
-        const antigoNome = list[idx].name;
-        list[idx] = { ...list[idx], name, contact, phone };
+        const antigoNome = list[idx].name || list[idx].nome;
+        list[idx] = { ...list[idx], ...objetoCliente };
         
         // Se o nome do cliente mudou, atualiza as máquinas vinculadas
         if (antigoNome && antigoNome !== name) {
@@ -261,7 +311,7 @@ document.getElementById('cliente-form')?.addEventListener('submit', async (e) =>
       }
     } else {
       const novoId = 'c_' + Date.now();
-      list.push({ id: novoId, name, contact, phone });
+      list.push({ id: novoId, ...objetoCliente });
     }
 
     await DataSync.save('rg_clients', list);
@@ -320,8 +370,9 @@ window.editarMaquina = function(id) {
 
   document.getElementById('m-cliente-select').value = maquina.client || maquina.cliente || '';
   document.getElementById('m-nome').value = maquina.name || maquina.nome || '';
+  document.getElementById('m-marca').value = maquina.brand || maquina.marca || '';
   document.getElementById('m-modelo').value = maquina.model || maquina.modelo || '';
-  document.getElementById('m-numserie').value = maquina.serialNumber || maquina.numserie || '';
+  document.getElementById('m-numserie').value = maquina.serialNumber || maquina.numserie || maquina.tag || '';
 
   document.getElementById('maquina-form-title').textContent = "Editar Máquina";
   document.getElementById('btn-submit-m').textContent = "Atualizar Máquina";
@@ -334,6 +385,7 @@ document.getElementById('maquina-form')?.addEventListener('submit', async (e) =>
   e.preventDefault();
   const client = document.getElementById('m-cliente-select').value;
   const name = document.getElementById('m-nome').value.trim();
+  const brand = document.getElementById('m-marca').value.trim();
   const model = document.getElementById('m-modelo').value.trim();
   const serialNumber = document.getElementById('m-numserie').value.trim();
 
@@ -345,14 +397,28 @@ document.getElementById('maquina-form')?.addEventListener('submit', async (e) =>
   try {
     let list = await DataSync.load('rg_machines') || [];
 
+    const objetoMaquina = {
+      client,
+      cliente: client,
+      name,
+      nome: name,
+      brand,
+      marca: brand,
+      model,
+      modelo: model,
+      serialNumber,
+      numserie: serialNumber,
+      tag: serialNumber
+    };
+
     if (maquinaEmEdicaoId) {
       const idx = list.findIndex(m => m.id === maquinaEmEdicaoId);
       if (idx !== -1) {
-        list[idx] = { ...list[idx], client, cliente: client, name, nome: name, model, modelo: model, serialNumber, numserie: serialNumber };
+        list[idx] = { ...list[idx], ...objetoMaquina };
       }
     } else {
       const novoId = 'm_' + Date.now();
-      list.push({ id: novoId, client, cliente: client, name, nome: name, model, modelo: model, serialNumber, numserie: serialNumber });
+      list.push({ id: novoId, ...objetoMaquina });
     }
 
     await DataSync.save('rg_machines', list);
@@ -361,8 +427,8 @@ document.getElementById('maquina-form')?.addEventListener('submit', async (e) =>
     await carregarDados();
     renderizarTudo();
 
-    // Mantém o cartão do cliente expandido para o técnico ver a nova máquina
-    const clienteObj = listaClientes.find(c => c.name === client);
+    // Mantém o cartão do cliente expandido para o técnico visualizar a nova máquina
+    const clienteObj = listaClientes.find(c => (c.name || c.nome) === client);
     if (clienteObj) {
       setTimeout(() => toggleAcordeaoCliente(clienteObj.id), 100);
     }
