@@ -385,6 +385,70 @@
     let hasSignature = false;
     let tempAnexoBase64 = '';
 
+    // =========================================================================
+    // MODAL FLUTUANTE DE PROCESSAMENTO E FEEDBACK COM BOTÃO OK
+    // =========================================================================
+    function mostrarModalSalvandoFlutuante(tituloInicial = "A processar...") {
+      let overlay = document.getElementById('globalSaveModalOverlay');
+      if (!overlay) {
+        const modalHTML = `
+        <div id="globalSaveModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 20000; justify-content: center; align-items: center; font-family: inherit;">
+          <div style="background: #121824; border: 1px solid #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 380px; color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center;">
+            <div id="globalSaveSpinner" style="margin-bottom: 14px; font-size: 2.2rem; color: #38bdf8;">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </div>
+            <h3 id="globalSaveModalTitle" style="margin-top: 0; color: #38bdf8; font-size: 1.2rem; margin-bottom: 10px;">${tituloInicial}</h3>
+            <p id="globalSaveModalMessage" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">Salvando informações na nuvem...</p>
+            <div id="globalSaveModalButtons" style="display: none; justify-content: center;">
+              <button id="globalSaveModalOkBtn" style="background: #38bdf8; color: #0b132b; border: none; padding: 10px 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem;">OK</button>
+            </div>
+          </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        overlay = document.getElementById('globalSaveModalOverlay');
+      }
+
+      const spinner = document.getElementById('globalSaveSpinner');
+      const titleEl = document.getElementById('globalSaveModalTitle');
+      const msgEl = document.getElementById('globalSaveModalMessage');
+      const btnContainer = document.getElementById('globalSaveModalButtons');
+
+      spinner.style.display = 'block';
+      spinner.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+      titleEl.textContent = tituloInicial;
+      msgEl.textContent = "Salvando informações na nuvem...";
+      btnContainer.style.display = 'none';
+      overlay.style.display = 'flex';
+    }
+
+    function atualizarModalSalvandoFlutuante(mensagem, concluido = false, eErro = false) {
+      const msgEl = document.getElementById('globalSaveModalMessage');
+      const titleEl = document.getElementById('globalSaveModalTitle');
+      const spinner = document.getElementById('globalSaveSpinner');
+      const btnContainer = document.getElementById('globalSaveModalButtons');
+      const overlay = document.getElementById('globalSaveModalOverlay');
+
+      if (!overlay || overlay.style.display === 'none') return;
+
+      if (mensagem) msgEl.textContent = mensagem;
+
+      if (concluido) {
+        if (eErro) {
+          titleEl.textContent = "Erro!";
+          spinner.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color: #EF4444;"></i>';
+        } else {
+          titleEl.textContent = "Sucesso!";
+          spinner.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10B981;"></i>';
+        }
+        btnContainer.style.display = 'flex';
+      }
+    }
+
+    function fecharModalSalvandoFlutuante() {
+      const overlay = document.getElementById('globalSaveModalOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
     function normalizarLista(dados) {
       if (!dados) return [];
       if (Array.isArray(dados)) return dados;
@@ -1026,10 +1090,15 @@
       }
     }
 
+    // =========================================================================
+    // SALVAR RELATÓRIO FINAL COM MODAL FLUTUANTE DE SEGURANÇA E FEEDBACK
+    // =========================================================================
     window.salvarRelatorioFinal = async function() {
       const editIndex = document.getElementById('editIndex').value;
       const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
       const numRsStr = document.getElementById('repNumber').value;
+
+      mostrarModalSalvandoFlutuante("Salvar e Encerrar Relatório");
 
       let diasTrabalhoArray = [];
       const cards = document.querySelectorAll('.dia-card-flutuante');
@@ -1110,6 +1179,8 @@
       };
 
       try {
+        atualizarModalSalvandoFlutuante("A sincronizar relatório com a nuvem...");
+
         let rawReports = await DataSync.load('rg_reports');
         let reports = normalizarLista(rawReports); 
 
@@ -1138,12 +1209,25 @@
         }
 
         await DataSync.save('rg_reports', reports);
-        
-        alert('Relatório de serviço salvo e sincronizado com sucesso!');
-        window.location.href = 'relatorios.html';
+
+        atualizarModalSalvandoFlutuante("Relatório de serviço salvo com sucesso!", true);
+
+        const okBtn = document.getElementById('globalSaveModalOkBtn');
+        if (okBtn) {
+          okBtn.onclick = () => {
+            fecharModalSalvandoFlutuante();
+            window.location.href = 'relatorios.html';
+          };
+        }
 
       } catch (err) {
-        alert('Erro ao salvar relatório: ' + err.message);
+        atualizarModalSalvandoFlutuante("Erro ao salvar relatório: " + err.message, true, true);
+        const okBtn = document.getElementById('globalSaveModalOkBtn');
+        if (okBtn) {
+          okBtn.onclick = () => {
+            fecharModalSalvandoFlutuante();
+          };
+        }
       }
     };
 
