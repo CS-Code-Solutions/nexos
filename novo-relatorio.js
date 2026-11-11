@@ -780,16 +780,20 @@ window.salvarRelatorioFinal = async function() {
     await DataSync.save('rg_reports', reports);
     
     alert('Relatório de serviço salvo e sincronizado com sucesso!');
-    window.location.href = 'relatorios.html';
+    // AQUI É A MUDANÇA: Usa replace() em vez de href = ''
+    window.location.replace('relatorios.html'); 
 
   } catch (err) {
     alert('Erro ao salvar relatório: ' + err.message);
   }
 };
 
+
 window.resetForm = function() {
-  window.location.href = 'relatorios.html';
+  // AQUI É A MUDANÇA: Usa replace() em vez de href = ''
+  window.location.replace('relatorios.html');
 };
+
 
 function escapeHTML(str) {
   if (!str) return '';
