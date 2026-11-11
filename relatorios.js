@@ -111,7 +111,6 @@ async function renderizarTudo() {
   if (isRendering) return;
   isRendering = true;
 
-  // Procura de forma segura por qualquer um dos nomes de contêineres do HTML
   const container = document.getElementById('unifiedCardsContainer') || document.getElementById('reportCardsContainer');
   if (!container) {
     isRendering = false;
@@ -282,33 +281,35 @@ window.filtrarDocumentos = function() {
 window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
 window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
-// Sistema de Exclusão Blindada e Segura com Confirmação Real
-window.deleteReport = (index) => {
+// Sistema de Exclusão com suporte adequado ao global-modal (Promise)
+window.deleteReport = async function(index) {
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
   if (modalExclusao) {
     indexParaExcluir = index;
     tipoDocumentoExcluir = 'RS';
     modalExclusao.style.display = 'flex';
   } else {
-    if (confirm('Deseja realmente excluir este relatório de serviço?')) {
+    const resp = await confirm('Deseja realmente excluir este relatório de serviço?');
+    if (resp) {
       indexParaExcluir = index;
       tipoDocumentoExcluir = 'RS';
-      executarExclusaoConfirmada();
+      await executarExclusaoConfirmada();
     }
   }
 };
 
-window.deleteBudget = (index) => {
+window.deleteBudget = async function(index) {
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
   if (modalExclusao) {
     indexParaExcluir = index;
     tipoDocumentoExcluir = 'ORC';
     modalExclusao.style.display = 'flex';
   } else {
-    if (confirm('Deseja realmente excluir este orçamento?')) {
+    const resp = await confirm('Deseja realmente excluir este orçamento?');
+    if (resp) {
       indexParaExcluir = index;
       tipoDocumentoExcluir = 'ORC';
-      executarExclusaoConfirmada();
+      await executarExclusaoConfirmada();
     }
   }
 };
