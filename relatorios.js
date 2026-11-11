@@ -275,35 +275,29 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
 }
 
 /**
- * NexOS - Otimizador de imagens para PDF
- * Redimensiona imagens grandes e reduz seu peso,
- * mantendo a proporção original.
+ * NexOS - Otimizador de imagens para PDF (Blindado)
  */
-async function otimizarImagemParaPDF(src, maxDimensao = 1600, qualidade = 0.82) {
+async function otimizarImagemParaPDF(src, maxDimensao = 1200, qualidade = 0.75) {
   if (!src) return '';
+  if (src.startsWith('data:image/jpeg') && src.length < 150000) return src;
 
   return new Promise((resolve) => {
     const img = new Image();
-
     if (!src.startsWith('data:') && !src.startsWith('blob:')) {
       img.crossOrigin = 'anonymous';
     }
 
     img.onload = () => {
       try {
-        const larguraOriginal = img.naturalWidth;
-        const alturaOriginal = img.naturalHeight;
+        const larguraOriginal = img.naturalWidth || img.width;
+        const alturaOriginal = img.naturalHeight || img.height;
 
         if (!larguraOriginal || !alturaOriginal) {
           resolve(src);
           return;
         }
 
-        const escala = Math.min(
-          1,
-          maxDimensao / Math.max(larguraOriginal, alturaOriginal)
-        );
-
+        const escala = Math.min(1, maxDimensao / Math.max(larguraOriginal, alturaOriginal));
         const novaLargura = Math.round(larguraOriginal * escala);
         const novaAltura = Math.round(alturaOriginal * escala);
 
@@ -312,7 +306,6 @@ async function otimizarImagemParaPDF(src, maxDimensao = 1600, qualidade = 0.82) 
         canvas.height = novaAltura;
 
         const ctx = canvas.getContext('2d');
-
         if (!ctx) {
           resolve(src);
           return;
@@ -320,66 +313,41 @@ async function otimizarImagemParaPDF(src, maxDimensao = 1600, qualidade = 0.82) 
 
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, novaLargura, novaAltura);
-
         ctx.drawImage(img, 0, 0, novaLargura, novaAltura);
 
-        const imagemOtimizada = canvas.toDataURL(
-          'image/jpeg',
-          qualidade
-        );
-
-        resolve(imagemOtimizada);
+        resolve(canvas.toDataURL('image/jpeg', qualidade));
       } catch (erro) {
-        console.warn('Não foi possível otimizar uma imagem:', erro);
+        console.warn('Aviso na otimização de imagem:', erro);
         resolve(src);
       }
     };
 
-    img.onerror = () => {
-      console.warn('Não foi possível carregar uma imagem para otimização.');
-      resolve(src);
-    };
-
+    img.onerror = () => resolve(src);
     img.src = src;
   });
 }
 
 /**
- * Aguarda as imagens do relatório estarem carregadas
- * antes de iniciar a conversão para PDF.
+ * Aguarda todas as imagens do container estarem prontas
  */
 async function aguardarImagensPDF(elemento) {
   if (!elemento) return;
-
   const imagens = Array.from(elemento.querySelectorAll('img'));
 
   await Promise.all(
     imagens.map(async (img) => {
       if (img.complete && img.naturalWidth > 0) return;
-
-      if (typeof img.decode === 'function') {
-        try {
-          await img.decode();
-        } catch (e) {
-          // Continua mesmo se uma imagem específica falhar.
-        }
-      } else {
-        await new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      }
+      await new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve;
+        setTimeout(resolve, 2000);
+      });
     })
   );
 }
 
 /**
- * NexOS - Montagem do registro fotográfico do RS
- *
- * - Duas colunas por página.
- * - Até quatro imagens por página.
- * - Imagens otimizadas antes da montagem.
- * - Cabeçalho repetido em cada página.
+ * NexOS - Montagem estruturada do registro fotográfico (2 colunas, max 4 por página)
  */
 async function gerarAnexosPdfHtml(anexos, logoSrc) {
   if (!Array.isArray(anexos) || anexos.length === 0) {
@@ -400,16 +368,15 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
     const numeroPagina = Math.floor(i / 4) + 1;
 
     let cardsHtml = '';
-
     grupo.forEach((anexo) => {
       cardsHtml += `
         <div style="
           width: 48%;
-          height: 320px;
+          height: 310px;
           box-sizing: border-box;
           border: 1px solid #CBD5E1;
           border-radius: 6px;
-          padding: 9px;
+          padding: 8px;
           background: #FFFFFF;
           display: flex;
           flex-direction: column;
@@ -417,23 +384,20 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
           break-inside: avoid;
           margin-bottom: 10px;
         ">
-
           <div style="
             font-weight: bold;
             font-size: 11px;
             color: #0B132B;
             text-align: left;
-            margin-bottom: 7px;
-            min-height: 16px;
-            overflow: hidden;
+            margin-bottom: 6px;
             white-space: nowrap;
+            overflow: hidden;
             text-overflow: ellipsis;
           ">
             ${escapeHTML(anexo.titulo)}
           </div>
-
           <div style="
-            height: 275px;
+            height: 265px;
             width: 100%;
             background: #F1F5F9;
             border-radius: 4px;
@@ -444,10 +408,9 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
           ">
             <img
               src="${escapeHTML(anexo.imagem)}"
-              alt="${escapeHTML(anexo.titulo)}"
               style="
                 max-width: 100%;
-                max-height: 100%;
+                max-height: 265px;
                 width: auto;
                 height: auto;
                 object-fit: contain;
@@ -455,23 +418,21 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
               "
             >
           </div>
-
         </div>
       `;
     });
 
     htmlPaginas += `
-      <div class="anexos-pdf-pagina" style="
+      <div style="
         page-break-before: always;
         break-before: page;
         width: 100%;
         box-sizing: border-box;
         background: #FFFFFF;
-        padding-top: 5px;
+        padding: 15px 0;
         font-family: Arial, sans-serif;
         color: #0B132B;
       ">
-
         <div style="
           display: flex;
           justify-content: space-between;
@@ -480,33 +441,10 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
           padding-bottom: 8px;
           margin-bottom: 12px;
         ">
-          <img
-            src="${escapeHTML(logoSrc)}"
-            style="
-              height: 35px;
-              width: auto;
-              max-width: 130px;
-              object-fit: contain;
-            "
-          >
-
+          <img src="${escapeHTML(logoSrc)}" style="height: 35px; width: auto; max-width: 130px; object-fit: contain;">
           <div style="text-align: right;">
-            <h1 style="
-              font-size: 12px;
-              text-transform: uppercase;
-              margin: 0;
-              font-weight: bold;
-            ">
-              Anexos / Fotos do Equipamento
-            </h1>
-
-            <p style="
-              margin: 3px 0 0;
-              font-size: 9px;
-              color: #64748B;
-            ">
-              Registro fotográfico - Página ${numeroPagina}
-            </p>
+            <h1 style="font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold;">Anexos / Fotos do Equipamento</h1>
+            <p style="margin: 3px 0 0; font-size: 9px; color: #64748B;">Registro fotográfico - Página ${numeroPagina}</p>
           </div>
         </div>
 
@@ -515,12 +453,10 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
           flex-wrap: wrap;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 10px 0;
           width: 100%;
         ">
           ${cardsHtml}
         </div>
-
       </div>
     `;
   }
@@ -564,13 +500,12 @@ window.openReportPreview = async function(index) {
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
   
-  // Montagem otimizada das páginas de anexos.
+  // Montagem otimizada das páginas de anexos em grelha
   const anexosHtml = await gerarAnexosPdfHtml(
     rep.anexos || [],
     logoSrc
   );
 
-  // Estilo Inline blindado para garantir 794px e proteger os anexos
   document.getElementById('reportRenderArea').innerHTML = `
     <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
@@ -771,10 +706,10 @@ window.descarregarPDFRs = async () => {
   const area = document.getElementById('reportRenderArea');
 
   try {
-    status.textContent = 'Preparando imagens...';
+    status.textContent = 'A preparar imagens...';
     await aguardarImagensPDF(area);
 
-    status.textContent = 'Gerando PDF...';
+    status.textContent = 'A gerar PDF...';
     await html2pdf()
       .from(area)
       .set(getPdfOptions(`RS_${activeReportData.number}.pdf`))
@@ -784,7 +719,7 @@ window.descarregarPDFRs = async () => {
   } catch (erro) {
     console.error('Erro ao gerar PDF:', erro);
     status.textContent = 'Erro ao gerar PDF';
-    alert('Não foi possível gerar o PDF. Tente novamente.');
+    alert('Não foi possível gerar o PDF. Verifique as imagens.');
   }
 };
 
@@ -794,49 +729,31 @@ window.compartilharPDFRs = async () => {
   const nomeArquivo = `RS_${activeReportData.number}.pdf`;
 
   try {
-    status.textContent = 'Preparando imagens...';
+    status.textContent = 'A preparar imagens...';
     await aguardarImagensPDF(area);
 
-    status.textContent = 'Gerando PDF...';
+    status.textContent = 'A gerar PDF...';
     const blob = await html2pdf()
       .from(area)
       .set(getPdfOptions(nomeArquivo))
       .outputPdf('blob');
 
-    const arquivo = new File(
-      [blob],
-      nomeArquivo,
-      { type: 'application/pdf' }
-    );
+    const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
 
-    if (
-      navigator.canShare &&
-      navigator.canShare({ files: [arquivo] })
-    ) {
-      await navigator.share({
-        files: [arquivo],
-        title: `RS ${activeReportData.number}`
-      });
+    if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+      await navigator.share({ files: [arquivo], title: `RS ${activeReportData.number}` });
     } else {
-      await html2pdf()
-        .from(area)
-        .set(getPdfOptions(nomeArquivo))
-        .save();
+      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
     }
 
     status.textContent = 'Pronto';
   } catch (erro) {
-    console.error('Erro ao compartilhar PDF:', erro);
+    console.error('Erro ao partilhar:', erro);
     try {
-      await html2pdf()
-        .from(area)
-        .set(getPdfOptions(nomeArquivo))
-        .save();
+      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
       status.textContent = 'Pronto';
-    } catch (erroPDF) {
-      console.error('Erro no download alternativo:', erroPDF);
+    } catch (e) {
       status.textContent = 'Erro ao gerar PDF';
-      alert('Não foi possível gerar ou compartilhar o PDF.');
     }
   }
 };
@@ -846,10 +763,10 @@ window.descarregarPDFOrcamento = async () => {
   const area = document.getElementById('budgetRenderArea');
 
   try {
-    status.textContent = 'Preparando imagens...';
+    status.textContent = 'A preparar imagens...';
     await aguardarImagensPDF(area);
 
-    status.textContent = 'Gerando PDF...';
+    status.textContent = 'A gerar PDF...';
     await html2pdf()
       .from(area)
       .set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`))
@@ -868,46 +785,30 @@ window.compartilharPDFOrcamento = async () => {
   const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
 
   try {
-    status.textContent = 'Preparando imagens...';
+    status.textContent = 'A preparar imagens...';
     await aguardarImagensPDF(area);
 
-    status.textContent = 'Gerando PDF...';
+    status.textContent = 'A gerar PDF...';
     const blob = await html2pdf()
       .from(area)
       .set(getPdfOptions(nomeArquivo))
       .outputPdf('blob');
 
-    const arquivo = new File(
-      [blob],
-      nomeArquivo,
-      { type: 'application/pdf' }
-    );
+    const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
 
-    if (
-      navigator.canShare &&
-      navigator.canShare({ files: [arquivo] })
-    ) {
-      await navigator.share({
-        files: [arquivo],
-        title: `Orçamento ${activeBudgetData.number}`
-      });
+    if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+      await navigator.share({ files: [arquivo], title: `Orçamento ${activeBudgetData.number}` });
     } else {
-      await html2pdf()
-        .from(area)
-        .set(getPdfOptions(nomeArquivo))
-        .save();
+      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
     }
 
     status.textContent = 'Pronto';
   } catch (erro) {
-    console.error('Erro ao compartilhar Orçamento:', erro);
+    console.error('Erro ao partilhar Orçamento:', erro);
     try {
-      await html2pdf()
-        .from(area)
-        .set(getPdfOptions(nomeArquivo))
-        .save();
+      await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
       status.textContent = 'Pronto';
-    } catch (erroPDF) {
+    } catch (e) {
       status.textContent = 'Erro ao gerar PDF';
     }
   }
