@@ -11,24 +11,25 @@ let activeBudgetData = {};
 let indexParaExcluir = null;
 let tipoDocumentoExcluir = null;
 
-// Travas de segurança para evitar atropelamento de processos (impede o congelamento de tela)
+// TRAVA DE SEGURANÇA: Impede que o Firebase atropele os carregamentos
 let isRendering = false;
-let renderPendente = false;
 
 firebase.auth().onAuthStateChanged((user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    carregarOpcoesClientes();
-    carregarApelidosContas();
-    renderizarTudo();
+    // Usamos setTimeout para colocar as funções na fila sem congelar a thread principal (evita a tela travada)
+    setTimeout(() => carregarOpcoesClientes(), 0);
+    setTimeout(() => carregarApelidosContas(), 0);
+    setTimeout(() => renderizarTudo(), 0);
 
     try {
       if (typeof DataSync !== 'undefined') {
-        DataSync.listen('rg_reports', () => renderizarTudo());
-        DataSync.listen('rg_orcamentos', () => renderizarTudo());
-        DataSync.listen('rg_clients', () => carregarOpcoesClientes());
-        DataSync.listen('rg_config', () => carregarApelidosContas());
+        // Os listeners também recebem um atraso para não baterem no render inicial
+        DataSync.listen('rg_reports', () => setTimeout(() => renderizarTudo(), 500));
+        DataSync.listen('rg_orcamentos', () => setTimeout(() => renderizarTudo(), 500));
+        DataSync.listen('rg_clients', () => setTimeout(() => carregarOpcoesClientes(), 500));
+        DataSync.listen('rg_config', () => setTimeout(() => carregarApelidosContas(), 500));
       }
     } catch(e) {
       console.warn("Aviso ao ativar sincronização:", e);
@@ -55,19 +56,26 @@ function normalizarLista(dados) {
   return [];
 }
 
+// FUNÇÃO BLINDADA: Tenta carregar. Se travar por 4s, devolve vazio e DESTRAVA a tela.
+async function safeLoad(key) {
+  try {
+    if (typeof DataSync === 'undefined' || !DataSync.load) return [];
+    const result = await Promise.race([
+      DataSync.load(key),
+      new Promise(resolve => setTimeout(() => resolve([]), 4000))
+    ]);
+    return normalizarLista(result);
+  } catch(e) {
+    return [];
+  }
+}
+
 async function carregarOpcoesClientes() {
   const selectFiltro = document.getElementById('selectClienteFiltro');
   if (!selectFiltro) return; 
   
   try {
-    if (typeof DataSync === 'undefined') return;
-    // Escudo: Se demorar mais de 4s, devolve array vazio para forçar o destravamento imediato
-    const rawClients = await Promise.race([
-      DataSync.load('rg_clients'),
-      new Promise(resolve => setTimeout(() => resolve([]), 4000))
-    ]).catch(() => []);
-
-    const clients = normalizarLista(rawClients);
+    const clients = await safeLoad('rg_clients');
     if (!clients.length) return;
 
     const valFiltroAtual = selectFiltro.value;
@@ -104,11 +112,8 @@ async function carregarApelidosContas() {
 }
 
 async function renderizarTudo() {
-  // SISTEMA DE CATRACA: impede que o Firebase rode esta função 3x ao mesmo tempo e trave o celular
-  if (isRendering) {
-    renderPendente = true;
-    return;
-  }
+  // SISTEMA DE CATRACA: impede que o Firebase rode esta função simultaneamente
+  if (isRendering) return;
   isRendering = true;
 
   const container = document.getElementById('unifiedCardsContainer');
@@ -117,31 +122,25 @@ async function renderizarTudo() {
     return;
   }
 
-  // Só muda o texto pra "Carregando" se a tela estiver literalmente vazia (evita a tela ficar piscando à toa)
+  // Só mostra o texto "Carregando" se a tela estiver literalmente vazia (evita a tela piscar)
   if (listaRelatoriosRS.length === 0 && listaOrcamentos.length === 0) {
     container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1; padding: 20px;"><i class="fa-solid fa-circle-notch fa-spin"></i> A carregar histórico da nuvem...</p>`;
   }
 
   try {
-    if (typeof DataSync === 'undefined') throw new Error("Sem DataSync");
-
-    // BUSCA EM PARALELO: Puxa RS e Orçamentos ao mesmo tempo para voar. 
+    // BUSCA EM PARALELO COM SEGURANÇA: Puxa RS e Orçamentos ao mesmo tempo. 
     // Se a nuvem travar por mais de 4s, ignora o travamento e exibe a tela mesmo assim!
     const [rawRS, rawORC] = await Promise.all([
-      Promise.race([
-        DataSync.load('rg_reports'),
-        new Promise(resolve => setTimeout(() => resolve([]), 4000))
-      ]).catch(() => []),
-      Promise.race([
-        DataSync.load('rg_orcamentos'),
-        new Promise(resolve => setTimeout(() => resolve([]), 4000))
-      ]).catch(() => [])
+      safeLoad('rg_reports'),
+      safeLoad('rg_orcamentos')
     ]);
 
-    listaRelatoriosRS = normalizarLista(rawRS);
-    listaOrcamentos = normalizarLista(rawORC);
+    listaRelatoriosRS = rawRS;
+    listaOrcamentos = rawORC;
 
-    filtrarDocumentos(); // Aciona a exibição imediata dos cards
+    if (typeof window.filtrarDocumentos === 'function') {
+      window.filtrarDocumentos(); // Aciona a exibição imediata dos cards
+    }
   } catch (err) {
     console.error("Erro crítico:", err);
     container.innerHTML = `
@@ -152,15 +151,9 @@ async function renderizarTudo() {
       </div>
     `;
   } finally {
-    isRendering = false;
-    // Se o Firebase tentou engarrafar enquanto estava bloqueado, roda uma última vez de forma segura
-    if (renderPendente) {
-      renderPendente = false;
-      renderizarTudo();
-    }
+    isRendering = false; // Libera a trava para a próxima atualização
   }
 }
-
 
 function getValidDateTimestamp(dateStr) {
   if (!dateStr) return 0;
@@ -761,7 +754,6 @@ async function executarComProgresso(statusEl, btn, callback) {
     document.body.style.cursor = 'default'; // Volta o cursor ao normal
   }
 }
-
 
 window.descarregarPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
