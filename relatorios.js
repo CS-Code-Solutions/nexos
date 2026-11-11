@@ -11,26 +11,18 @@ let activeBudgetData = {};
 let indexParaExcluir = null;
 let tipoDocumentoExcluir = null;
 
-// TRAVA DE SEGURANÇA: Impede múltiplos carregamentos simultâneos
-let isRendering = false;
-
-firebase.auth().onAuthStateChanged((user) => {
+firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    setTimeout(() => carregarOpcoesClientes(), 0);
-    setTimeout(() => carregarApelidosContas(), 0);
-    setTimeout(() => renderizarTudo(), 0);
+    await carregarOpcoesClientes();
+    await carregarApelidosContas();
+    await renderizarTudo();
 
-    try {
-      if (typeof DataSync !== 'undefined') {
-        DataSync.listen('rg_reports', () => setTimeout(() => renderizarTudo(), 500));
-        DataSync.listen('rg_orcamentos', () => setTimeout(() => renderizarTudo(), 500));
-        DataSync.listen('rg_clients', () => setTimeout(() => carregarOpcoesClientes(), 500));
-      }
-    } catch(e) {
-      console.warn("Aviso ao ativar sincronização:", e);
-    }
+    DataSync.listen('rg_reports', () => renderizarTudo());
+    DataSync.listen('rg_orcamentos', () => renderizarTudo());
+    DataSync.listen('rg_clients', () => carregarOpcoesClientes());
+    DataSync.listen('rg_config', () => carregarApelidosContas());
   }
 });
 
@@ -53,97 +45,71 @@ function normalizarLista(dados) {
   return [];
 }
 
-// FUNÇÃO BLINDADA: Se a nuvem demorar mais de 4 segundos, destrava a tela automaticamente
-async function safeLoad(key) {
-  try {
-    if (typeof DataSync === 'undefined' || !DataSync.load) return [];
-    const result = await Promise.race([
-      DataSync.load(key),
-      new Promise(resolve => setTimeout(() => resolve([]), 4000))
-    ]);
-    return normalizarLista(result);
-  } catch(e) {
-    return [];
-  }
-}
-
 async function carregarOpcoesClientes() {
   const selectFiltro = document.getElementById('selectClienteFiltro');
-  if (!selectFiltro) return; 
-  
   try {
-    const clients = await safeLoad('rg_clients');
+    const rawClients = await DataSync.load('rg_clients');
+    const clients = normalizarLista(rawClients);
     if (!clients.length) return;
 
-    const valFiltroAtual = selectFiltro.value;
-    selectFiltro.innerHTML = '<option value="">Todos os Clientes</option>';
-    clients.forEach(c => {
-      const nome = c.name || c.nome || c.razacaosocial || '';
-      if (nome) selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
-    });
-    selectFiltro.value = valFiltroAtual;
-  } catch (e) {
-    console.warn("Aviso Clientes:", e);
-  }
+    if (selectFiltro) {
+      const valFiltroAtual = selectFiltro.value;
+      selectFiltro.innerHTML = '<option value="">Todos os Clientes</option>';
+      clients.forEach(c => {
+        const nome = c.name || c.nome || c.razacaosocial || '';
+        if (nome) {
+          selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
+        }
+      });
+      selectFiltro.value = valFiltroAtual;
+    }
+  } catch (e) {}
 }
 
 async function carregarApelidosContas() {
   try {
-    const tenantId = localStorage.getItem('rg_tenant_id') || (typeof DataSync !== 'undefined' ? DataSync.getUid() : null);
-    if (!tenantId || typeof db === 'undefined') return;
-    
-    const configDoc = await Promise.race([
-      db.collection('rg_config').doc(tenantId).get(),
-      new Promise(resolve => setTimeout(() => resolve({ exists: false }), 4000))
-    ]).catch(() => ({ exists: false }));
-    
+    const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
+    const configDoc = await db.collection('rg_config').doc(tenantId).get();
     const config = configDoc.exists ? configDoc.data() : {};
+    
     const opt1 = document.getElementById('optionBank1Label');
     const opt2 = document.getElementById('optionBank2Label');
     if (opt1) opt1.textContent = config.nomeConta1 ? `Conta Bancária: ${config.nomeConta1}` : 'Conta Bancária 1';
     if (opt2) opt2.textContent = config.nomeConta2 ? `Conta Bancária: ${config.nomeConta2}` : 'Conta Bancária 2';
-  } catch (e) {
-    console.warn("Aviso Contas:", e);
-  }
+  } catch (e) {}
 }
 
 async function renderizarTudo() {
-  if (isRendering) return;
-  isRendering = true;
+  const container = document.getElementById('unifiedCardsContainer');
+  if (!container) return;
 
-  const container = document.getElementById('unifiedCardsContainer') || document.getElementById('reportCardsContainer');
-  if (!container) {
-    isRendering = false;
-    return;
-  }
-
-  if (listaRelatoriosRS.length === 0 && listaOrcamentos.length === 0) {
-    container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1; padding: 20px;"><i class="fa-solid fa-circle-notch fa-spin"></i> A carregar histórico da nuvem...</p>`;
-  }
+  container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>`;
 
   try {
-    const [rawRS, rawORC] = await Promise.all([
-      safeLoad('rg_reports'),
-      safeLoad('rg_orcamentos')
+    const loadWithTimeout = (key) => Promise.race([
+      DataSync.load(key),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 6000))
     ]);
 
-    listaRelatoriosRS = rawRS;
-    listaOrcamentos = rawORC;
+    let rawRS = [];
+    let rawORC = [];
 
-    if (typeof window.filtrarDocumentos === 'function') {
-      window.filtrarDocumentos();
-    }
+    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Aviso ao carregar rg_reports:", e); }
+    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Aviso ao carregar rg_orcamentos:", e); }
+
+    listaRelatoriosRS = normalizarLista(rawRS);
+    listaOrcamentos = normalizarLista(rawORC);
+
+    filtrarDocumentos();
   } catch (err) {
-    console.error("Erro crítico:", err);
+    console.error("Erro crítico ao carregar lista:", err);
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 35px 20px; border-radius: 8px; border: 1px dashed #EF4444;">
         <i class="fa-solid fa-triangle-exclamation" style="font-size: 2rem; color: #EF4444; margin-bottom: 10px;"></i>
-        <p style="color: #64748B; margin-bottom: 10px;">Não foi possível ligar à base de dados neste momento.</p>
-        <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;">Tentar Novamente</button>
+        <p style="color: #64748B; margin-bottom: 10px;">Erro ao carregar os dados da nuvem. Verifique a sua conexão.</p>
+        <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Tentar Novamente</button>
       </div>
     `;
-  } finally {
-    isRendering = false;
   }
 }
 
@@ -159,10 +125,10 @@ function getValidDateTimestamp(dateStr) {
 }
 
 window.filtrarDocumentos = function() {
-  const container = document.getElementById('unifiedCardsContainer') || document.getElementById('reportCardsContainer');
+  const container = document.getElementById('unifiedCardsContainer');
   if (!container) return;
 
-  const busca = (document.getElementById('inputPesquisa')?.value || document.getElementById('inputPesquisaRelatorios')?.value || '').toLowerCase().trim();
+  const busca = (document.getElementById('inputPesquisa')?.value || '').toLowerCase().trim();
   const tipoFiltro = document.getElementById('selectTipoFiltro')?.value || 'todos';
   const clienteFiltro = document.getElementById('selectClienteFiltro')?.value || '';
 
@@ -281,35 +247,34 @@ window.filtrarDocumentos = function() {
 window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
 window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
-// Sistema de Exclusão com suporte adequado ao global-modal (Promise)
-window.deleteReport = async function(index) {
+// Sistema de Exclusão Blindada e Segura com Confirmação Real
+window.deleteReport = (index) => {
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
   if (modalExclusao) {
     indexParaExcluir = index;
     tipoDocumentoExcluir = 'RS';
     modalExclusao.style.display = 'flex';
   } else {
-    const resp = await confirm('Deseja realmente excluir este relatório de serviço?');
-    if (resp) {
+    // Confirmação nativa infalível caso o modal customizado não exista na página
+    if (confirm('Deseja realmente excluir este relatório de serviço?')) {
       indexParaExcluir = index;
       tipoDocumentoExcluir = 'RS';
-      await executarExclusaoConfirmada();
+      executarExclusaoConfirmada();
     }
   }
 };
 
-window.deleteBudget = async function(index) {
+window.deleteBudget = (index) => {
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
   if (modalExclusao) {
     indexParaExcluir = index;
     tipoDocumentoExcluir = 'ORC';
     modalExclusao.style.display = 'flex';
   } else {
-    const resp = await confirm('Deseja realmente excluir este orçamento?');
-    if (resp) {
+    if (confirm('Deseja realmente excluir este orçamento?')) {
       indexParaExcluir = index;
       tipoDocumentoExcluir = 'ORC';
-      await executarExclusaoConfirmada();
+      executarExclusaoConfirmada();
     }
   }
 };
@@ -359,6 +324,9 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
+/**
+ * NexOS - Otimizador de imagens para PDF (Seguro)
+ */
 function otimizarImagemParaPDF(src, maxDimensao = 1200, qualidade = 0.75) {
   return new Promise((resolve) => {
     if (!src) { resolve(null); return; }
@@ -414,6 +382,9 @@ async function aguardarImagensPDF(elemento) {
   );
 }
 
+/**
+ * Montagem rápida e segura do HTML dos anexos
+ */
 async function gerarAnexosPdfHtml(anexos, logoSrc) {
   if (!Array.isArray(anexos) || anexos.length === 0) return '';
 
@@ -702,29 +673,26 @@ function getPdfOptions(filename) {
   };
 }
 
+// Helper avançado com etapas animadas no status do modal e botão "Salvando..."
 async function executarComProgresso(statusEl, btn, callback) {
   const textoOriginal = btn ? btn.textContent : '';
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Aguarde...';
+    btn.textContent = 'Salvando...';
   }
-  document.body.style.cursor = 'wait';
 
   try {
     if (statusEl) statusEl.textContent = `⏳ 1/4 - Salvando informações...`;
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 250));
 
     if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens...`;
     await callback.etapaImagens();
-    await new Promise(r => setTimeout(r, 300)); 
 
-    if (statusEl) statusEl.textContent = `⏳ 3/4 - Montando documento PDF...`;
-    await new Promise(r => setTimeout(r, 500)); 
-
+    if (statusEl) statusEl.textContent = `⏳ 3/4 - Gerando documento PDF...`;
     await callback.etapaPdf();
 
     if (statusEl) statusEl.textContent = `✅ 4/4 - Finalizando relatório...`;
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 200));
 
     if (statusEl) statusEl.textContent = 'Pronto';
   } catch (erro) {
@@ -735,7 +703,6 @@ async function executarComProgresso(statusEl, btn, callback) {
       btn.disabled = false;
       btn.textContent = textoOriginal;
     }
-    document.body.style.cursor = 'default';
   }
 }
 
