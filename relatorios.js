@@ -75,15 +75,33 @@ async function carregarApelidosContas() {
 }
 
 async function renderizarTudo() {
+  const container = document.getElementById('unifiedCardsContainer');
   try {
-    const rawRS = await DataSync.load('rg_reports');
-    const rawORC = await DataSync.load('rg_orcamentos');
+    const loadWithTimeout = (key) => Promise.race([
+      DataSync.load(key),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 6000))
+    ]);
+
+    let rawRS = [];
+    let rawORC = [];
+
+    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Erro ao carregar rg_reports:", e); }
+    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Erro ao carregar rg_orcamentos:", e); }
 
     listaRelatoriosRS = normalizarLista(rawRS);
     listaOrcamentos = normalizarLista(rawORC);
     filtrarDocumentos();
   } catch (err) {
     console.error("Erro ao carregar lista:", err);
+    if (container) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 35px 20px; border-radius: 8px; border: 1px dashed #EF4444;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 2rem; color: #EF4444; margin-bottom: 10px;"></i>
+          <p style="color: #64748B; margin-bottom: 10px;">Erro ao carregar os dados da nuvem. Verifique a sua conexão.</p>
+          <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Tentar Novamente</button>
+        </div>
+      `;
+    }
   }
 }
 
@@ -310,7 +328,7 @@ window.openReportPreview = async function(index) {
   }
 
   document.getElementById('reportRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 700px; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 10px;">
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 190mm; max-width: 190mm; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 5mm;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
         
@@ -417,7 +435,7 @@ window.openBudgetPreview = async function(index) {
   const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 2px 0;">• ${escapeHTML(t)}</p>`).join('');
 
   document.getElementById('budgetRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 700px; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 10px;">
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 190mm; max-width: 190mm; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 5mm;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
         
@@ -489,14 +507,14 @@ window.fecharModalOrc = () => { document.getElementById('budgetPreviewModal').st
 
 function getPdfOptions(filename) {
   return {
-    margin: [5, 5, 5, 5],
+    margin: [10, 10, 10, 10],
     filename,
-    image: { type: 'jpeg', quality: 0.95 },
+    image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
       scale: 2, 
       useCORS: true, 
       letterRendering: true, 
-      windowWidth: 720
+      windowWidth: 794 
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] }
