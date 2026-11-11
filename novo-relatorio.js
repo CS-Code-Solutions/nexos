@@ -742,38 +742,44 @@ if (reportFormEl) {
 
     try {
       let rawReports = await DataSync.load('rg_reports');
-      let reports = normalizarLista(rawReports);
+      let reports = normalizarLista(rawReports); // Garante que é sempre array seguro
 
       if (editIndex !== '') {
         reports[editIndex] = reportData;
       } else {
-        reports.push(reportData);
-        let config = await DataSync.load('rg_config') || {};
+        reports.push(reportData); // Novo Relatório
         
-        let maxNum = 999;
-        reports.forEach(r => {
-          if (r && r.number) {
-            const m = String(r.number).match(/\d+/);
-            if (m) {
-              const val = parseInt(m[0], 10);
-              if (val > maxNum) maxNum = val;
+        // Tentativa Segura de Guardar o próximo número de RS
+        try {
+          let config = await DataSync.load('rg_config') || {};
+          let maxNum = 999;
+          reports.forEach(r => {
+            if (r && r.number) {
+              const m = String(r.number).match(/\d+/);
+              if (m) {
+                const val = parseInt(m[0], 10);
+                if (val > maxNum) maxNum = val;
+              }
             }
-          }
-        });
-        
-        config.nextRsNumber = String(maxNum + 1);
-        await DataSync.save('rg_config', config);
+          });
+          config.nextRsNumber = String(maxNum + 1);
+          await DataSync.save('rg_config', config);
+        } catch (configErr) {
+          console.warn('Erro menor ao tentar guardar nº seguinte, mas o relatório será guardado na mesma.', configErr);
+        }
       }
 
+      // Gravamos efetivamente o Array de Relatórios com a entrada adicionada
       await DataSync.save('rg_reports', reports);
+      
       alert('Relatório de serviço salvo e sincronizado com sucesso!');
       window.location.href = 'relatorios.html';
+
     } catch (err) {
-      alert('Erro ao salvar relatório: ' + err.message);
+      alert('Erro Crítico ao salvar relatório: ' + err.message);
     }
   });
 }
-
 window.resetForm = function() {
   window.location.href = 'relatorios.html';
 };
