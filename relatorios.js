@@ -87,13 +87,12 @@ async function renderizarTudo() {
   }
 }
 
-// Converte de forma ultra segura para timestamp qualquer formato de data
 function getValidDateTimestamp(dateStr) {
   if (!dateStr) return 0;
   let cleanStr = String(dateStr).trim();
   if (cleanStr.includes('/')) {
     const p = cleanStr.split('/');
-    if (p.length === 3) cleanStr = `${p[2]}-${p[1]}-${p[0]}`; // Converte DD/MM/YYYY para YYYY-MM-DD
+    if (p.length === 3) cleanStr = `${p[2]}-${p[1]}-${p[0]}`;
   }
   const d = new Date(`${cleanStr}T00:00:00`);
   return isNaN(d.getTime()) ? 0 : d.getTime();
@@ -144,7 +143,6 @@ window.filtrarDocumentos = function() {
     }
   }
 
-  // Ordenação correta: Mais recente no topo (por data decrescente e número maior)
   unificados.sort((a, b) => {
     const diffTime = getValidDateTimestamp(b.data) - getValidDateTimestamp(a.data);
     if (diffTime !== 0) return diffTime;
@@ -238,7 +236,6 @@ window.deleteBudget = async (index) => {
   }
 };
 
-/* --- CÁLCULOS TEMPO --- */
 function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   let minutosTotais = 0; let detalhesDiasHtml = '';
   if (Array.isArray(diasArray)) {
@@ -259,7 +256,6 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
-/* --- PDF DO RS --- */
 window.openReportPreview = async function(index) {
   const rep = listaRelatoriosRS[index];
   if (!rep) { alert("Relatório não encontrado."); return; }
@@ -295,18 +291,18 @@ window.openReportPreview = async function(index) {
   activeReportData = { number: numDoc, client: clientName };
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
- let anexosHtml = '';
+  let anexosHtml = '';
   if (rep.anexos && rep.anexos.length > 0) {
     let itemsHtml = rep.anexos.map(anexo => `
       <div style="text-align: center; page-break-inside: avoid; margin-top: 15px; border: 1px solid #CBD5E1; padding: 10px; background: #FFF;">
         <div style="text-align: left; font-weight: bold; margin-bottom: 5px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 160px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
       </div>
     `).join('');
-    
     anexosHtml = `
       <div style="page-break-before: always; height: 1px; margin-top: 15px;"></div>
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; align-items: center;">
+        <img src="${logoSrc}" style="height: 35px; width: auto; max-width: 120px; object-fit: contain;">
         <h1 style="font-size: 12px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
       </div>
       ${itemsHtml}
@@ -314,75 +310,77 @@ window.openReportPreview = async function(index) {
   }
 
   document.getElementById('reportRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 794px; margin: 0 auto; box-sizing: border-box; overflow: hidden; padding: 25px; background: #FFFFFF;">
-      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 85px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
-      
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 10px; margin-bottom: 15px; position: relative; z-index: 1;">
-        <img src="${logoSrc}" style="height: 45px; width: auto; max-width: 150px; object-fit: contain;">
-        <div style="text-align: right;">
-          <h1 style="font-size: 14px; margin: 0; font-weight: bold;">RELATÓRIO DE SERVIÇO (RS)</h1>
-          <p style="margin: 2px 0;"><strong>Nº:</strong> RS-${escapeHTML(numDoc).replace(/^RS-?/i, '')} | <strong>Data:</strong> ${dataFormatada}</p>
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 700px; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 10px;">
+      <div style="position: relative; width: 100%; box-sizing: border-box;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
+          <img src="${logoSrc}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
+          <div style="text-align: right;">
+            <h1 style="font-size: 13px; margin: 0; font-weight: bold;">RELATÓRIO DE SERVIÇO (RS)</h1>
+            <p style="margin: 2px 0; font-size: 11px;"><strong>Nº:</strong> RS-${escapeHTML(numDoc).replace(/^RS-?/i, '')} | <strong>Data:</strong> ${dataFormatada}</p>
+          </div>
         </div>
-      </div>
 
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Dados da Empresa</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <p style="margin: 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
-          <p style="margin: 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
-          <p style="margin: 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
-          <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(config.contact)}</p>
-          <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados da Empresa</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <p style="margin: 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
+            <p style="margin: 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
+            <p style="margin: 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
+            <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(config.contact)}</p>
+            <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
+          </div>
         </div>
-      </div>
 
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Dados do Cliente & Equipamento</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <p style="margin: 0;"><strong>Cliente:</strong> ${escapeHTML(clientName || '-')}</p>
-          <p style="margin: 0;"><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
-          <p style="margin: 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
-          <p style="margin: 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || clientObj.endereco || '-')}</p>
-          <p style="margin: 0;"><strong>Marca:</strong> ${escapeHTML(rep.brand || '-')}</p>
-          <p style="margin: 0;"><strong>Modelo:</strong> ${escapeHTML(rep.model || '-')}</p>
-          <p style="margin: 0; grid-column: span 2;"><strong>Nº de Série:</strong> ${escapeHTML(rep.serialNumber || '-')}</p>
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados do Cliente & Equipamento</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <p style="margin: 0;"><strong>Cliente:</strong> ${escapeHTML(clientName || '-')}</p>
+            <p style="margin: 0;"><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
+            <p style="margin: 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
+            <p style="margin: 0;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || clientObj.endereco || '-')}</p>
+            <p style="margin: 0;"><strong>Marca:</strong> ${escapeHTML(rep.brand || '-')}</p>
+            <p style="margin: 0;"><strong>Modelo:</strong> ${escapeHTML(rep.model || '-')}</p>
+            <p style="margin: 0; grid-column: span 2;"><strong>Nº de Série:</strong> ${escapeHTML(rep.serialNumber || '-')}</p>
+          </div>
         </div>
-      </div>
 
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Serviço Realizado</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-          <p style="margin: 0;"><strong>Tipo:</strong> ${escapeHTML(rep.serviceNature || '-')}</p>
-          <p style="margin: 0;"><strong>Área:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Serviço Realizado</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+            <p style="margin: 0;"><strong>Tipo:</strong> ${escapeHTML(rep.serviceNature || '-')}</p>
+            <p style="margin: 0;"><strong>Área:</strong> ${escapeHTML(rep.serviceArea || '-')}</p>
+          </div>
+          <p style="white-space: pre-wrap; margin: 0; background: #FFF; padding: 6px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(rep.desc || '-')}</p>
         </div>
-        <p style="white-space: pre-wrap; margin: 0; background: #FFF; padding: 8px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(rep.desc || '-')}</p>
-      </div>
 
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Critérios de Cobrança</div>
-        <div style="margin-bottom: 6px; font-size: 10px;">
-          ${rep.temHora === 'sim' ? `<p style="margin: 2px 0;">• <strong>Horas:</strong> ${textoHoras}</p>${detalhesDiasHtml}` : ''}
-          ${rep.temDeslocamento === 'sim' ? `<p style="margin: 2px 0;">• <strong>Deslocamento:</strong> ${rep.tempoDeslocamentoHoras || 0}h a R$ ${Number(rep.valorHoraDeslocamento || 0).toFixed(2)}/h</p>` : ''}
-          ${rep.temHospedagem === 'sim' ? `<p style="margin: 2px 0;">• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : ''}
-          ${rep.temOutras === 'sim' ? `<p style="margin: 2px 0;">• <strong>Outras Despesas:</strong> R$ ${Number(rep.valorOutras || 0).toFixed(2)}</p>` : ''}
-          ${rep.temEmpreitada === 'sim' ? `<p style="margin: 2px 0;">• <strong>Empreitada:</strong> ${textoHoras}</p>` : ''}
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Critérios de Cobrança</div>
+          <div style="margin-bottom: 4px; font-size: 10px;">
+            ${rep.temHora === 'sim' ? `<p style="margin: 2px 0;">• <strong>Horas:</strong> ${textoHoras}</p>${detalhesDiasHtml}` : ''}
+            ${rep.temDeslocamento === 'sim' ? `<p style="margin: 2px 0;">• <strong>Deslocamento:</strong> ${rep.tempoDeslocamentoHoras || 0}h a R$ ${Number(rep.valorHoraDeslocamento || 0).toFixed(2)}/h</p>` : ''}
+            ${rep.temHospedagem === 'sim' ? `<p style="margin: 2px 0;">• <strong>Hospedagem:</strong> R$ ${Number(rep.valorHospedagem || 0).toFixed(2)}</p>` : ''}
+            ${rep.temOutras === 'sim' ? `<p style="margin: 2px 0;">• <strong>Outras Despesas:</strong> R$ ${Number(rep.valorOutras || 0).toFixed(2)}</p>` : ''}
+            ${rep.temEmpreitada === 'sim' ? `<p style="margin: 2px 0;">• <strong>Empreitada:</strong> ${textoHoras}</p>` : ''}
+          </div>
+          <p style="font-size: 11px; font-weight: bold; color: #0D9488; border-top: 1px solid #CBD5E1; padding-top: 4px; margin: 0;">Valor Total Estimado: R$ ${valorTotal.toFixed(2)}</p>
         </div>
-        <p style="font-size: 12px; font-weight: bold; color: #0D9488; border-top: 1px solid #CBD5E1; padding-top: 6px; margin: 0;">Valor Total Estimado: R$ ${valorTotal.toFixed(2)}</p>
-      </div>
 
-      <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
-        <div style="text-align: center; width: 45%;">
-          ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 50px; width: auto; max-width: 180px; display: block; margin: 0 auto;">` : '<div style="height: 50px;"></div>'}
-          <p style="margin: 4px 0 2px 0;">________________________________________</p>
-          <p style="margin: 0;"><strong>Técnico:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
+          <div style="text-align: center; width: 45%;">
+            ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
+            <p style="margin: 2px 0;">________________________________________</p>
+            <p style="margin: 0; font-size: 10px;"><strong>Técnico:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
+          </div>
+          <div style="text-align: center; width: 45%;">
+            ${rep.signature ? `<img src="${rep.signature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
+            <p style="margin: 2px 0;">________________________________________</p>
+            <p style="margin: 0; font-size: 10px;"><strong>Assinatura do Cliente</strong></p>
+          </div>
         </div>
-        <div style="text-align: center; width: 45%;">
-          ${rep.signature ? `<img src="${rep.signature}" style="max-height: 50px; width: auto; max-width: 180px; display: block; margin: 0 auto;">` : '<div style="height: 50px;"></div>'}
-          <p style="margin: 4px 0 2px 0;">________________________________________</p>
-          <p style="margin: 0;"><strong>Assinatura do Cliente</strong></p>
-        </div>
+        ${anexosHtml}
       </div>
-      ${anexosHtml}
     </div>
   `;
 
@@ -391,7 +389,6 @@ window.openReportPreview = async function(index) {
   document.getElementById('reportPreviewModal').style.display = 'flex';
 };
 
-/* --- PDF DO ORÇAMENTO --- */
 window.openBudgetPreview = async function(index) {
   const b = listaOrcamentos[index];
   if (!b) return;
@@ -420,62 +417,64 @@ window.openBudgetPreview = async function(index) {
   const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 2px 0;">• ${escapeHTML(t)}</p>`).join('');
 
   document.getElementById('budgetRenderArea').innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.4; font-size: 11px; position: relative; width: 794px; margin: 0 auto; box-sizing: border-box; overflow: hidden; padding: 25px; background: #FFFFFF;">
-      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 85px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
-      
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 10px; margin-bottom: 15px; position: relative; z-index: 1;">
-        <img src="${logoSrc}" style="height: 45px; width: auto; max-width: 150px; object-fit: contain;">
-        <div style="text-align: right;">
-          <h1 style="font-size: 14px; margin: 0; font-weight: bold;">ORÇAMENTO DE SERVIÇO</h1>
-          <p style="margin: 2px 0;"><strong>Nº:</strong> ${escapeHTML(b.number || '-')} | <strong>Data:</strong> ${escapeHTML(b.date || '-')}</p>
+    <div style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 700px; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 10px;">
+      <div style="position: relative; width: 100%; box-sizing: border-box;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
+          <img src="${logoSrc}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
+          <div style="text-align: right;">
+            <h1 style="font-size: 13px; margin: 0; font-weight: bold;">ORÇAMENTO DE SERVIÇO</h1>
+            <p style="margin: 2px 0; font-size: 11px;"><strong>Nº:</strong> ${escapeHTML(b.number || '-')} | <strong>Data:</strong> ${escapeHTML(b.date || '-')}</p>
+          </div>
         </div>
-      </div>
 
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Dados da Empresa</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <p style="margin: 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
-          <p style="margin: 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
-          <p style="margin: 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
-          <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(config.contact)}</p>
-          <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados da Empresa</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <p style="margin: 0;"><strong>Razão Social:</strong> ${escapeHTML(config.name)}</p>
+            <p style="margin: 0;"><strong>CNPJ:</strong> ${escapeHTML(config.doc)}</p>
+            <p style="margin: 0;"><strong>E-mail:</strong> ${escapeHTML(config.email)}</p>
+            <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(config.contact)}</p>
+            <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(config.location)}</p>
+          </div>
         </div>
-      </div>
 
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Dados do Cliente</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <p style="margin: 0;"><strong>Cliente:</strong> ${escapeHTML(b.client || '-')}</p>
-          <p style="margin: 0;"><strong>Equipamento:</strong> ${escapeHTML(b.equipment || '-')}</p>
-          <p style="margin: 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
-          <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(clientObj.phone || '-')}</p>
-          <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Dados do Cliente</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <p style="margin: 0;"><strong>Cliente:</strong> ${escapeHTML(b.client || '-')}</p>
+            <p style="margin: 0;"><strong>Equipamento:</strong> ${escapeHTML(b.equipment || '-')}</p>
+            <p style="margin: 0;"><strong>CNPJ/CPF:</strong> ${escapeHTML(clientObj.doc || clientObj.cnpj || '-')}</p>
+            <p style="margin: 0;"><strong>Telefone:</strong> ${escapeHTML(clientObj.phone || '-')}</p>
+            <p style="margin: 0; grid-column: span 2;"><strong>Endereço:</strong> ${escapeHTML(clientObj.address || '-')}</p>
+          </div>
         </div>
-      </div>
 
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Escopo do Serviço</div>
-        <p style="white-space: pre-wrap; margin: 0; background: #FFF; padding: 8px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(b.desc || '-')}</p>
-      </div>
-
-      <div style="border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 12px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">Condições Comerciais</div>
-        <div style="font-size: 11px;">
-          ${termsList}
-          <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 8px 0;">
-          ${bancoInfoHtml}
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Escopo do Serviço</div>
+          <p style="white-space: pre-wrap; margin: 0; background: #FFF; padding: 6px; border: 1px solid #E2E8F0; border-radius: 4px;">${escapeHTML(b.desc || '-')}</p>
         </div>
-      </div>
 
-      <div style="text-align: right; background: #F1F5F9; border: 1px solid #00F5D4; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
-        <p style="font-size: 14px; font-weight: bold; color: #0B132B; margin: 0;">VALOR TOTAL: R$ ${Number(b.total || 0).toFixed(2)}</p>
-      </div>
+        <div style="border: 1px solid #CBD5E1; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #F8FAFC; position: relative; z-index: 1; page-break-inside: avoid;">
+          <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px;">Condições Comerciais</div>
+          <div style="font-size: 10px;">
+            ${termsList}
+            <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 6px 0;">
+            ${bancoInfoHtml}
+          </div>
+        </div>
 
-      <div style="margin-top: 25px; display: flex; justify-content: center; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
-        <div style="text-align: center; width: 60%;">
-          ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 50px; width: auto; max-width: 180px; display: block; margin: 0 auto;">` : '<div style="height: 50px;"></div>'}
-          <p style="margin: 4px 0 2px 0;">________________________________________</p>
-          <p style="margin: 0;"><strong>Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
+        <div style="text-align: right; background: #F1F5F9; border: 1px solid #00F5D4; padding: 8px; border-radius: 6px; margin-bottom: 12px;">
+          <p style="font-size: 13px; font-weight: bold; color: #0B132B; margin: 0;">VALOR TOTAL: R$ ${Number(b.total || 0).toFixed(2)}</p>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: center; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
+          <div style="text-align: center; width: 60%;">
+            ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
+            <p style="margin: 2px 0;">________________________________________</p>
+            <p style="margin: 0; font-size: 10px;"><strong>Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -485,20 +484,19 @@ window.openBudgetPreview = async function(index) {
   document.getElementById('budgetPreviewModal').style.display = 'flex';
 };
 
-/* --- UTILITÁRIOS (Fechar Modais, Exportar) --- */
 window.fecharModalRs = () => { document.getElementById('reportPreviewModal').style.display = 'none'; };
 window.fecharModalOrc = () => { document.getElementById('budgetPreviewModal').style.display = 'none'; };
 
 function getPdfOptions(filename) {
   return {
-    margin: [8, 8, 8, 8],
+    margin: [5, 5, 5, 5],
     filename,
-    image: { type: 'jpeg', quality: 0.98 },
+    image: { type: 'jpeg', quality: 0.95 },
     html2canvas: { 
       scale: 2, 
       useCORS: true, 
       letterRendering: true, 
-      windowWidth: 794 // Largura exata padrão A4 (96 DPI) para evitar distorções
+      windowWidth: 720
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] }
