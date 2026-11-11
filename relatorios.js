@@ -11,18 +11,26 @@ let activeBudgetData = {};
 let indexParaExcluir = null;
 let tipoDocumentoExcluir = null;
 
-firebase.auth().onAuthStateChanged(async (user) => {
+firebase.auth().onAuthStateChanged((user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    await carregarOpcoesClientes();
-    await carregarApelidosContas();
-    await renderizarTudo();
+    // IMPORTANTE: Foram removidos os comandos "await" daqui.
+    // Agora o sistema dispara os carregamentos em paralelo sem que um trave o outro.
+    carregarOpcoesClientes();
+    carregarApelidosContas();
+    renderizarTudo(); // Chama a tela principal imediatamente
 
-    DataSync.listen('rg_reports', () => renderizarTudo());
-    DataSync.listen('rg_orcamentos', () => renderizarTudo());
-    DataSync.listen('rg_clients', () => carregarOpcoesClientes());
-    DataSync.listen('rg_config', () => carregarApelidosContas());
+    try {
+      if (typeof DataSync !== 'undefined') {
+        DataSync.listen('rg_reports', () => renderizarTudo());
+        DataSync.listen('rg_orcamentos', () => renderizarTudo());
+        DataSync.listen('rg_clients', () => carregarOpcoesClientes());
+        DataSync.listen('rg_config', () => carregarApelidosContas());
+      }
+    } catch(e) {
+      console.warn("Aviso ao ativar sincronização em tempo real:", e);
+    }
   }
 });
 
@@ -47,37 +55,54 @@ function normalizarLista(dados) {
 
 async function carregarOpcoesClientes() {
   const selectFiltro = document.getElementById('selectClienteFiltro');
+  if (!selectFiltro) return; // Segurança contra quebra
+  
   try {
-    const rawClients = await DataSync.load('rg_clients');
+    // Adicionado um limite de 5s para nunca travar a tela se a rede falhar
+    const loadWithTimeout = (key) => Promise.race([
+      DataSync.load(key),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Clientes')), 5000))
+    ]);
+
+    const rawClients = await loadWithTimeout('rg_clients');
     const clients = normalizarLista(rawClients);
     if (!clients.length) return;
 
-    if (selectFiltro) {
-      const valFiltroAtual = selectFiltro.value;
-      selectFiltro.innerHTML = '<option value="">Todos os Clientes</option>';
-      clients.forEach(c => {
-        const nome = c.name || c.nome || c.razacaosocial || '';
-        if (nome) {
-          selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
-        }
-      });
-      selectFiltro.value = valFiltroAtual;
-    }
-  } catch (e) {}
+    const valFiltroAtual = selectFiltro.value;
+    selectFiltro.innerHTML = '<option value="">Todos os Clientes</option>';
+    clients.forEach(c => {
+      const nome = c.name || c.nome || c.razacaosocial || '';
+      if (nome) {
+        selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
+      }
+    });
+    selectFiltro.value = valFiltroAtual;
+  } catch (e) {
+    console.warn("Aviso (Clientes):", e);
+  }
 }
 
 async function carregarApelidosContas() {
   try {
-    const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
-    const configDoc = await db.collection('rg_config').doc(tenantId).get();
+    const tenantId = localStorage.getItem('rg_tenant_id') || (typeof DataSync !== 'undefined' ? DataSync.getUid() : null);
+    if (!tenantId || typeof db === 'undefined') return;
+    
+    // Trava de segurança de 5s também no banco de dados para evitar congelamento
+    const configDocPromise = db.collection('rg_config').doc(tenantId).get();
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout DB')), 5000));
+    
+    const configDoc = await Promise.race([configDocPromise, timeoutPromise]);
     const config = configDoc.exists ? configDoc.data() : {};
     
     const opt1 = document.getElementById('optionBank1Label');
     const opt2 = document.getElementById('optionBank2Label');
     if (opt1) opt1.textContent = config.nomeConta1 ? `Conta Bancária: ${config.nomeConta1}` : 'Conta Bancária 1';
     if (opt2) opt2.textContent = config.nomeConta2 ? `Conta Bancária: ${config.nomeConta2}` : 'Conta Bancária 2';
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Aviso (Apelidos de Contas):", e);
+  }
 }
+
 
 async function renderizarTudo() {
   const container = document.getElementById('unifiedCardsContainer');
