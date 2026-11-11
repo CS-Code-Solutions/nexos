@@ -11,8 +11,6 @@ firebase.auth().onAuthStateChanged((user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    // CORREÇÃO 1: Removido os "awaits" que bloqueavam a tela. 
-    // Agora carregam em paralelo e a tela de relatórios não fica presa.
     carregarOpcoesClientes().catch(e => console.error(e));
     carregarApelidosContas().catch(e => console.error(e));
     renderizarTudo().catch(e => console.error(e));
@@ -312,20 +310,25 @@ window.openReportPreview = async function(index) {
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
   let anexosHtml = '';
+  
   if (rep.anexos && rep.anexos.length > 0) {
+    // LAYOUT EM 2 COLUNAS (50% - gap)
     let itemsHtml = rep.anexos.map(anexo => `
-      <div style="text-align: center; page-break-inside: avoid; margin-top: 15px; border: 1px solid #CBD5E1; padding: 10px; background: #FFF; border-radius: 4px;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 250px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+      <div style="width: calc(50% - 7.5px); text-align: center; page-break-inside: avoid; border: 1px solid #CBD5E1; padding: 10px; background: #FFF; border-radius: 6px; box-sizing: border-box;">
+        <div style="text-align: left; font-weight: bold; margin-bottom: 8px; font-size: 11px; color: #0B132B; border-bottom: 1px solid #F1F5F9; padding-bottom: 4px;">${escapeHTML(anexo.titulo)}</div>
+        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 240px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto; border-radius: 4px;">
       </div>
     `).join('');
+    
     anexosHtml = `
       <div style="page-break-before: always; height: 1px; margin-top: 10px;"></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 10px;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 15px;">
         <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
         <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
       </div>
-      ${itemsHtml}
+      <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between;">
+        ${itemsHtml}
+      </div>
     `;
   }
 
@@ -524,9 +527,6 @@ function getPdfOptions(filename) {
   };
 }
 
-// CORREÇÃO 2: Funções de PDF atualizadas.
-// Elas removem temporariamente a barra de rolagem (overflow: visible) 
-// para forçar a biblioteca a capturar a tela interia até o fim sem cortar!
 window.descarregarPDFRs = async () => {
   document.getElementById('loadingStatusRs').textContent = 'A descarregar...';
   const container = document.querySelector('#reportPreviewModal .report-scroll-container');
