@@ -11,15 +11,17 @@ let activeBudgetData = {};
 let indexParaExcluir = null;
 let tipoDocumentoExcluir = null;
 
+// Travas de segurança para evitar atropelamento de processos (impede o congelamento de tela)
+let isRendering = false;
+let renderPendente = false;
+
 firebase.auth().onAuthStateChanged((user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    // IMPORTANTE: Foram removidos os comandos "await" daqui.
-    // Agora o sistema dispara os carregamentos em paralelo sem que um trave o outro.
     carregarOpcoesClientes();
     carregarApelidosContas();
-    renderizarTudo(); // Chama a tela principal imediatamente
+    renderizarTudo();
 
     try {
       if (typeof DataSync !== 'undefined') {
@@ -29,7 +31,7 @@ firebase.auth().onAuthStateChanged((user) => {
         DataSync.listen('rg_config', () => carregarApelidosContas());
       }
     } catch(e) {
-      console.warn("Aviso ao ativar sincronização em tempo real:", e);
+      console.warn("Aviso ao ativar sincronização:", e);
     }
   }
 });
@@ -55,16 +57,16 @@ function normalizarLista(dados) {
 
 async function carregarOpcoesClientes() {
   const selectFiltro = document.getElementById('selectClienteFiltro');
-  if (!selectFiltro) return; // Segurança contra quebra
+  if (!selectFiltro) return; 
   
   try {
-    // Adicionado um limite de 5s para nunca travar a tela se a rede falhar
-    const loadWithTimeout = (key) => Promise.race([
-      DataSync.load(key),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Clientes')), 5000))
-    ]);
+    if (typeof DataSync === 'undefined') return;
+    // Escudo: Se demorar mais de 4s, devolve array vazio para forçar o destravamento imediato
+    const rawClients = await Promise.race([
+      DataSync.load('rg_clients'),
+      new Promise(resolve => setTimeout(() => resolve([]), 4000))
+    ]).catch(() => []);
 
-    const rawClients = await loadWithTimeout('rg_clients');
     const clients = normalizarLista(rawClients);
     if (!clients.length) return;
 
@@ -72,13 +74,11 @@ async function carregarOpcoesClientes() {
     selectFiltro.innerHTML = '<option value="">Todos os Clientes</option>';
     clients.forEach(c => {
       const nome = c.name || c.nome || c.razacaosocial || '';
-      if (nome) {
-        selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
-      }
+      if (nome) selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
     });
     selectFiltro.value = valFiltroAtual;
   } catch (e) {
-    console.warn("Aviso (Clientes):", e);
+    console.warn("Aviso Clientes:", e);
   }
 }
 
@@ -87,56 +87,80 @@ async function carregarApelidosContas() {
     const tenantId = localStorage.getItem('rg_tenant_id') || (typeof DataSync !== 'undefined' ? DataSync.getUid() : null);
     if (!tenantId || typeof db === 'undefined') return;
     
-    // Trava de segurança de 5s também no banco de dados para evitar congelamento
-    const configDocPromise = db.collection('rg_config').doc(tenantId).get();
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout DB')), 5000));
+    // Escudo de 4 segundos também para a consulta ao banco de dados puro
+    const configDoc = await Promise.race([
+      db.collection('rg_config').doc(tenantId).get(),
+      new Promise(resolve => setTimeout(() => resolve({ exists: false }), 4000))
+    ]).catch(() => ({ exists: false }));
     
-    const configDoc = await Promise.race([configDocPromise, timeoutPromise]);
     const config = configDoc.exists ? configDoc.data() : {};
-    
     const opt1 = document.getElementById('optionBank1Label');
     const opt2 = document.getElementById('optionBank2Label');
     if (opt1) opt1.textContent = config.nomeConta1 ? `Conta Bancária: ${config.nomeConta1}` : 'Conta Bancária 1';
     if (opt2) opt2.textContent = config.nomeConta2 ? `Conta Bancária: ${config.nomeConta2}` : 'Conta Bancária 2';
   } catch (e) {
-    console.warn("Aviso (Apelidos de Contas):", e);
+    console.warn("Aviso Contas:", e);
   }
 }
 
-
 async function renderizarTudo() {
-  const container = document.getElementById('unifiedCardsContainer');
-  if (!container) return;
+  // SISTEMA DE CATRACA: impede que o Firebase rode esta função 3x ao mesmo tempo e trave o celular
+  if (isRendering) {
+    renderPendente = true;
+    return;
+  }
+  isRendering = true;
 
-  container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>`;
+  const container = document.getElementById('unifiedCardsContainer');
+  if (!container) {
+    isRendering = false;
+    return;
+  }
+
+  // Só muda o texto pra "Carregando" se a tela estiver literalmente vazia (evita a tela ficar piscando à toa)
+  if (listaRelatoriosRS.length === 0 && listaOrcamentos.length === 0) {
+    container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1; padding: 20px;"><i class="fa-solid fa-circle-notch fa-spin"></i> A carregar histórico da nuvem...</p>`;
+  }
 
   try {
-    const loadWithTimeout = (key) => Promise.race([
-      DataSync.load(key),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 6000))
+    if (typeof DataSync === 'undefined') throw new Error("Sem DataSync");
+
+    // BUSCA EM PARALELO: Puxa RS e Orçamentos ao mesmo tempo para voar. 
+    // Se a nuvem travar por mais de 4s, ignora o travamento e exibe a tela mesmo assim!
+    const [rawRS, rawORC] = await Promise.all([
+      Promise.race([
+        DataSync.load('rg_reports'),
+        new Promise(resolve => setTimeout(() => resolve([]), 4000))
+      ]).catch(() => []),
+      Promise.race([
+        DataSync.load('rg_orcamentos'),
+        new Promise(resolve => setTimeout(() => resolve([]), 4000))
+      ]).catch(() => [])
     ]);
-
-    let rawRS = [];
-    let rawORC = [];
-
-    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Aviso ao carregar rg_reports:", e); }
-    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Aviso ao carregar rg_orcamentos:", e); }
 
     listaRelatoriosRS = normalizarLista(rawRS);
     listaOrcamentos = normalizarLista(rawORC);
 
-    filtrarDocumentos();
+    filtrarDocumentos(); // Aciona a exibição imediata dos cards
   } catch (err) {
-    console.error("Erro crítico ao carregar lista:", err);
+    console.error("Erro crítico:", err);
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; background: #FFF; padding: 35px 20px; border-radius: 8px; border: 1px dashed #EF4444;">
         <i class="fa-solid fa-triangle-exclamation" style="font-size: 2rem; color: #EF4444; margin-bottom: 10px;"></i>
-        <p style="color: #64748B; margin-bottom: 10px;">Erro ao carregar os dados da nuvem. Verifique a sua conexão.</p>
-        <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Tentar Novamente</button>
+        <p style="color: #64748B; margin-bottom: 10px;">Não foi possível ligar à base de dados neste momento.</p>
+        <button class="btn" onclick="renderizarTudo()" style="background: #1D4ED8; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;">Tentar Novamente</button>
       </div>
     `;
+  } finally {
+    isRendering = false;
+    // Se o Firebase tentou engarrafar enquanto estava bloqueado, roda uma última vez de forma segura
+    if (renderPendente) {
+      renderPendente = false;
+      renderizarTudo();
+    }
   }
 }
+
 
 function getValidDateTimestamp(dateStr) {
   if (!dateStr) return 0;
