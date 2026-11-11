@@ -312,11 +312,11 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   
   if (rep.anexos && rep.anexos.length > 0) {
-    // ALTERAÇÃO CIRÚRGICA: Imagens estruturadas lado a lado em duas colunas (48% de largura com espaçamento)
+    // AJUSTADO: max-height de 140px optimizado para caber 4 ou mais anexos perfeitamente em grelha 2x2 sem estourar a memória
     let itemsHtml = rep.anexos.map(anexo => `
       <div style="width: 48%; text-align: center; page-break-inside: avoid; margin-bottom: 12px; border: 1px solid #CBD5E1; padding: 8px; background: #FFF; border-radius: 4px; box-sizing: border-box;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo)}</div>
+        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 140px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
       </div>
     `).join('');
 
@@ -332,7 +332,6 @@ window.openReportPreview = async function(index) {
     `;
   }
 
-  // Estilo Inline blindado para garantir 794px e proteger os anexos
   document.getElementById('reportRenderArea').innerHTML = `
     <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
@@ -515,7 +514,7 @@ function getPdfOptions(filename) {
   return {
     margin: [10, 0, 10, 0],
     filename,
-    image: { type: 'jpeg', quality: 0.98 },
+    image: { type: 'jpeg', quality: 0.95 }, // Leve ajuste na qualidade para processar múltiplos anexos sem pesar o canvas
     html2canvas: { 
       scale: 2, 
       useCORS: true, 
@@ -528,32 +527,77 @@ function getPdfOptions(filename) {
   };
 }
 
-window.descarregarPDFRs = () => {
+window.descarregarPDFRs = async () => {
   document.getElementById('loadingStatusRs').textContent = 'A descarregar...';
-  html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save().then(() => document.getElementById('loadingStatusRs').textContent = 'Pronto');
-};
-window.compartilharPDFRs = async () => {
-  document.getElementById('loadingStatusRs').textContent = 'A gerar PDF...';
+  const container = document.querySelector('#reportPreviewModal .report-scroll-container');
+  if (container) container.style.overflow = 'visible';
+
   try {
-    const blob = await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) await navigator.share({ files: [new File([blob], `RS_${activeReportData.number}.pdf`, { type: 'application/pdf' })], title: `RS ${activeReportData.number}` });
-    else html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
+    await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
+  } catch (e) {
+    console.error("Erro ao gerar PDF:", e);
+    alert("Erro ao gerar PDF com múltiplos anexos. Verifique o tamanho das imagens.");
+  } finally {
+    if (container) container.style.overflow = 'auto';
     document.getElementById('loadingStatusRs').textContent = 'Pronto';
-  } catch (e) { html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save(); }
+  }
 };
 
-window.descarregarPDFOrcamento = () => {
-  document.getElementById('loadingStatusOrc').textContent = 'A descarregar...';
-  html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save().then(() => document.getElementById('loadingStatusOrc').textContent = 'Pronto');
+window.compartilharPDFRs = async () => {
+  document.getElementById('loadingStatusRs').textContent = 'A gerar PDF...';
+  const container = document.querySelector('#reportPreviewModal .report-scroll-container');
+  if (container) container.style.overflow = 'visible';
+
+  try {
+    const blob = await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).outputPdf('blob');
+    if (navigator.canShare) {
+      await navigator.share({ files: [new File([blob], `RS_${activeReportData.number}.pdf`, { type: 'application/pdf' })], title: `RS ${activeReportData.number}` });
+    } else {
+      await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
+    }
+  } catch (e) {
+    console.error("Erro ao compartilhar PDF:", e);
+    await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
+  } finally {
+    if (container) container.style.overflow = 'auto';
+    document.getElementById('loadingStatusRs').textContent = 'Pronto';
+  }
 };
+
+window.descarregarPDFOrcamento = async () => {
+  document.getElementById('loadingStatusOrc').textContent = 'A descarregar...';
+  const container = document.querySelector('#budgetPreviewModal .report-scroll-container');
+  if (container) container.style.overflow = 'visible';
+
+  try {
+    await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
+  } catch (e) {
+    console.error("Erro ao gerar Orçamento:", e);
+  } finally {
+    if (container) container.style.overflow = 'auto';
+    document.getElementById('loadingStatusOrc').textContent = 'Pronto';
+  }
+};
+
 window.compartilharPDFOrcamento = async () => {
   document.getElementById('loadingStatusOrc').textContent = 'A gerar PDF...';
+  const container = document.querySelector('#budgetPreviewModal .report-scroll-container');
+  if (container) container.style.overflow = 'visible';
+
   try {
     const blob = await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) await navigator.share({ files: [new File([blob], `Orcamento_${activeBudgetData.number}.pdf`, { type: 'application/pdf' })], title: `Orçamento ${activeBudgetData.number}` });
-    else html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
+    if (navigator.canShare) {
+      await navigator.share({ files: [new File([blob], `Orcamento_${activeBudgetData.number}.pdf`, { type: 'application/pdf' })], title: `Orçamento ${activeBudgetData.number}` });
+    } else {
+      await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
+    }
+  } catch (e) {
+    console.error("Erro ao partilhar Orçamento:", e);
+    await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
+  } finally {
+    if (container) container.style.overflow = 'auto';
     document.getElementById('loadingStatusOrc').textContent = 'Pronto';
-  } catch (e) { html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save(); }
+  }
 };
 
 function escapeHTML(str) {
