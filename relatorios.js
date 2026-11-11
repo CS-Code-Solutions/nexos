@@ -788,6 +788,86 @@ window.descarregarPDFOrcamento = async () => {
   const area = document.getElementById('budgetRenderArea');
   const btn = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFOrcamento"]');
 
+// Helper avançado com etapas animadas e feedback visual claro no modal e botão
+async function executarComProgresso(statusEl, btn, callback) {
+  const textoOriginal = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> A processar...';
+  }
+  document.body.style.cursor = 'wait';
+
+  try {
+    if (statusEl) statusEl.textContent = `⏳ 1/4 - Preparando dados do documento...`;
+    await new Promise(r => setTimeout(r, 200));
+
+    if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens e anexos...`;
+    await callback.etapaImagens();
+
+    if (statusEl) statusEl.textContent = `⏳ 3/4 - Renderizando o PDF (aguarde)...`;
+    await new Promise(r => setTimeout(r, 300));
+
+    await callback.etapaPdf();
+
+    if (statusEl) statusEl.textContent = `✅ 4/4 - Concluído com sucesso!`;
+    await new Promise(r => setTimeout(r, 400));
+    if (statusEl) statusEl.textContent = 'Pronto';
+  } catch (erro) {
+    console.error('Erro no processo:', erro);
+    if (statusEl) statusEl.textContent = 'Erro ao gerar documento';
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = textoOriginal;
+    }
+    document.body.style.cursor = 'default';
+  }
+}
+
+window.descarregarPDFRs = async () => {
+  const status = document.getElementById('loadingStatusRs');
+  const area = document.getElementById('reportRenderArea');
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="descarregarPDFRs"]');
+
+  await executarComProgresso(status, btn, {
+    etapaImagens: async () => { await aguardarImagensPDF(area); },
+    etapaPdf: async () => {
+      await html2pdf()
+        .from(area)
+        .set(getPdfOptions(`RS_${activeReportData.number}.pdf`))
+        .save();
+    }
+  });
+};
+
+window.compartilharPDFRs = async () => {
+  const status = document.getElementById('loadingStatusRs');
+  const area = document.getElementById('reportRenderArea');
+  const nomeArquivo = `RS_${activeReportData.number}.pdf`;
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="compartilharPDFRs"]');
+
+  await executarComProgresso(status, btn, {
+    etapaImagens: async () => { await aguardarImagensPDF(area); },
+    etapaPdf: async () => {
+      const blob = await html2pdf()
+        .from(area)
+        .set(getPdfOptions(nomeArquivo))
+        .outputPdf('blob');
+      const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        await navigator.share({ files: [arquivo], title: `RS ${activeReportData.number}` });
+      } else {
+        await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save();
+      }
+    }
+  });
+};
+
+window.descarregarPDFOrcamento = async () => {
+  const status = document.getElementById('loadingStatusOrc');
+  const area = document.getElementById('budgetRenderArea');
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="descarregarPDFOrcamento"]');
+
   await executarComProgresso(status, btn, {
     etapaImagens: async () => { await aguardarImagensPDF(area); },
     etapaPdf: async () => {
@@ -803,7 +883,7 @@ window.compartilharPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
   const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
-  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
 
   await executarComProgresso(status, btn, {
     etapaImagens: async () => { await aguardarImagensPDF(area); },
@@ -821,6 +901,7 @@ window.compartilharPDFOrcamento = async () => {
     }
   });
 };
+
 
 function escapeHTML(str) {
   if (!str) return '';
