@@ -10,13 +10,13 @@
   "icons": [
     {
       "src": "nexosico192.png",
-      "sizes": "192x192",
+      "sizes": "192x184",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
       "src": "nexos512.png",
-      "sizes": "512x512",
+      "sizes": "512x490",
       "type": "image/png",
       "purpose": "any maskable"
     }
