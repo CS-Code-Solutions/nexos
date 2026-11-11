@@ -320,22 +320,24 @@ window.openReportPreview = async function(index) {
 
     const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
 
+    // MONTAGEM DOS ANEXOS NA SEGUNDA PÁGINA (PAGE-BREAK)
     let anexosHtml = '';
     if (rep.anexos && rep.anexos.length > 0) {
       let itemsHtml = '';
       rep.anexos.forEach(anexo => {
         itemsHtml += `
           <div class="section-box" style="text-align: center; page-break-inside: avoid; margin-top: 6px;">
-            <div class="watermark">${escapeHTML(config.name)}</div>
             <div class="section-title" style="text-align: left;">${escapeHTML(anexo.titulo || 'Foto do Equipamento')}</div>
-            <img src="${anexo.imagem}" alt="${escapeHTML(anexo.titulo || '')}" style="max-width: 100%; max-height: 220px; height: auto; object-fit: contain; border-radius: 4px; border: 1px solid #CBD5E1; display: block; margin: 0 auto;">
+            <img src="${anexo.imagem}" alt="${escapeHTML(anexo.titulo || '')}" style="max-width: 100%; max-height: 240px; height: auto; border-radius: 4px; border: 1px solid #CBD5E1; display: block; margin: 4px auto 0 auto;">
           </div>
         `;
       });
       anexosHtml = `
-        <div class="page-break"></div>
+        <div class="page-break" style="page-break-before: always; break-before: page; margin-top: 15px;"></div>
         <div class="print-header">
-          <img src="${logoSrc}" alt="Logo" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
+          <div style="display: flex; align-items: center; max-width: 140px; height: 35px;">
+            <img src="${logoSrc}" alt="Logo" style="max-height: 32px; width: auto; max-width: 140px; display: block;">
+          </div>
           <div style="text-align: center; flex-grow: 1;">
             <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">ANEXOS / FOTOGRAFIAS DO EQUIPAMENTO</h1>
           </div>
@@ -353,7 +355,9 @@ window.openReportPreview = async function(index) {
         <div class="watermark">${escapeHTML(config.name)}</div>
 
         <div class="print-header">
-          <img src="${logoSrc}" alt="Logo" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
+          <div style="display: flex; align-items: center; max-width: 140px; height: 35px;">
+            <img src="${logoSrc}" alt="Logo" style="max-height: 32px; width: auto; max-width: 140px; display: block;">
+          </div>
           <div style="text-align: center; flex-grow: 1;">
             <h1 style="font-size: 11px; color: #0B132B; margin: 0; font-weight: bold; text-transform: uppercase;">RELATÓRIO DE SERVIÇO (RS)</h1>
           </div>
@@ -416,16 +420,17 @@ window.openReportPreview = async function(index) {
           <p style="font-size: 9.5px; font-weight: bold; color: #0D9488; border-top: 1px solid #CBD5E1; padding-top: 2px; margin-top: 2px;">Valor Total Estimado: R$ ${valorTotal.toFixed(2)}</p>
         </div>
 
-        <div class="signature-area">
-          <div class="signature-box">
-            ${techSignature ? `<img src="${techSignature}" alt="Assinatura Técnico">` : '<p style="height: 30px;"></p>'}
-            <p>________________________________________</p>
-            <p><strong>Assinatura Técnico:</strong> ${escapeHTML(nomeTecnico)}</p>
+        <!-- ESTRUTURA DAS ASSINATURAS LADO A LADO -->
+        <div class="signature-area" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; page-break-inside: avoid; gap: 15px;">
+          <div class="signature-box" style="flex: 1; text-align: center;">
+            ${techSignature ? `<img src="${techSignature}" alt="Assinatura Técnico" style="max-height: 35px; width: auto; max-width: 140px; display: block; margin: 0 auto 2px auto;">` : '<div style="height: 35px;"></div>'}
+            <p style="margin: 0; font-size: 8.5px;">________________________________________</p>
+            <p style="margin: 2px 0 0 0; font-size: 8.5px;"><strong>Assinatura Técnico:</strong> ${escapeHTML(nomeTecnico)}</p>
           </div>
-          <div class="signature-box">
-            ${clientSignature ? `<img src="${clientSignature}" alt="Assinatura Cliente">` : '<p style="height: 30px;"></p>'}
-            <p>________________________________________</p>
-            <p><strong>Assinatura do Cliente</strong></p>
+          <div class="signature-box" style="flex: 1; text-align: center;">
+            ${clientSignature ? `<img src="${clientSignature}" alt="Assinatura Cliente" style="max-height: 35px; width: auto; max-width: 140px; display: block; margin: 0 auto 2px auto;">` : '<div style="height: 35px;"></div>'}
+            <p style="margin: 0; font-size: 8.5px;">________________________________________</p>
+            <p style="margin: 2px 0 0 0; font-size: 8.5px;"><strong>Assinatura do Cliente</strong></p>
           </div>
         </div>
 
@@ -448,7 +453,14 @@ window.fecharModalRs = function() { document.getElementById('reportPreviewModal'
 window.compartilharPDFRs = async function() {
   const element = document.getElementById('reportRenderArea');
   const filename = `Relatorio_RS_${activeReportData.number || 'RS-1000'}.pdf`;
-  const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+  const opt = { 
+    margin: [6, 6, 6, 6], 
+    filename: filename, 
+    image: { type: 'jpeg', quality: 0.98 }, 
+    html2canvas: { scale: 2, useCORS: true }, 
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
 
   document.getElementById('loadingStatusRs').textContent = 'A gerar PDF...';
   try {
@@ -470,7 +482,14 @@ window.compartilharPDFRs = async function() {
 window.descarregarPDFRs = function() {
   const element = document.getElementById('reportRenderArea');
   const filename = `Relatorio_RS_${activeReportData.number || 'RS-1000'}.pdf`;
-  const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+  const opt = { 
+    margin: [6, 6, 6, 6], 
+    filename: filename, 
+    image: { type: 'jpeg', quality: 0.98 }, 
+    html2canvas: { scale: 2, useCORS: true }, 
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
   
   document.getElementById('loadingStatusRs').textContent = 'A descarregar...';
   html2pdf().from(element).set(opt).save().then(() => {
@@ -524,8 +543,10 @@ window.openBudgetPreview = async function(index) {
     <div class="print-body">
       <div class="watermark">${escapeHTML(config.name)}</div>
       <div class="print-header">
-        <img src="${logoSrc}" alt="Logo" style="max-height: 30px; width: auto; max-width: 120px; object-fit: contain;">
-        <div style="text-align: center; flex-grow: 1;"><h1 style="font-size: 11px; margin: 0;">ORÇAMENTO DE SERVIÇO</h1></div>
+        <div style="display: flex; align-items: center; max-width: 140px; height: 35px;">
+          <img src="${logoSrc}" alt="Logo" style="max-height: 32px; width: auto; max-width: 140px; display: block;">
+        </div>
+        <div style="text-align: center; flex-grow: 1;"><h1 style="font-size: 11px; margin: 0; font-weight: bold;">ORÇAMENTO DE SERVIÇO</h1></div>
         <div class="print-header-info"><h2>Nº: ${escapeHTML(b.number || 'ORC-0001')}</h2><p>Data: ${escapeHTML(b.date || '-')}</p></div>
       </div>
       <div class="section-box">
@@ -565,7 +586,7 @@ window.openBudgetPreview = async function(index) {
       </div>
       <div style="margin-top: 6px; display: flex; justify-content: center; page-break-inside: avoid;">
         <div style="text-align: center; width: 60%;">
-          ${techSignature ? `<img src="${techSignature}" alt="Assinatura" style="max-width: 110px; height: 30px; object-fit: contain; display: block; margin: 0 auto;">` : '<div style="height: 30px;"></div>'}
+          ${techSignature ? `<img src="${techSignature}" alt="Assinatura" style="max-width: 110px; max-height: 32px; width: auto; display: block; margin: 0 auto;">` : '<div style="height: 30px;"></div>'}
           <p style="margin: 1px 0;">________________________________________</p>
           <p style="margin: 1px 0; font-size: 8.5px;"><strong>Assinatura do Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico Responsável')}</p>
         </div>
@@ -581,7 +602,14 @@ window.fecharModalOrc = function() { document.getElementById('budgetPreviewModal
 window.compartilharPDFOrcamento = async function() {
   const element = document.getElementById('budgetRenderArea');
   const filename = `Orcamento_${activeBudgetData.number || 'ORC-0001'}.pdf`;
-  const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+  const opt = { 
+    margin: [6, 6, 6, 6], 
+    filename: filename, 
+    image: { type: 'jpeg', quality: 0.98 }, 
+    html2canvas: { scale: 2, useCORS: true }, 
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
 
   document.getElementById('loadingStatusOrc').textContent = 'A gerar PDF...';
   try {
@@ -603,7 +631,14 @@ window.compartilharPDFOrcamento = async function() {
 window.descarregarPDFOrcamento = function() {
   const element = document.getElementById('budgetRenderArea');
   const filename = `Orcamento_${activeBudgetData.number || 'ORC-0001'}.pdf`;
-  const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+  const opt = { 
+    margin: [6, 6, 6, 6], 
+    filename: filename, 
+    image: { type: 'jpeg', quality: 0.98 }, 
+    html2canvas: { scale: 2, useCORS: true }, 
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
 
   document.getElementById('loadingStatusOrc').textContent = 'A descarregar...';
   html2pdf().from(element).set(opt).save().then(() => {
