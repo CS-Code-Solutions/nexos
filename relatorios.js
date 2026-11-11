@@ -328,7 +328,7 @@ window.openReportPreview = async function(index) {
   }
 
   document.getElementById('reportRenderArea').innerHTML = `
-    <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 190mm; max-width: 190mm; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 5mm;">
+    <div class="print-body">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
         
@@ -435,7 +435,7 @@ window.openBudgetPreview = async function(index) {
   const termsList = (b.terms || '').split('\n').filter(t => t.trim() !== '').map(t => `<p style="margin: 2px 0;">• ${escapeHTML(t)}</p>`).join('');
 
   document.getElementById('budgetRenderArea').innerHTML = `
-    <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 190mm; max-width: 190mm; margin: 0 auto; box-sizing: border-box; background: #FFFFFF; padding: 5mm;">
+    <div class="print-body">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
         
@@ -507,14 +507,15 @@ window.fecharModalOrc = () => { document.getElementById('budgetPreviewModal').st
 
 function getPdfOptions(filename) {
   return {
-    margin: [10, 10, 10, 10],
+    margin: 0,
     filename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
       scale: 2, 
       useCORS: true, 
       letterRendering: true, 
-      windowWidth: 794 
+      windowWidth: 794,
+      width: 794
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] }
