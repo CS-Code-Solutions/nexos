@@ -678,21 +678,27 @@ async function executarComProgresso(statusEl, btn, callback) {
   const textoOriginal = btn ? btn.textContent : '';
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Salvando...';
+    // Adiciona um ícone girando para dar sensação visual de trabalho
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Aguarde...';
   }
+  document.body.style.cursor = 'wait'; // Muda o cursor do mouse para indicar carregamento
 
   try {
     if (statusEl) statusEl.textContent = `⏳ 1/4 - Salvando informações...`;
-    await new Promise(r => setTimeout(r, 250));
+    await new Promise(r => setTimeout(r, 300));
 
     if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens...`;
     await callback.etapaImagens();
+    await new Promise(r => setTimeout(r, 300)); 
 
-    if (statusEl) statusEl.textContent = `⏳ 3/4 - Gerando documento PDF...`;
-    await callback.etapaPdf();
+    if (statusEl) statusEl.textContent = `⏳ 3/4 - Montando documento PDF...`;
+    // ESTA PAUSA É CRUCIAL: Dá tempo do navegador mostrar o texto "Montando..." antes de travar tudo gerando o PDF
+    await new Promise(r => setTimeout(r, 500)); 
+
+    await callback.etapaPdf(); // O processamento pesado ocorre aqui
 
     if (statusEl) statusEl.textContent = `✅ 4/4 - Finalizando relatório...`;
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 300));
 
     if (statusEl) statusEl.textContent = 'Pronto';
   } catch (erro) {
@@ -703,8 +709,10 @@ async function executarComProgresso(statusEl, btn, callback) {
       btn.disabled = false;
       btn.textContent = textoOriginal;
     }
+    document.body.style.cursor = 'default'; // Volta o cursor ao normal
   }
 }
+
 
 window.descarregarPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
