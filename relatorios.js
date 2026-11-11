@@ -286,7 +286,6 @@ window.filtrarDocumentos = function() {
 window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
 window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
-// Sistema de Exclusão Blindada compatível com o global-modal (Promessas)
 window.deleteReport = async function(index) {
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
   if (modalExclusao) {
@@ -707,30 +706,29 @@ function getPdfOptions(filename) {
   };
 }
 
+// CORRIGIDO: Usa innerHTML para preservar os ícones originais dos botões sem afetar os cards
 async function executarComProgresso(statusEl, btn, callback) {
-  const textoOriginal = btn ? btn.textContent : '';
+  const textoOriginal = btn ? btn.innerHTML : '';
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Aguarde...';
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> A processar...';
   }
   document.body.style.cursor = 'wait';
 
   try {
-    if (statusEl) statusEl.textContent = `⏳ 1/4 - Salvando informações...`;
-    await new Promise(r => setTimeout(r, 300));
+    if (statusEl) statusEl.textContent = `⏳ 1/4 - Preparando dados do documento...`;
+    await new Promise(r => setTimeout(r, 200));
 
-    if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens...`;
+    if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens e anexos...`;
     await callback.etapaImagens();
-    await new Promise(r => setTimeout(r, 300)); 
 
-    if (statusEl) statusEl.textContent = `⏳ 3/4 - Montando documento PDF...`;
-    await new Promise(r => setTimeout(r, 500)); 
+    if (statusEl) statusEl.textContent = `⏳ 3/4 - Renderizando o PDF (aguarde)...`;
+    await new Promise(r => setTimeout(r, 300));
 
     await callback.etapaPdf();
 
-    if (statusEl) statusEl.textContent = `✅ 4/4 - Finalizando relatório...`;
-    await new Promise(r => setTimeout(r, 300));
-
+    if (statusEl) statusEl.textContent = `✅ 4/4 - Concluído com sucesso!`;
+    await new Promise(r => setTimeout(r, 400));
     if (statusEl) statusEl.textContent = 'Pronto';
   } catch (erro) {
     console.error('Erro no processo:', erro);
@@ -738,7 +736,7 @@ async function executarComProgresso(statusEl, btn, callback) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = textoOriginal;
+      btn.innerHTML = textoOriginal;
     }
     document.body.style.cursor = 'default';
   }
@@ -747,7 +745,7 @@ async function executarComProgresso(statusEl, btn, callback) {
 window.descarregarPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
   const area = document.getElementById('reportRenderArea');
-  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFRs"]');
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="descarregarPDFRs"]');
 
   await executarComProgresso(status, btn, {
     etapaImagens: async () => { await aguardarImagensPDF(area); },
@@ -764,7 +762,7 @@ window.compartilharPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
   const area = document.getElementById('reportRenderArea');
   const nomeArquivo = `RS_${activeReportData.number}.pdf`;
-  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFRs"]');
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="compartilharPDFRs"]');
 
   await executarComProgresso(status, btn, {
     etapaImagens: async () => { await aguardarImagensPDF(area); },
@@ -786,7 +784,7 @@ window.compartilharPDFRs = async () => {
 window.descarregarPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
-  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFOrcamento"]');
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="descarregarPDFOrcamento"]');
 
   await executarComProgresso(status, btn, {
     etapaImagens: async () => { await aguardarImagensPDF(area); },
@@ -803,7 +801,7 @@ window.compartilharPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
   const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
-  const btn = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
+  const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
 
   await executarComProgresso(status, btn, {
     etapaImagens: async () => { await aguardarImagensPDF(area); },
