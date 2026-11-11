@@ -111,7 +111,6 @@ async function renderizarTudo() {
   if (isRendering) return;
   isRendering = true;
 
-  // Procura pelo ID correto do seu HTML atual
   const container = document.getElementById('unifiedCardsContainer') || document.getElementById('reportCardsContainer');
   if (!container) {
     isRendering = false;
@@ -706,7 +705,68 @@ function getPdfOptions(filename) {
   };
 }
 
-// CORRIGIDO: Usa innerHTML para preservar os ícones originais dos botões sem afetar os cards
+// -------------------------------------------------------------------------
+// MECANISMO DE MODAL FLUTUANTE DE SALVAMENTO COM BOTÃO OK (GLOBAL)
+// -------------------------------------------------------------------------
+function mostrarModalSalvandoFlutuante(tituloInicial = "A processar...") {
+  let overlay = document.getElementById('globalSaveModalOverlay');
+  if (!overlay) {
+    const modalHTML = `
+    <div id="globalSaveModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 20000; justify-content: center; align-items: center; font-family: inherit;">
+      <div style="background: #121824; border: 1px solid #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 380px; color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center;">
+        <div id="globalSaveSpinner" style="margin-bottom: 14px; font-size: 2.2rem; color: #38bdf8;">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+        <h3 id="globalSaveModalTitle" style="margin-top: 0; color: #38bdf8; font-size: 1.2rem; margin-bottom: 10px;">${tituloInicial}</h3>
+        <p id="globalSaveModalMessage" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">Salvando informações na nuvem...</p>
+        <div id="globalSaveModalButtons" style="display: none; justify-content: center;">
+          <button id="globalSaveModalOkBtn" style="background: #38bdf8; color: #0b132b; border: none; padding: 10px 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem;">OK</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    overlay = document.getElementById('globalSaveModalOverlay');
+  }
+
+  const spinner = document.getElementById('globalSaveSpinner');
+  const titleEl = document.getElementById('globalSaveModalTitle');
+  const msgEl = document.getElementById('globalSaveModalMessage');
+  const btnContainer = document.getElementById('globalSaveModalButtons');
+
+  spinner.style.display = 'block';
+  spinner.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+  titleEl.textContent = tituloInicial;
+  msgEl.textContent = "Salvando informações na nuvem...";
+  btnContainer.style.display = 'none';
+  overlay.style.display = 'flex';
+}
+
+function atualizarModalSalvandoFlutuante(mensagem, concluido = false) {
+  const msgEl = document.getElementById('globalSaveModalMessage');
+  const titleEl = document.getElementById('globalSaveModalTitle');
+  const spinner = document.getElementById('globalSaveSpinner');
+  const btnContainer = document.getElementById('globalSaveModalButtons');
+  const overlay = document.getElementById('globalSaveModalOverlay');
+
+  if (!overlay || overlay.style.display === 'none') return;
+
+  if (mensagem) msgEl.textContent = mensagem;
+
+  if (concluido) {
+    titleEl.textContent = "Sucesso!";
+    spinner.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10B981;"></i>';
+    btnContainer.style.display = 'flex';
+  }
+}
+
+function fecharModalSalvandoFlutuante() {
+  const overlay = document.getElementById('globalSaveModalOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// -------------------------------------------------------------------------
+// FUNÇÃO DE PROGRESSO COM O NOVO MODAL FLUTUANTE
+// -------------------------------------------------------------------------
 async function executarComProgresso(statusEl, btn, callback) {
   const textoOriginal = btn ? btn.innerHTML : '';
   if (btn) {
@@ -715,24 +775,49 @@ async function executarComProgresso(statusEl, btn, callback) {
   }
   document.body.style.cursor = 'wait';
 
+  // Abre o modal flutuante na tela inteira
+  mostrarModalSalvandoFlutuante("Salvar e Encerrar Relatório");
+
   try {
     if (statusEl) statusEl.textContent = `⏳ 1/4 - Preparando dados do documento...`;
+    atualizarModalSalvandoFlutuante("Preparando dados do documento...");
     await new Promise(r => setTimeout(r, 200));
 
     if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens e anexos...`;
+    atualizarModalSalvandoFlutuante("Otimizando imagens e anexos...");
     await callback.etapaImagens();
 
     if (statusEl) statusEl.textContent = `⏳ 3/4 - Renderizando o PDF (aguarde)...`;
+    atualizarModalSalvandoFlutuante("Renderizando o PDF...");
     await new Promise(r => setTimeout(r, 300));
 
     await callback.etapaPdf();
 
     if (statusEl) statusEl.textContent = `✅ 4/4 - Concluído com sucesso!`;
-    await new Promise(r => setTimeout(r, 400));
+    atualizarModalSalvandoFlutuante("Documento gerado e salvo com sucesso!", true);
+    
     if (statusEl) statusEl.textContent = 'Pronto';
+
+    // Aguarda o usuário clicar em "OK" no modal flutuante
+    await new Promise((resolve) => {
+      const okBtn = document.getElementById('globalSaveModalOkBtn');
+      okBtn.onclick = () => {
+        fecharModalSalvandoFlutuante();
+        resolve(true);
+      };
+    });
+
   } catch (erro) {
     console.error('Erro no processo:', erro);
     if (statusEl) statusEl.textContent = 'Erro ao gerar documento';
+    atualizarModalSalvandoFlutuante("Ocorreu um erro ao gerar o documento.", true);
+    await new Promise((resolve) => {
+      const okBtn = document.getElementById('globalSaveModalOkBtn');
+      okBtn.onclick = () => {
+        fecharModalSalvandoFlutuante();
+        resolve(false);
+      };
+    });
   } finally {
     if (btn) {
       btn.disabled = false;
