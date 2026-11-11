@@ -274,6 +274,34 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
+// FUNÇÃO SEGURA DE REDIMENSIONAMENTO DE IMAGENS PARA EVITAR TRAVAMENTO DE MEMÓRIA
+function comprimirAnexoSeguro(base64Str, maxW = 600, maxH = 600, qual = 0.7) {
+  return new Promise((resolve) => {
+    if (!base64Str || !base64Str.startsWith('data:image')) {
+      resolve(base64Str);
+      return;
+    }
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if (w > h) {
+        if (w > maxW) { h = Math.round((h * maxW) / w); w = maxW; }
+      } else {
+        if (h > maxH) { w = Math.round((w * maxH) / h); h = maxH; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', qual));
+    };
+    img.onerror = () => resolve(base64Str);
+  });
+}
+
 window.openReportPreview = async function(index) {
   const rep = listaRelatoriosRS[index];
   if (!rep) { alert("Relatório não encontrado."); return; }
@@ -300,7 +328,7 @@ window.openReportPreview = async function(index) {
       const calc = calcularMinutosDiasTrabalho(rep.diasTrabalho || (rep.startManha ? [{ inicio: rep.startManha, fim: rep.endManha || rep.endTarde }] : []), Number(rep.valorHora) || 200);
       valorHorasTotal = calc.valorHorasTotal; textoHoras = `${calc.totalHoursText} (R$ ${valorHorasTotal.toFixed(2)})`; detalhesDiasHtml = calc.detalhesDiasHtml;
     }
-    valorTotal = valorHorasTotal + (rep.temDeslocamento === 'sim' ? (Number(rep.valorHoraDeslocamento) || 260) * (Number(rep.tempoDeslocamentoHoras) || 0) : 0) + (rep.temHospedagem === 'sim' ? Number(rep.valorHospedagem || 0) : 0) + (rep.temOutras === 'sim' ? Number(rep.valorOutras) || 0 : 0);
+    valorTotal = valorHorasTotal + (rep.temDeslocamento === 'sim' ? (Number(rep.valorHoraDeslocamento) || 260) * (Number(rep.tempoDeslocamentoHoras) || 0) : 0) + (rep.temHospedagem === 'sim' ? Number(rep.valorHospedagem) || 0 : 0) + (rep.temOutras === 'sim' ? Number(rep.valorOutras) || 0 : 0);
   }
 
   const numDoc = rep.number || rep.numero || 'RS-1000';
@@ -312,22 +340,27 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   
   if (rep.anexos && rep.anexos.length > 0) {
-    // RENDERIZAÇÃO DIRETA E SEGURA EM 2 COLUNAS (LADO A LADO) COM TAMANHO CONTROLADO
-    let itemsHtml = rep.anexos.map(anexo => `
-      <div style="width: 48%; text-align: center; page-break-inside: avoid; margin-bottom: 15px; border: 1px solid #CBD5E1; padding: 8px; background: #FFF; border-radius: 4px; box-sizing: border-box;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 160px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
-      </div>
-    `).join('');
+    // Processamento otimizado e assíncrono simultâneo para os anexos lado a lado (2 colunas)
+    const promessasAnexos = rep.anexos.map(async (anexo) => {
+      const imgOtimizada = await comprimirAnexoSeguro(anexo.imagem, 500, 500, 0.65);
+      return `
+        <div style="width: 48%; text-align: center; page-break-inside: avoid; margin-bottom: 12px; border: 1px solid #CBD5E1; padding: 6px; background: #FFF; border-radius: 4px; box-sizing: border-box;">
+          <div style="text-align: left; font-weight: bold; margin-bottom: 4px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo)}</div>
+          <img src="${imgOtimizada}" style="max-width: 100%; max-height: 130px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+        </div>
+      `;
+    });
+
+    const resultadosHtml = await Promise.all(promessasAnexos);
 
     anexosHtml = `
       <div style="page-break-before: always; height: 1px; margin-top: 10px;"></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 10px;">
         <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
         <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
       </div>
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-        ${itemsHtml}
+        ${resultadosHtml.join('')}
       </div>
     `;
   }
@@ -514,9 +547,9 @@ function getPdfOptions(filename) {
   return {
     margin: [10, 0, 10, 0],
     filename,
-    image: { type: 'jpeg', quality: 0.85 }, // Qualidade otimizada para suportar múltiplos anexos sem estourar o canvas
+    image: { type: 'jpeg', quality: 0.85 },
     html2canvas: { 
-      scale: 1.5, // Leve redução na escala de conversão para garantir fluidez com 4+ imagens pesadas
+      scale: 1.25, // Escala segura otimizada para processar múltiplos anexos sem travar
       useCORS: true, 
       letterRendering: true, 
       scrollY: 0,
@@ -536,7 +569,7 @@ window.descarregarPDFRs = async () => {
     await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
   } catch (e) {
     console.error("Erro ao gerar PDF:", e);
-    alert("Erro ao gerar PDF. O relatório contém muitas imagens pesadas.");
+    alert("Erro ao gerar PDF. Verifique se as imagens são válidas.");
   } finally {
     if (container) container.style.overflow = 'auto';
     document.getElementById('loadingStatusRs').textContent = 'Pronto';
