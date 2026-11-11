@@ -7,13 +7,13 @@ let listaOrcamentos = [];
 let activeReportData = {};
 let activeBudgetData = {};
 
-firebase.auth().onAuthStateChanged((user) => {
+firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    carregarOpcoesClientes().catch(e => console.error(e));
-    carregarApelidosContas().catch(e => console.error(e));
-    renderizarTudo().catch(e => console.error(e));
+    await carregarOpcoesClientes();
+    await carregarApelidosContas();
+    await renderizarTudo();
 
     DataSync.listen('rg_reports', () => renderizarTudo());
     DataSync.listen('rg_orcamentos', () => renderizarTudo());
@@ -85,8 +85,8 @@ async function renderizarTudo() {
     let rawRS = [];
     let rawORC = [];
 
-    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Erro rg_reports", e); }
-    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Erro rg_orcamentos", e); }
+    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Erro ao carregar rg_reports:", e); }
+    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Erro ao carregar rg_orcamentos:", e); }
 
     listaRelatoriosRS = normalizarLista(rawRS);
     listaOrcamentos = normalizarLista(rawORC);
@@ -312,26 +312,27 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   
   if (rep.anexos && rep.anexos.length > 0) {
-    // LAYOUT EM 2 COLUNAS (50% - gap)
+    // ALTERAÇÃO CIRÚRGICA: Imagens estruturadas lado a lado em duas colunas (48% de largura com espaçamento)
     let itemsHtml = rep.anexos.map(anexo => `
-      <div style="width: calc(50% - 7.5px); text-align: center; page-break-inside: avoid; border: 1px solid #CBD5E1; padding: 10px; background: #FFF; border-radius: 6px; box-sizing: border-box;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 8px; font-size: 11px; color: #0B132B; border-bottom: 1px solid #F1F5F9; padding-bottom: 4px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 240px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto; border-radius: 4px;">
+      <div style="width: 48%; text-align: center; page-break-inside: avoid; margin-bottom: 12px; border: 1px solid #CBD5E1; padding: 8px; background: #FFF; border-radius: 4px; box-sizing: border-box;">
+        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 11px;">${escapeHTML(anexo.titulo)}</div>
+        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 200px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
       </div>
     `).join('');
-    
+
     anexosHtml = `
       <div style="page-break-before: always; height: 1px; margin-top: 10px;"></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 12px;">
         <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
         <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
       </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between;">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
         ${itemsHtml}
       </div>
     `;
   }
 
+  // Estilo Inline blindado para garantir 794px e proteger os anexos
   document.getElementById('reportRenderArea').innerHTML = `
     <div class="print-body" style="font-family: Arial, sans-serif; color: #0B132B; line-height: 1.35; font-size: 11px; width: 794px; min-width: 794px; background: #FFFFFF; padding: 25px 35px; box-sizing: border-box; margin: 0 auto; text-align: left;">
       <div style="position: relative; width: 100%; box-sizing: border-box;">
@@ -527,74 +528,32 @@ function getPdfOptions(filename) {
   };
 }
 
-window.descarregarPDFRs = async () => {
+window.descarregarPDFRs = () => {
   document.getElementById('loadingStatusRs').textContent = 'A descarregar...';
-  const container = document.querySelector('#reportPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
-
-  try {
-    await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
-  } catch (e) {
-    console.error(e);
-  } finally {
-    if (container) container.style.overflow = 'auto';
-    document.getElementById('loadingStatusRs').textContent = 'Pronto';
-  }
+  html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save().then(() => document.getElementById('loadingStatusRs').textContent = 'Pronto');
 };
-
 window.compartilharPDFRs = async () => {
   document.getElementById('loadingStatusRs').textContent = 'A gerar PDF...';
-  const container = document.querySelector('#reportPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
-
   try {
     const blob = await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) {
-      await navigator.share({ files: [new File([blob], `RS_${activeReportData.number}.pdf`, { type: 'application/pdf' })], title: `RS ${activeReportData.number}` });
-    } else {
-      await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
-    }
-  } catch (e) {
-    await html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
-  } finally {
-    if (container) container.style.overflow = 'auto';
+    if (navigator.canShare) await navigator.share({ files: [new File([blob], `RS_${activeReportData.number}.pdf`, { type: 'application/pdf' })], title: `RS ${activeReportData.number}` });
+    else html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save();
     document.getElementById('loadingStatusRs').textContent = 'Pronto';
-  }
+  } catch (e) { html2pdf().from(document.getElementById('reportRenderArea')).set(getPdfOptions(`RS_${activeReportData.number}.pdf`)).save(); }
 };
 
-window.descarregarPDFOrcamento = async () => {
+window.descarregarPDFOrcamento = () => {
   document.getElementById('loadingStatusOrc').textContent = 'A descarregar...';
-  const container = document.querySelector('#budgetPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
-
-  try {
-    await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
-  } catch (e) {
-    console.error(e);
-  } finally {
-    if (container) container.style.overflow = 'auto';
-    document.getElementById('loadingStatusOrc').textContent = 'Pronto';
-  }
+  html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save().then(() => document.getElementById('loadingStatusOrc').textContent = 'Pronto');
 };
-
 window.compartilharPDFOrcamento = async () => {
   document.getElementById('loadingStatusOrc').textContent = 'A gerar PDF...';
-  const container = document.querySelector('#budgetPreviewModal .report-scroll-container');
-  if (container) container.style.overflow = 'visible';
-
   try {
     const blob = await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).outputPdf('blob');
-    if (navigator.canShare) {
-      await navigator.share({ files: [new File([blob], `Orcamento_${activeBudgetData.number}.pdf`, { type: 'application/pdf' })], title: `Orçamento ${activeBudgetData.number}` });
-    } else {
-      await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
-    }
-  } catch (e) {
-    await html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
-  } finally {
-    if (container) container.style.overflow = 'auto';
+    if (navigator.canShare) await navigator.share({ files: [new File([blob], `Orcamento_${activeBudgetData.number}.pdf`, { type: 'application/pdf' })], title: `Orçamento ${activeBudgetData.number}` });
+    else html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save();
     document.getElementById('loadingStatusOrc').textContent = 'Pronto';
-  }
+  } catch (e) { html2pdf().from(document.getElementById('budgetRenderArea')).set(getPdfOptions(`Orcamento_${activeBudgetData.number}.pdf`)).save(); }
 };
 
 function escapeHTML(str) {
