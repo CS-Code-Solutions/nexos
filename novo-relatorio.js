@@ -654,132 +654,128 @@ async function verificarModoEdicao() {
   }
 }
 
-const reportFormEl = document.getElementById('reportForm');
-if (reportFormEl) {
-  reportFormEl.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const editIndex = document.getElementById('editIndex').value;
-    const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
-    const numRsStr = document.getElementById('repNumber').value;
+/* --- NOVA LÓGICA DE SALVAMENTO DIRETO --- */
+window.salvarRelatorioFinal = async function() {
+  const editIndex = document.getElementById('editIndex').value;
+  const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
+  const numRsStr = document.getElementById('repNumber').value;
 
-    let diasTrabalhoArray = [];
-    const cards = document.querySelectorAll('.dia-card-flutuante');
+  let diasTrabalhoArray = [];
+  const cards = document.querySelectorAll('.dia-card-flutuante');
 
-    cards.forEach((card, idx) => {
-      let dIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
-      const selectTipo = document.getElementById(`tipo_registo_${idx}`);
-      const tipo = selectTipo ? selectTipo.value : 'turnos';
+  cards.forEach((card, idx) => {
+    let dIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+    const selectTipo = document.getElementById(`tipo_registo_${idx}`);
+    const tipo = selectTipo ? selectTipo.value : 'turnos';
 
-      if (tipo === 'turnos') {
-        let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
-        let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
-        let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
-        let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+    if (tipo === 'turnos') {
+      let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+      let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+      let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+      let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
 
-        diasTrabalhoArray.push({
-          tipo: 'turnos',
-          inicio: dIni ? `${dIni}T${iniM}` : '',
-          fimManha: dIni ? `${dIni}T${fimM}` : '',
-          inicioTarde: dIni ? `${dIni}T${iniT}` : '',
-          fim: dIni ? `${dIni}T${fimT}` : ''
-        });
-      } else {
-        let hIni = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
-        let hFim = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+      diasTrabalhoArray.push({
+        tipo: 'turnos',
+        inicio: dIni ? `${dIni}T${iniM}` : '',
+        fimManha: dIni ? `${dIni}T${fimM}` : '',
+        inicioTarde: dIni ? `${dIni}T${iniT}` : '',
+        fim: dIni ? `${dIni}T${fimT}` : ''
+      });
+    } else {
+      let hIni = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+      let hFim = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
 
-        diasTrabalhoArray.push({
-          tipo: 'direto',
-          inicio: dIni ? `${dIni}T${hIni}` : '',
-          fim: dIni ? `${dIni}T${hFim}` : ''
+      diasTrabalhoArray.push({
+        tipo: 'direto',
+        inicio: dIni ? `${dIni}T${hIni}` : '',
+        fim: dIni ? `${dIni}T${hFim}` : ''
+      });
+    }
+  });
+
+  let cleanAnexos = [];
+  if (Array.isArray(anexosList)) {
+    anexosList.forEach(a => {
+      if (a && typeof a === 'object') {
+        cleanAnexos.push({
+          titulo: String(a.titulo || 'Foto'),
+          imagem: String(a.imagem || '')
         });
       }
     });
+  }
 
-    let cleanAnexos = [];
-    if (Array.isArray(anexosList)) {
-      anexosList.forEach(a => {
-        if (a && typeof a === 'object') {
-          cleanAnexos.push({
-            titulo: String(a.titulo || 'Foto'),
-            imagem: String(a.imagem || '')
-          });
-        }
-      });
-    }
+  const reportData = {
+    number: String(numRsStr || ''),
+    date: String(document.getElementById('repDate').value || ''),
+    client: String(document.getElementById('repClient').value || ''),
+    equipment: String(document.getElementById('repEquipment').value || ''),
+    brand: String(document.getElementById('repBrand').value || ''),
+    model: String(document.getElementById('repModel').value || ''),
+    serialNumber: String(document.getElementById('repSerialNumber').value || ''),
+    serviceNature: String(document.getElementById('repServiceNature').value || ''),
+    serviceArea: String(document.getElementById('repServiceArea').value || ''),
+    desc: String(document.getElementById('repDesc').value || ''),
 
-    const reportData = {
-      number: String(numRsStr || ''),
-      date: String(document.getElementById('repDate').value || ''),
-      client: String(document.getElementById('repClient').value || ''),
-      equipment: String(document.getElementById('repEquipment').value || ''),
-      brand: String(document.getElementById('repBrand').value || ''),
-      model: String(document.getElementById('repModel').value || ''),
-      serialNumber: String(document.getElementById('repSerialNumber').value || ''),
-      serviceNature: String(document.getElementById('repServiceNature').value || ''),
-      serviceArea: String(document.getElementById('repServiceArea').value || ''),
-      desc: String(document.getElementById('repDesc').value || ''),
+    temEmpreitada: String(document.getElementById('selectEmpreitada').value || 'nao'),
+    valorEmpreitada: String(document.getElementById('repValorEmpreitada').value || '0'),
 
-      temEmpreitada: String(document.getElementById('selectEmpreitada').value || 'nao'),
-      valorEmpreitada: String(document.getElementById('repValorEmpreitada').value || '0'),
+    temHora: String(document.getElementById('selectHora').value || 'nao'),
+    diasTrabalho: diasTrabalhoArray,
+    valorHora: String(document.getElementById('repValorHora').value || '200'),
 
-      temHora: String(document.getElementById('selectHora').value || 'nao'),
-      diasTrabalho: diasTrabalhoArray,
-      valorHora: String(document.getElementById('repValorHora').value || '200'),
+    temDeslocamento: String(document.getElementById('selectDeslocamento').value || 'nao'),
+    valorHoraDeslocamento: String(document.getElementById('valorHoraDeslocamento').value || '260'),
+    tempoDeslocamentoHoras: String(document.getElementById('tempoDeslocamentoHoras').value || '0'),
 
-      temDeslocamento: String(document.getElementById('selectDeslocamento').value || 'nao'),
-      valorHoraDeslocamento: String(document.getElementById('valorHoraDeslocamento').value || '260'),
-      tempoDeslocamentoHoras: String(document.getElementById('tempoDeslocamentoHoras').value || '0'),
+    temHospedagem: String(document.getElementById('selectHospedagem').value || 'nao'),
+    valorHospedagem: String(document.getElementById('valorHospedagem').value || '0'),
 
-      temHospedagem: String(document.getElementById('selectHospedagem').value || 'nao'),
-      valorHospedagem: String(document.getElementById('valorHospedagem').value || '0'),
+    temOutras: String(document.getElementById('selectOutras').value || 'nao'),
+    valorOutras: String(document.getElementById('valorOutras').value || '0'),
 
-      temOutras: String(document.getElementById('selectOutras').value || 'nao'),
-      valorOutras: String(document.getElementById('valorOutras').value || '0'),
+    signature: String(clientSigData || ''),
+    anexos: cleanAnexos
+  };
 
-      signature: String(clientSigData || ''),
-      anexos: cleanAnexos
-    };
+  try {
+    let rawReports = await DataSync.load('rg_reports');
+    let reports = normalizarLista(rawReports); 
 
-    try {
-      let rawReports = await DataSync.load('rg_reports');
-      let reports = normalizarLista(rawReports); // Garante que é sempre array seguro
-
-      if (editIndex !== '') {
-        reports[editIndex] = reportData;
-      } else {
-        reports.push(reportData); // Novo Relatório
-        
-        // Tentativa Segura de Guardar o próximo número de RS
-        try {
-          let config = await DataSync.load('rg_config') || {};
-          let maxNum = 999;
-          reports.forEach(r => {
-            if (r && r.number) {
-              const m = String(r.number).match(/\d+/);
-              if (m) {
-                const val = parseInt(m[0], 10);
-                if (val > maxNum) maxNum = val;
-              }
-            }
-          });
-          config.nextRsNumber = String(maxNum + 1);
-          await DataSync.save('rg_config', config);
-        } catch (configErr) {
-          console.warn('Erro menor ao tentar guardar nº seguinte, mas o relatório será guardado na mesma.', configErr);
-        }
-      }
-
-      // Gravamos efetivamente o Array de Relatórios com a entrada adicionada
-      await DataSync.save('rg_reports', reports);
+    if (editIndex !== '') {
+      reports[editIndex] = reportData;
+    } else {
+      reports.push(reportData); 
       
-      alert('Relatório de serviço salvo e sincronizado com sucesso!');
-      window.location.href = 'relatorios.html';
-
-    } catch (err) {
-      alert('Erro Crítico ao salvar relatório: ' + err.message);
+      try {
+        let config = await DataSync.load('rg_config') || {};
+        let maxNum = 999;
+        reports.forEach(r => {
+          if (r && r.number) {
+            const m = String(r.number).match(/\d+/);
+            if (m) {
+              const val = parseInt(m[0], 10);
+              if (val > maxNum) maxNum = val;
+            }
+          }
+        });
+        config.nextRsNumber = String(maxNum + 1);
+        await DataSync.save('rg_config', config);
+      } catch (configErr) {
+        console.warn('Erro ao guardar nº seguinte, mas guardado mesmo assim.', configErr);
+      }
     }
-  });
-}
+
+    await DataSync.save('rg_reports', reports);
+    
+    alert('Relatório de serviço salvo e sincronizado com sucesso!');
+    window.location.href = 'relatorios.html';
+
+  } catch (err) {
+    alert('Erro Crítico ao salvar relatório: ' + err.message);
+  }
+};
+
 window.resetForm = function() {
   window.location.href = 'relatorios.html';
 };
