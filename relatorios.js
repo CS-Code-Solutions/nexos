@@ -7,6 +7,10 @@ let listaOrcamentos = [];
 let activeReportData = {};
 let activeBudgetData = {};
 
+// Variáveis para controlar a exclusão segura por modal
+let indexParaExcluir = null;
+let tipoDocumentoExcluir = null;
+
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
     window.location.href = 'login.html';
@@ -239,18 +243,57 @@ window.filtrarDocumentos = function() {
 window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
 window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
 
-window.deleteReport = async (index) => {
-  if (confirm('Deseja realmente excluir este relatório de serviço?')) {
-    listaRelatoriosRS.splice(index, 1);
-    await DataSync.save('rg_reports', listaRelatoriosRS);
-    renderizarTudo();
+// Exclusão Segura com Modal
+window.deleteReport = (index) => {
+  indexParaExcluir = index;
+  tipoDocumentoExcluir = 'RS';
+  
+  const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
+  if (modalExclusao) {
+    modalExclusao.style.display = 'flex';
+  } else {
+    if (confirm('Deseja realmente excluir este relatório de serviço?')) {
+      executarExclusaoConfirmada();
+    }
   }
 };
-window.deleteBudget = async (index) => {
-  if (confirm('Deseja realmente excluir este orçamento?')) {
-    listaOrcamentos.splice(index, 1);
+
+window.deleteBudget = (index) => {
+  indexParaExcluir = index;
+  tipoDocumentoExcluir = 'ORC';
+  
+  const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
+  if (modalExclusao) {
+    modalExclusao.style.display = 'flex';
+  } else {
+    if (confirm('Deseja realmente excluir este orçamento?')) {
+      executarExclusaoConfirmada();
+    }
+  }
+};
+
+window.executarExclusaoConfirmada = async function() {
+  if (indexParaExcluir === null) return;
+
+  if (tipoDocumentoExcluir === 'RS') {
+    listaRelatoriosRS.splice(indexParaExcluir, 1);
+    await DataSync.save('rg_reports', listaRelatoriosRS);
+  } else if (tipoDocumentoExcluir === 'ORC') {
+    listaOrcamentos.splice(indexParaExcluir, 1);
     await DataSync.save('rg_orcamentos', listaOrcamentos);
-    renderizarTudo();
+  }
+
+  fecharModalExclusao();
+  renderizarTudo();
+};
+
+window.fecharModalExclusao = function() {
+  indexParaExcluir = null;
+  tipoDocumentoExcluir = null;
+  
+  const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
+  if (modalExclusao) {
+    modalExclusao.style.display = 'none';
   }
 };
 
@@ -385,7 +428,6 @@ window.openReportPreview = function(index) {
   const rep = listaRelatoriosRS[index];
   if (!rep) { alert("Relatório não encontrado."); return; }
 
-  // Abre o modal IMEDIATAMENTE com os dados básicos
   const modal = document.getElementById('reportPreviewModal');
   const renderArea = document.getElementById('reportRenderArea');
   const titleEl = document.getElementById('modalTitleRs');
@@ -395,7 +437,6 @@ window.openReportPreview = function(index) {
   if (statusEl) statusEl.textContent = 'A carregar...';
   if (modal) modal.style.display = 'flex';
 
-  // Processa o template em segundo plano sem bloquear o ecrã
   (async () => {
     const defaultConfig = { name: 'NexOS', tech: 'Técnico Responsável', doc: '00.000.000/0000-00', email: '-', contact: '-', location: '-', techSignature: '' };
     let config = { ...defaultConfig };
@@ -428,8 +469,6 @@ window.openReportPreview = function(index) {
     activeReportData = { number: numDoc, client: clientName };
 
     const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
-    
-    // Gera as páginas de anexos otimizadas
     const anexosHtml = await gerarAnexosPdfHtml(rep.anexos || [], logoSrc);
 
     if (renderArea) {
@@ -627,14 +666,31 @@ function getPdfOptions(filename) {
   };
 }
 
+// Helper para animar "Salvando..." com pontos dinâmicos (... .. .)
+function iniciarAnimacaoSalvando(botao) {
+  if (!botao) return null;
+  const textoOriginal = botao.textContent;
+  botao.disabled = true;
+  let pontos = '';
+  const interval = setInterval(() => {
+    pontos = pontos.length >= 3 ? '' : pontos + '.';
+    botao.textContent = `Salvando${pontos}`;
+  }, 400);
+
+  return {
+    parar: () => {
+      clearInterval(interval);
+      botao.textContent = textoOriginal;
+      botao.disabled = false;
+    }
+  };
+}
+
 window.descarregarPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
   const area = document.getElementById('reportRenderArea');
-
-  // Encontra o botão de download para atualizar o texto visualmente
   const btnDownload = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFRs"]');
-  const textoOriginal = btnDownload ? btnDownload.textContent : '';
-  if (btnDownload) btnDownload.textContent = 'Salvando...';
+  const animacao = iniciarAnimacaoSalvando(btnDownload);
 
   try {
     status.textContent = 'A preparar imagens...';
@@ -652,7 +708,7 @@ window.descarregarPDFRs = async () => {
     status.textContent = 'Erro ao gerar PDF';
     alert('Não foi possível gerar o PDF. Verifique as imagens.');
   } finally {
-    if (btnDownload) btnDownload.textContent = textoOriginal;
+    if (animacao) animacao.parar();
   }
 };
 
@@ -660,10 +716,8 @@ window.compartilharPDFRs = async () => {
   const status = document.getElementById('loadingStatusRs');
   const area = document.getElementById('reportRenderArea');
   const nomeArquivo = `RS_${activeReportData.number}.pdf`;
-
   const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFRs"]');
-  const textoOriginal = btnShare ? btnShare.textContent : '';
-  if (btnShare) btnShare.textContent = 'Salvando...';
+  const animacao = iniciarAnimacaoSalvando(btnShare);
 
   try {
     status.textContent = 'A preparar imagens...';
@@ -693,17 +747,15 @@ window.compartilharPDFRs = async () => {
       status.textContent = 'Erro ao gerar PDF';
     }
   } finally {
-    if (btnShare) btnShare.textContent = textoOriginal;
+    if (animacao) animacao.parar();
   }
 };
 
 window.descarregarPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
-
   const btnDownload = event && event.target ? event.target : document.querySelector('button[onclick*="descarregarPDFOrcamento"]');
-  const textoOriginal = btnDownload ? btnDownload.textContent : '';
-  if (btnDownload) btnDownload.textContent = 'Salvando...';
+  const animacao = iniciarAnimacaoSalvando(btnDownload);
 
   try {
     status.textContent = 'A preparar imagens...';
@@ -720,7 +772,7 @@ window.descarregarPDFOrcamento = async () => {
     console.error('Erro ao gerar Orçamento:', erro);
     status.textContent = 'Erro ao gerar PDF';
   } finally {
-    if (btnDownload) btnDownload.textContent = textoOriginal;
+    if (animacao) animacao.parar();
   }
 };
 
@@ -728,10 +780,8 @@ window.compartilharPDFOrcamento = async () => {
   const status = document.getElementById('loadingStatusOrc');
   const area = document.getElementById('budgetRenderArea');
   const nomeArquivo = `Orcamento_${activeBudgetData.number}.pdf`;
-
   const btnShare = event && event.target ? event.target : document.querySelector('button[onclick*="compartilharPDFOrcamento"]');
-  const textoOriginal = btnShare ? btnShare.textContent : '';
-  if (btnShare) btnShare.textContent = 'Salvando...';
+  const animacao = iniciarAnimacaoSalvando(btnShare);
 
   try {
     status.textContent = 'A preparar imagens...';
@@ -761,7 +811,7 @@ window.compartilharPDFOrcamento = async () => {
       status.textContent = 'Erro ao gerar PDF';
     }
   } finally {
-    if (btnShare) btnShare.textContent = textoOriginal;
+    if (animacao) animacao.parar();
   }
 };
 
