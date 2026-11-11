@@ -96,9 +96,13 @@ if (budgetFormEl) {
       terms: document.getElementById('orcTerms').value
     };
 
-    try {
-      let budgets = await DataSync.load('rg_orcamentos') || [];
-      if (!Array.isArray(budgets)) budgets = [];
+   try {
+      let rawBudgets = await DataSync.load('rg_orcamentos');
+      
+      // Função segura interna que não apaga os dados antigos caso venham formatados como Object do Firebase
+      let budgets = [];
+      if (Array.isArray(rawBudgets)) budgets = rawBudgets;
+      else if (rawBudgets && typeof rawBudgets === 'object') budgets = Object.values(rawBudgets).filter(i => i !== null);
 
       if (editIndex !== '') {
         budgets[editIndex] = newBudget;
@@ -106,15 +110,17 @@ if (budgetFormEl) {
         budgets.push(newBudget);
       }
 
+      // Gravamos de forma definitiva
       await DataSync.save('rg_orcamentos', budgets);
+      
       alert('Orçamento salvo com sucesso!');
       window.location.href = 'relatorios.html';
+      
     } catch (err) {
-      alert('Erro ao salvar orçamento: ' + err.message);
+      alert('Erro Crítico ao salvar orçamento: ' + err.message);
     }
   });
 }
-
 function escapeHTML(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
