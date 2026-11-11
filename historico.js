@@ -7,6 +7,10 @@ let listaOrcamentos = [];
 let activeDocumentData = {};
 let activeDocumentType = 'RS';
 
+// Variáveis para controle seguro de exclusão
+let indexParaExcluir = null;
+let tipoDocumentoExcluir = null;
+
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
     window.location.href = 'login.html';
@@ -20,27 +24,60 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
 });
 
+function normalizarLista(dados) {
+  if (!dados) return [];
+  if (Array.isArray(dados)) return dados;
+  if (Array.isArray(dados.items)) return dados.items;
+  if (Array.isArray(dados.reports)) return dados.reports;
+  if (Array.isArray(dados.orcamentos)) return dados.orcamentos;
+  if (typeof dados === 'object') {
+    const valores = Object.values(dados).filter(item => item && typeof item === 'object');
+    if (valores.length > 0) return valores;
+  }
+  return [];
+}
+
 async function carregarOpcoesClientes() {
   const selectFiltro = document.getElementById('selectClienteFiltro');
   if (!selectFiltro) return;
   
   try {
-    const clients = await DataSync.load('rg_clients') || [];
-    if (!Array.isArray(clients)) return;
+    const rawClients = await DataSync.load('rg_clients');
+    const clients = normalizarLista(rawClients);
+    if (!clients.length) return;
 
     const valFiltroAtual = selectFiltro.value;
     selectFiltro.innerHTML = '<option value="">Todos os Clientes</option>';
-    clients.forEach(c => selectFiltro.innerHTML += `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`);
+    clients.forEach(c => {
+      const nome = c.name || c.nome || c.razacaosocial || '';
+      if (nome) {
+        selectFiltro.innerHTML += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
+      }
+    });
     selectFiltro.value = valFiltroAtual;
   } catch (e) {}
 }
 
 async function renderizarTudo() {
+  const container = document.getElementById('reportCardsContainer') || document.getElementById('unifiedCardsContainer');
+  if (container) {
+    container.innerHTML = `<p style="text-align: center; color: #64748B; grid-column: 1 / -1;">A carregar histórico da nuvem...</p>`;
+  }
+
   try {
-    listaRelatoriosRS = await DataSync.load('rg_reports') || [];
-    listaOrcamentos = await DataSync.load('rg_orcamentos') || [];
-    if (!Array.isArray(listaRelatoriosRS)) listaRelatoriosRS = [];
-    if (!Array.isArray(listaOrcamentos)) listaOrcamentos = [];
+    const loadWithTimeout = (key) => Promise.race([
+      DataSync.load(key),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 6000))
+    ]);
+
+    let rawRS = [];
+    let rawORC = [];
+
+    try { rawRS = await loadWithTimeout('rg_reports'); } catch (e) { console.warn("Aviso ao carregar rg_reports:", e); }
+    try { rawORC = await loadWithTimeout('rg_orcamentos'); } catch (e) { console.warn("Aviso ao carregar rg_orcamentos:", e); }
+
+    listaRelatoriosRS = normalizarLista(rawRS);
+    listaOrcamentos = normalizarLista(rawORC);
 
     filtrarDocumentos();
   } catch (err) {
@@ -49,18 +86,16 @@ async function renderizarTudo() {
 }
 
 window.filtrarDocumentos = function() {
-  const container = document.getElementById('reportCardsContainer');
+  const container = document.getElementById('reportCardsContainer') || document.getElementById('unifiedCardsContainer');
   if (!container) return;
 
-  const busca = (document.getElementById('inputPesquisaRelatorios')?.value || '').toLowerCase().trim();
+  const busca = (document.getElementById('inputPesquisaRelatorios')?.value || document.getElementById('inputPesquisa')?.value || '').toLowerCase().trim();
   const selectTipo = document.getElementById('selectTipoFiltro');
   const clienteFiltro = document.getElementById('selectClienteFiltro')?.value || '';
 
-  // Leitura das flags de permissão do localStorage (configuradas no Painel Admin)
   const showRelatorios = localStorage.getItem('rg_page_relatorios') !== 'false';
   const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
 
-  // Controle visual dos botões no topo
   const btnNovoRelatório = document.querySelector('a[href="novo-relatorio.html"]');
   const btnNovoOrcamento = document.querySelector('a[href="novo-orcamento.html"]');
 
@@ -68,18 +103,16 @@ window.filtrarDocumentos = function() {
   if (btnNovoOrcamento) btnNovoOrcamento.style.display = showOrcamentos ? 'inline-flex' : 'none';
 
   let tipoFiltro = selectTipo ? selectTipo.value : 'todos';
-
-  // Aplicação estrita das regras de exibição e seletor
   let grupoTipoFiltroContainer = selectTipo ? selectTipo.closest('div') : null;
 
   if (!showRelatorios && showOrcamentos) {
     tipoFiltro = 'orc';
     if (selectTipo) selectTipo.value = 'orc';
-    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none'; // Oculta seletor redundante se só há 1 opção
+    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none';
   } else if (showRelatorios && !showOrcamentos) {
     tipoFiltro = 'rs';
     if (selectTipo) selectTipo.value = 'rs';
-    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none'; // Oculta seletor redundante se só há 1 opção
+    if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none';
   } else if (!showRelatorios && !showOrcamentos) {
     tipoFiltro = 'none';
     if (grupoTipoFiltroContainer) grupoTipoFiltroContainer.style.display = 'none';
@@ -89,36 +122,32 @@ window.filtrarDocumentos = function() {
 
   let unificados = [];
 
-  // 1. Mapeia Relatórios RS (se permitido)
   if (showRelatorios && (tipoFiltro === 'todos' || tipoFiltro === 'rs')) {
     listaRelatoriosRS.forEach((r, idx) => {
-      if (!r) return;
+      if (!r || typeof r !== 'object') return;
       unificados.push({
         tipoDoc: 'RS',
         origemIndex: idx,
-        numero: r.number || `RS-${1000 + idx}`,
-        data: r.date || '',
-        cliente: r.client || '-',
-        equipamento: r.equipment || '-',
-        detalheExtra: r.serviceNature || r.type || 'Corretiva',
-        objetoOriginal: r
+        numero: r.number || r.numero || `RS-${1000 + idx}`,
+        data: r.date || r.data || '',
+        cliente: r.client || r.cliente || '-',
+        equipamento: r.equipment || r.equipamento || '-',
+        detalheExtra: r.serviceNature || r.naturezaServico || 'Corretiva'
       });
     });
   }
 
-  // 2. Mapeia Orçamentos ORC (se permitido)
   if (showOrcamentos && (tipoFiltro === 'todos' || tipoFiltro === 'orc')) {
     listaOrcamentos.forEach((o, idx) => {
-      if (!o) return;
+      if (!o || typeof o !== 'object') return;
       unificados.push({
         tipoDoc: 'ORC',
         origemIndex: idx,
-        numero: o.number || `ORC-${String(idx + 1).padStart(4, '0')}`,
-        data: o.date || '',
-        cliente: o.client || '-',
-        equipamento: o.equipment || '-',
-        detalheExtra: `R$ ${Number(o.total || 0).toFixed(2)}`,
-        objetoOriginal: o
+        numero: o.number || o.numero || `ORC-${String(idx + 1).padStart(4, '0')}`,
+        data: o.date || o.data || '',
+        cliente: o.client || o.cliente || '-',
+        equipamento: o.equipment || o.equipamento || '-',
+        detalheExtra: `R$ ${Number(o.total || o.valorTotal || 0).toFixed(2)}`
       });
     });
   }
@@ -129,10 +158,10 @@ window.filtrarDocumentos = function() {
     if (clienteFiltro && item.cliente !== clienteFiltro) return false;
 
     if (busca) {
-      const numClean = item.numero.toLowerCase();
-      const cliClean = item.cliente.toLowerCase();
-      const eqClean = item.equipamento.toLowerCase();
-      const detClean = item.detalheExtra.toLowerCase();
+      const numClean = String(item.numero).toLowerCase();
+      const cliClean = String(item.cliente).toLowerCase();
+      const eqClean = String(item.equipamento).toLowerCase();
+      const detClean = String(item.detalheExtra).toLowerCase();
       return numClean.includes(busca) || cliClean.includes(busca) || eqClean.includes(busca) || detClean.includes(busca);
     }
     return true;
@@ -156,7 +185,7 @@ window.filtrarDocumentos = function() {
     const safeNum = escapeHTML(item.numero);
 
     let dataForm = item.data || '-';
-    if (dataForm.includes('-')) {
+    if (typeof dataForm === 'string' && dataForm.includes('-')) {
       const p = dataForm.split('-');
       if (p.length === 3) dataForm = `${p[2]}/${p[1]}/${p[0]}`;
     }
@@ -219,32 +248,63 @@ window.editBudget = function(index) {
   window.location.href = `novo-orcamento.html?edit=${index}`;
 };
 
-window.deleteReport = async function(index) {
-  if (confirm('Deseja realmente excluir este relatório de serviço?')) {
-    try {
-      let reports = await DataSync.load('rg_reports') || [];
-      reports.splice(index, 1);
-      await DataSync.save('rg_reports', reports);
-      await renderizarTudo();
-    } catch (e) { alert('Erro ao excluir relatório.'); }
+// Exclusão Segura
+window.deleteReport = function(index) {
+  const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
+  if (modalExclusao) {
+    indexParaExcluir = index;
+    tipoDocumentoExcluir = 'RS';
+    modalExclusao.style.display = 'flex';
+  } else {
+    if (confirm('Deseja realmente excluir este relatório de serviço?')) {
+      indexParaExcluir = index;
+      tipoDocumentoExcluir = 'RS';
+      executarExclusaoConfirmada();
+    }
   }
 };
 
-window.deleteBudget = async function(index) {
-  if (confirm('Deseja realmente excluir este orçamento?')) {
-    try {
-      let budgets = await DataSync.load('rg_orcamentos') || [];
-      budgets.splice(index, 1);
-      await DataSync.save('rg_orcamentos', budgets);
-      await renderizarTudo();
-    } catch (e) { alert('Erro ao excluir orçamento.'); }
+window.deleteBudget = function(index) {
+  const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
+  if (modalExclusao) {
+    indexParaExcluir = index;
+    tipoDocumentoExcluir = 'ORC';
+    modalExclusao.style.display = 'flex';
+  } else {
+    if (confirm('Deseja realmente excluir este orçamento?')) {
+      indexParaExcluir = index;
+      tipoDocumentoExcluir = 'ORC';
+      executarExclusaoConfirmada();
+    }
   }
+};
+
+window.executarExclusaoConfirmada = async function() {
+  if (indexParaExcluir === null || indexParaExcluir === undefined) return;
+
+  if (tipoDocumentoExcluir === 'RS') {
+    listaRelatoriosRS.splice(indexParaExcluir, 1);
+    await DataSync.save('rg_reports', listaRelatoriosRS);
+  } else if (tipoDocumentoExcluir === 'ORC') {
+    listaOrcamentos.splice(indexParaExcluir, 1);
+    await DataSync.save('rg_orcamentos', listaOrcamentos);
+  }
+
+  fecharModalExclusao();
+  await renderizarTudo();
+};
+
+window.fecharModalExclusao = function() {
+  indexParaExcluir = null;
+  tipoDocumentoExcluir = null;
+  const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
+  if (modalExclusao) modalExclusao.style.display = 'none';
 };
 
 window.openReportPreview = async function(index) {
   const rep = listaRelatoriosRS[index];
   if (!rep) return;
-  activeDocumentData = { number: rep.number || 'RS-1000', client: rep.client || 'Cliente' };
+  activeDocumentData = { number: rep.number || rep.numero || 'RS-1000', client: rep.client || rep.cliente || 'Cliente' };
   activeDocumentType = 'RS';
 
   const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
@@ -255,35 +315,41 @@ window.openReportPreview = async function(index) {
   } catch (e) {}
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
+  const targetArea = document.getElementById('reportRenderArea') || document.getElementById('renderArea');
 
-  document.getElementById('reportRenderArea').innerHTML = `
-    <div class="print-body">
-      <div class="watermark">${escapeHTML(config.nomeEmpresa || config.name || 'NexOS')}</div>
-      <div class="print-header">
-        <img src="${logoSrc}" alt="Logo">
-        <div style="text-align: center; flex-grow: 1;"><h1 style="font-size: 11px; margin: 0;">RELATÓRIO DE SERVIÇO (RS)</h1></div>
-        <div class="print-header-info"><h1>Nº: ${escapeHTML(rep.number || '-')}</h1><p>Data: ${escapeHTML(rep.date || '-')}</p></div>
+  if (targetArea) {
+    targetArea.innerHTML = `
+      <div class="print-body">
+        <div class="watermark">${escapeHTML(config.nomeEmpresa || config.name || 'NexOS')}</div>
+        <div class="print-header">
+          <img src="${logoSrc}" alt="Logo">
+          <div style="text-align: center; flex-grow: 1;"><h1 style="font-size: 11px; margin: 0;">RELATÓRIO DE SERVIÇO (RS)</h1></div>
+          <div class="print-header-info"><h1>Nº: ${escapeHTML(rep.number || rep.numero || '-')}</h1><p>Data: ${escapeHTML(rep.date || rep.data || '-')}</p></div>
+        </div>
+        <div class="section-box">
+          <div class="section-title">DADOS DO CLIENTE & EQUIPAMENTO</div>
+          <p><strong>Cliente:</strong> ${escapeHTML(rep.client || rep.cliente || '-')}</p>
+          <p><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || rep.equipamento || '-')}</p>
+        </div>
+        <div class="section-box">
+          <div class="section-title">SERVIÇO EXECUTADO</div>
+          <p style="white-space: pre-wrap;">${escapeHTML(rep.desc || '-')}</p>
+        </div>
       </div>
-      <div class="section-box">
-        <div class="section-title">DADOS DO CLIENTE & EQUIPAMENTO</div>
-        <p><strong>Cliente:</strong> ${escapeHTML(rep.client || '-')}</p>
-        <p><strong>Equipamento:</strong> ${escapeHTML(rep.equipment || '-')}</p>
-      </div>
-      <div class="section-box">
-        <div class="section-title">SERVIÇO EXECUTADO</div>
-        <p style="white-space: pre-wrap;">${escapeHTML(rep.desc || '-')}</p>
-      </div>
-    </div>
-  `;
+    `;
+  }
 
-  document.getElementById('modalTitleRs').textContent = `RS - ${rep.number || '1000'}`;
-  document.getElementById('reportPreviewModal').style.display = 'flex';
+  const modalTitle = document.getElementById('modalTitleRs') || document.getElementById('modalTitle');
+  if (modalTitle) modalTitle.textContent = `RS - ${rep.number || rep.numero || '1000'}`;
+  
+  const modal = document.getElementById('reportPreviewModal') || document.getElementById('previewModal');
+  if (modal) modal.style.display = 'flex';
 };
 
 window.openBudgetPreview = async function(index) {
   const b = listaOrcamentos[index];
   if (!b) return;
-  activeDocumentData = { number: b.number || 'ORC-0001', client: b.client || 'Cliente' };
+  activeDocumentData = { number: b.number || b.numero || 'ORC-0001', client: b.client || b.cliente || 'Cliente' };
   activeDocumentType = 'ORC';
 
   const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
@@ -294,61 +360,116 @@ window.openBudgetPreview = async function(index) {
   } catch (e) {}
 
   const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
+  const targetArea = document.getElementById('budgetRenderArea') || document.getElementById('reportRenderArea');
 
-  document.getElementById('reportRenderArea').innerHTML = `
-    <div class="print-body">
-      <div class="watermark">${escapeHTML(config.nomeEmpresa || config.name || 'NexOS')}</div>
-      <div class="print-header">
-        <img src="${logoSrc}" alt="Logo">
-        <div style="text-align: center; flex-grow: 1;"><h1 style="font-size: 11px; margin: 0;">ORÇAMENTO DE SERVIÇO</h1></div>
-        <div class="print-header-info"><h1>Nº: ${escapeHTML(b.number || '-')}</h1><p>Data: ${escapeHTML(b.date || '-')}</p></div>
+  if (targetArea) {
+    targetArea.innerHTML = `
+      <div class="print-body">
+        <div class="watermark">${escapeHTML(config.nomeEmpresa || config.name || 'NexOS')}</div>
+        <div class="print-header">
+          <img src="${logoSrc}" alt="Logo">
+          <div style="text-align: center; flex-grow: 1;"><h1 style="font-size: 11px; margin: 0;">ORÇAMENTO DE SERVIÇO</h1></div>
+          <div class="print-header-info"><h1>Nº: ${escapeHTML(b.number || b.numero || '-')}</h1><p>Data: ${escapeHTML(b.date || b.data || '-')}</p></div>
+        </div>
+        <div class="section-box">
+          <div class="section-title">DADOS DO CLIENTE & EQUIPAMENTO</div>
+          <p><strong>Cliente:</strong> ${escapeHTML(b.client || b.cliente || '-')}</p>
+          <p><strong>Equipamento:</strong> ${escapeHTML(b.equipment || b.equipamento || '-')}</p>
+        </div>
+        <div class="section-box">
+          <div class="section-title">ESCOPO E CONDIÇÕES</div>
+          <p style="white-space: pre-wrap;">${escapeHTML(b.desc || '-')}</p>
+          <p><strong>Termos:</strong></p>
+          <p style="white-space: pre-wrap;">${escapeHTML(b.terms || '-')}</p>
+        </div>
+        <div class="section-box" style="text-align: right; background: #F1F5F9;">
+          <p style="font-size: 11px; font-weight: bold;">VALOR TOTAL: R$ ${Number(b.total || b.valorTotal || 0).toFixed(2)}</p>
+        </div>
       </div>
-      <div class="section-box">
-        <div class="section-title">DADOS DO CLIENTE & EQUIPAMENTO</div>
-        <p><strong>Cliente:</strong> ${escapeHTML(b.client || '-')}</p>
-        <p><strong>Equipamento:</strong> ${escapeHTML(b.equipment || '-')}</p>
-      </div>
-      <div class="section-box">
-        <div class="section-title">ESCOPO E CONDIÇÕES</div>
-        <p style="white-space: pre-wrap;">${escapeHTML(b.desc || '-')}</p>
-        <p><strong>Termos:</strong></p>
-        <p style="white-space: pre-wrap;">${escapeHTML(b.terms || '-')}</p>
-      </div>
-      <div class="section-box" style="text-align: right; background: #F1F5F9;">
-        <p style="font-size: 11px; font-weight: bold;">VALOR TOTAL: R$ ${Number(b.total || 0).toFixed(2)}</p>
-      </div>
-    </div>
-  `;
+    `;
+  }
 
-  document.getElementById('modalTitleRs').textContent = `Orçamento - ${b.number || 'ORC-0001'}`;
-  document.getElementById('reportPreviewModal').style.display = 'flex';
+  const modalTitle = document.getElementById('modalTitleOrc') || document.getElementById('modalTitleRs');
+  if (modalTitle) modalTitle.textContent = `Orçamento - ${b.number || b.numero || 'ORC-0001'}`;
+  
+  const modal = document.getElementById('budgetPreviewModal') || document.getElementById('reportPreviewModal');
+  if (modal) modal.style.display = 'flex';
 };
 
 window.closeModal = function() {
-  document.getElementById('reportPreviewModal').style.display = 'none';
+  const m1 = document.getElementById('reportPreviewModal');
+  const m2 = document.getElementById('budgetPreviewModal');
+  if (m1) m1.style.display = 'none';
+  if (m2) m2.style.display = 'none';
 };
 
-window.descarregarPDFDocumento = function() {
-  const element = document.getElementById('reportRenderArea');
+// Helper com etapas animadas no status do modal
+async function executarComProgresso(statusEl, btn, callback) {
+  const textoOriginal = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+  }
+
+  try {
+    if (statusEl) statusEl.textContent = `⏳ 1/4 - Salvando informações...`;
+    await new Promise(r => setTimeout(r, 250));
+
+    if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens...`;
+    await callback.etapaImagens();
+
+    if (statusEl) statusEl.textContent = `⏳ 3/4 - Gerando documento PDF...`;
+    await callback.etapaPdf();
+
+    if (statusEl) statusEl.textContent = `✅ 4/4 - Finalizando relatório...`;
+    await new Promise(r => setTimeout(r, 200));
+
+    if (statusEl) statusEl.textContent = 'Pronto';
+  } catch (erro) {
+    console.error('Erro no processo:', erro);
+    if (statusEl) statusEl.textContent = 'Erro ao gerar documento';
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  }
+}
+
+window.descarregarPDFDocumento = async function() {
+  const element = document.getElementById('reportRenderArea') || document.getElementById('budgetRenderArea');
+  const statusEl = document.getElementById('loadingStatusRs') || document.getElementById('loadingStatusOrc');
+  const btn = event && event.target ? event.target : null;
   const filename = `${activeDocumentType}_${activeDocumentData.number || '0001'}.pdf`;
-  const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-  html2pdf().from(element).set(opt).save();
+
+  await executarComProgresso(statusEl, btn, {
+    etapaImagens: async () => {},
+    etapaPdf: async () => {
+      const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      await html2pdf().from(element).set(opt).save();
+    }
+  });
 };
 
 window.compartilharPDFDocumento = async function() {
-  const element = document.getElementById('reportRenderArea');
+  const element = document.getElementById('reportRenderArea') || document.getElementById('budgetRenderArea');
+  const statusEl = document.getElementById('loadingStatusRs') || document.getElementById('loadingStatusOrc');
+  const btn = event && event.target ? event.target : null;
   const filename = `${activeDocumentType}_${activeDocumentData.number || '0001'}.pdf`;
-  const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
 
-  try {
-    const pdfBlob = await html2pdf().from(element).set(opt).outputPdf('blob');
-    const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: activeDocumentData.number, text: `Segue documento para ${activeDocumentData.client}.` });
-    } else {
-      html2pdf().from(element).set(opt).save();
+  await executarComProgresso(statusEl, btn, {
+    etapaImagens: async () => {},
+    etapaPdf: async () => {
+      const opt = { margin: [6, 6, 6, 6], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      const pdfBlob = await html2pdf().from(element).set(opt).outputPdf('blob');
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: activeDocumentData.number, text: `Segue documento para ${activeDocumentData.client}.` });
+      } else {
+        await html2pdf().from(element).set(opt).save();
+      }
     }
-  } catch (e) { html2pdf().from(element).set(opt).save(); }
+  });
 };
 
 function escapeHTML(str) {
