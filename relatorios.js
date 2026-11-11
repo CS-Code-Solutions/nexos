@@ -2,6 +2,11 @@
  * NexOS - Módulo Unificado de Relatórios e Orçamentos (relatorios.js)
  */
 
+let listaRelatoriosRS = [];
+let listaOrcamentos = [];
+let activeReportData = {};
+let activeBudgetData = {};
+
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
     window.location.href = 'login.html';
@@ -23,14 +28,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-let listaRelatoriosRS = [];
-let listaOrcamentos = [];
-let activeReportData = {};
-let activeBudgetData = {};
-
 /**
- * Normaliza os dados carregados do Firestore/DataSync garantindo que retornem sempre como Array,
- * mesmo se estiverem encapsulados em .items, .reports, .orcamentos ou chaves de objeto.
+ * Normaliza os dados carregados garantindo formato de Array
  */
 function normalizarLista(dados) {
   if (!dados) return [];
@@ -127,7 +126,7 @@ window.filtrarDocumentos = function() {
     });
   }
 
-  // Mapeia Orçamentos (Apenas se o módulo estiver ativo)
+  // Mapeia Orçamentos
   const showOrcamentos = localStorage.getItem('rg_page_orcamentos') !== 'false';
   const userRole = localStorage.getItem('rg_user_role');
   const isSuperAdmin = (userRole === 'super_admin');
@@ -247,7 +246,7 @@ window.filtrarDocumentos = function() {
   container.innerHTML = htmlCards;
 };
 
-/* --- AÇÕES DE EDICÃO E EXCLUSÃO DE RS E ORÇAMENTO --- */
+/* --- AÇÕES DE EDIÇÃO E EXCLUSÃO --- */
 window.editReport = function(index) {
   window.location.href = `novo-relatorio.html?edit=${index}`;
 };
@@ -287,15 +286,34 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
 
   if (Array.isArray(diasArray)) {
     diasArray.forEach((d, idx) => {
-      if (d.inicio && d.fim) {
-        const diff = new Date(d.fim) - new Date(d.inicio);
-        if (diff > 0) {
-          const minDia = diff / (1000 * 60);
-          minutosTotais += minDia;
-          const hExata = Math.floor(minDia / 60);
-          const mRest = Math.round(minDia % 60);
-          detalhesDiasHtml += `<span style="display: block; margin-left: 6px; font-size: 9px;">• Dia ${idx + 1}: ${d.inicio.replace('T', ' ')} até ${d.fim.replace('T', ' ')} (${hExata}h ${mRest}m)</span>`;
+      let minDia = 0;
+
+      // Cálculo considerando Intervalo (Turnos Manhã e Tarde)
+      if (d.tipo === 'turnos' || d.inicioManha || d.fimManha) {
+        const iniM = d.inicioManha || d.inicio;
+        const fimM = d.fimManha;
+        const iniT = d.inicioTarde;
+        const fimT = d.fim;
+
+        if (iniM && fimM) {
+          const diffM = new Date(fimM) - new Date(iniM);
+          if (diffM > 0) minDia += (diffM / (1000 * 60));
         }
+        if (iniT && fimT) {
+          const diffT = new Date(fimT) - new Date(iniT);
+          if (diffT > 0) minDia += (diffT / (1000 * 60));
+        }
+      } else if (d.inicio && d.fim) {
+        // Turno Direto / Único
+        const diff = new Date(d.fim) - new Date(d.inicio);
+        if (diff > 0) minDia = diff / (1000 * 60);
+      }
+
+      if (minDia > 0) {
+        minutosTotais += minDia;
+        const hExata = Math.floor(minDia / 60);
+        const mRest = Math.round(minDia % 60);
+        detalhesDiasHtml += `<span style="display: block; margin-left: 6px; font-size: 9px;">• Dia ${idx + 1}: ${hExata}h ${mRest}m de atendimento</span>`;
       }
     });
   }
@@ -375,7 +393,7 @@ window.openReportPreview = async function(index) {
 
     const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
 
-    // MONTAGEM DOS ANEXOS NA SEGUNDA PÁGINA (PAGE-BREAK)
+    // Montagem dos Anexos
     let anexosHtml = '';
     if (rep.anexos && rep.anexos.length > 0) {
       let itemsHtml = '';
@@ -475,7 +493,6 @@ window.openReportPreview = async function(index) {
           <p style="font-size: 9.5px; font-weight: bold; color: #0D9488; border-top: 1px solid #CBD5E1; padding-top: 2px; margin-top: 2px;">Valor Total Estimado: R$ ${valorTotal.toFixed(2)}</p>
         </div>
 
-        <!-- ESTRUTURA DAS ASSINATURAS LADO A LADO -->
         <div class="signature-area" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; page-break-inside: avoid; gap: 15px;">
           <div class="signature-box" style="flex: 1; text-align: center;">
             ${techSignature ? `<img src="${techSignature}" alt="Assinatura Técnico" style="max-height: 35px; width: auto; max-width: 140px; display: block; margin: 0 auto 2px auto;">` : '<div style="height: 35px;"></div>'}
