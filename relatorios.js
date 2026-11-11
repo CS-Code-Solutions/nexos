@@ -312,16 +312,16 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   if (rep.anexos && rep.anexos.length > 0) {
     let itemsHtml = rep.anexos.map(anexo => `
-      <div style="text-align: center; page-break-inside: avoid; margin-top: 15px; border: 1px solid #CBD5E1; padding: 10px; background: #FFF;">
-        <div style="text-align: left; font-weight: bold; margin-bottom: 5px;">${escapeHTML(anexo.titulo)}</div>
-        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 160px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+      <div style="text-align: center; page-break-inside: avoid; margin-top: 10px; border: 1px solid #CBD5E1; padding: 8px; background: #FFF;">
+        <div style="text-align: left; font-weight: bold; margin-bottom: 5px; font-size: 10px;">${escapeHTML(anexo.titulo)}</div>
+        <img src="${anexo.imagem}" style="max-width: 100%; max-height: 130px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
       </div>
     `).join('');
     anexosHtml = `
-      <div style="page-break-before: always; height: 1px; margin-top: 15px;"></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; align-items: center;">
-        <img src="${logoSrc}" style="height: 35px; width: auto; max-width: 120px; object-fit: contain;">
-        <h1 style="font-size: 12px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
+      <div style="page-break-before: always; height: 1px; margin-top: 10px;"></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 10px;">
+        <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
+        <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
       </div>
       ${itemsHtml}
     `;
