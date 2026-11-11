@@ -40,7 +40,7 @@
     .client-card {
       background: #FFFFFF;
       border: 1px solid #E2E8F0;
-      border-left: 5px solid var(--tech-blue);
+      border-left: 5px solid var(--tech-blue, #1D4ED8);
       border-radius: 8px;
       margin-bottom: 12px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.04);
@@ -107,15 +107,14 @@
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
-      <!-- CENTRO: MENU DESKTOP -->
-      <nav class="desktop-nav">
+    <!-- CENTRO: MENU DESKTOP -->
+    <nav class="desktop-nav">
       <a href="cadastros.html" class="active"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
-      </nav>
-
+    </nav>
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
       <i class="fa-solid fa-power-off"></i>
@@ -131,10 +130,10 @@
         <p style="color: #64748B; font-size: 0.85rem; margin: 2px 0 0 0;">Gestão unificada de clientes e máquinas vinculadas</p>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button type="button" class="btn" onclick="abrirFormCliente()" style="background-color: var(--tech-blue); color: white; font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
+        <button type="button" class="btn" onclick="abrirFormCliente()" style="background-color: #1D4ED8; color: white; font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
           <i class="fa-solid fa-user-plus"></i> + Cliente
         </button>
-        <button type="button" class="btn" onclick="abrirFormMaquina()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
+        <button type="button" class="btn" onclick="abrirFormMaquina()" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
           <i class="fa-solid fa-gears"></i> + Máquina
         </button>
       </div>
@@ -142,11 +141,11 @@
 
     <!-- CAMPO DE PESQUISA RÁPIDA -->
     <div class="card no-print" style="padding: 12px; margin-bottom: 15px; border-top: none;">
-      <input type="text" id="inputPesquisa" oninput="filtrarCadastros()" placeholder="🔍 Pesquisar por cliente, máquina ou modelo..." style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem;">
+      <input type="text" id="inputPesquisa" oninput="filtrarCadastros()" placeholder="🔍 Pesquisar por cliente, marca, máquina ou modelo..." style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem;">
     </div>
 
-    <!-- FORMULÁRIO DE CLIENTE (ACORDEÃO / MODAL INLINE) -->
-    <section class="card no-print" id="clienteFormSection" style="display: none; border-top: 4px solid var(--tech-blue); margin-bottom: 20px;">
+    <!-- FORMULÁRIO DE CLIENTE -->
+    <section class="card no-print" id="clienteFormSection" style="display: none; border-top: 4px solid #1D4ED8; margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 id="cliente-form-title" style="color: #0B132B; font-size: 1.15rem; margin: 0;">Cadastrar Novo Cliente</h3>
         <button type="button" onclick="fecharFormCliente()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748B;">&times;</button>
@@ -165,16 +164,28 @@
             <label for="c-telefone" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Telefone / WhatsApp:</label>
             <input type="text" id="c-telefone" placeholder="(51) 99999-9999" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
           </div>
+          <div>
+            <label for="c-email" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">E-mail:</label>
+            <input type="email" id="c-email" placeholder="exemplo@email.com" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-documento" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">CPF / CNPJ:</label>
+            <input type="text" id="c-documento" placeholder="00.000.000/0001-00" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label for="c-endereco" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Morada / Endereço:</label>
+            <input type="text" id="c-endereco" placeholder="Rua, Número, Bairro, Cidade - UF" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
         </div>
         <div style="display: flex; gap: 10px;">
-          <button type="submit" id="btn-submit-c" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1;">Guardar Cliente</button>
-          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px;" onclick="fecharFormCliente()">Cancelar</button>
+          <button type="submit" id="btn-submit-c" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1; border: none; border-radius: 4px; cursor: pointer;">Guardar Cliente</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px; border: none; border-radius: 4px; cursor: pointer;" onclick="fecharFormCliente()">Cancelar</button>
         </div>
       </form>
     </section>
 
-    <!-- FORMULÁRIO DE MÁQUINA (ACORDEÃO / MODAL INLINE) -->
-    <section class="card no-print" id="maquinaFormSection" style="display: none; border-top: 4px solid var(--electric-cyan); margin-bottom: 20px;">
+    <!-- FORMULÁRIO DE MÁQUINA -->
+    <section class="card no-print" id="maquinaFormSection" style="display: none; border-top: 4px solid #00F5D4; margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 id="maquina-form-title" style="color: #0B132B; font-size: 1.15rem; margin: 0;">Cadastrar Nova Máquina</h3>
         <button type="button" onclick="fecharFormMaquina()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748B;">&times;</button>
@@ -182,32 +193,36 @@
       <form id="maquina-form">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
           <div style="grid-column: 1 / -1;">
-            <label for="m-cliente-select" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Cliente Pertencente:*</label>
+            <label for="m-cliente-select" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Cliente / Empresa:*</label>
             <select id="m-cliente-select" required style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;">
               <option value="">Selecione o cliente...</option>
             </select>
           </div>
-          <div>
-            <label for="m-nome" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nome / Tag da Máquina:*</label>
-            <input type="text" id="m-nome" required placeholder="Ex: Prensa Hidráulica 02" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          <div style="grid-column: 1 / -1;">
+            <label for="m-nome" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nome / Equipamento:*</label>
+            <input type="text" id="m-nome" required placeholder="Ex: Centro de Usinagem / Prensa Hidráulica" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
           </div>
           <div>
-            <label for="m-modelo" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Modelo / Fabricante:</label>
-            <input type="text" id="m-modelo" placeholder="Ex: Schuler 200T" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+            <label for="m-marca" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Marca:</label>
+            <input type="text" id="m-marca" placeholder="Ex: Trumpf / Bystronic / Amada" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-modelo" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Modelo:</label>
+            <input type="text" id="m-modelo" placeholder="Ex: TruLaser 3030" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
           </div>
           <div style="grid-column: 1 / -1;">
-            <label for="m-numserie" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nº de Série / Identificação:</label>
-            <input type="text" id="m-numserie" placeholder="Ex: SN-2024-8890" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+            <label for="m-numserie" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Número de Série / Tag:</label>
+            <input type="text" id="m-numserie" placeholder="Ex: SN-99823" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
           </div>
         </div>
         <div style="display: flex; gap: 10px;">
-          <button type="submit" id="btn-submit-m" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1;">Guardar Máquina</button>
-          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px;" onclick="fecharFormMaquina()">Cancelar</button>
+          <button type="submit" id="btn-submit-m" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1; border: none; border-radius: 4px; cursor: pointer;">Guardar Máquina</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px; border: none; border-radius: 4px; cursor: pointer;" onclick="fecharFormMaquina()">Cancelar</button>
         </div>
       </form>
     </section>
 
-    <!-- LISTA PRINCIPAL HIERÁRQUICA (CLIENTES E SUAS MÁQUINAS) -->
+    <!-- LISTA PRINCIPAL HIERÁRQUICA -->
     <section id="cadastrosContainer">
       <p style="text-align: center; color: #64748B; padding: 30px;">A carregar lista de cadastros...</p>
     </section>
@@ -218,9 +233,9 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-    <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="cadastros.html"class="active">
+    <a href="cadastros.html" class="active">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
@@ -242,8 +257,7 @@
     </a>
   </nav>
 
-
-  <script src="cadastros.js?v=2"></script>
+  <script src="cadastros.js?v=3"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const bottomNav = document.getElementById('mainBottomNav');
