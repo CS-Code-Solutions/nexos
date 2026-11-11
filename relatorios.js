@@ -274,31 +274,35 @@ function calcularMinutosDiasTrabalho(diasArray, valorHoraFixo = 200.00) {
   return { totalHoursText: `${Math.floor(minutosTotais / 60)}h ${Math.round(minutosTotais % 60)}m`, valorHorasTotal: (minutosTotais / 60) * Number(valorHoraFixo), detalhesDiasHtml };
 }
 
-// FUNÇÃO SEGURA DE REDIMENSIONAMENTO DE IMAGENS PARA EVITAR TRAVAMENTO DE MEMÓRIA
-function comprimirAnexoSeguro(base64Str, maxW = 600, maxH = 600, qual = 0.7) {
+// ROTINA DE COMPRESSÃO LEVE (BASEADA NO PADRÃO QUE FUNCIONA PERFEITAMENTE)
+function otimizarImagemBase64(base64Str, maxWidth = 800, maxHeight = 800, quality = 0.55) {
   return new Promise((resolve) => {
     if (!base64Str || !base64Str.startsWith('data:image')) {
       resolve(base64Str);
       return;
     }
     const img = new Image();
-    img.src = base64Str;
     img.onload = () => {
-      let w = img.width;
-      let h = img.height;
-      if (w > h) {
-        if (w > maxW) { h = Math.round((h * maxW) / w); w = maxW; }
-      } else {
-        if (h > maxH) { w = Math.round((w * maxH) / h); h = maxH; }
-      }
       const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height && width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      } else if (height > maxHeight) {
+        width = Math.round((width * maxHeight) / height);
+        height = maxHeight;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', qual));
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
     img.onerror = () => resolve(base64Str);
+    img.src = base64Str;
   });
 }
 
@@ -340,29 +344,39 @@ window.openReportPreview = async function(index) {
   let anexosHtml = '';
   
   if (rep.anexos && rep.anexos.length > 0) {
-    // Processamento otimizado e assíncrono simultâneo para os anexos lado a lado (2 colunas)
-    const promessasAnexos = rep.anexos.map(async (anexo) => {
-      const imgOtimizada = await comprimirAnexoSeguro(anexo.imagem, 500, 500, 0.65);
-      return `
-        <div style="width: 48%; text-align: center; page-break-inside: avoid; margin-bottom: 12px; border: 1px solid #CBD5E1; padding: 6px; background: #FFF; border-radius: 4px; box-sizing: border-box;">
-          <div style="text-align: left; font-weight: bold; margin-bottom: 4px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo)}</div>
-          <img src="${imgOtimizada}" style="max-width: 100%; max-height: 130px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+    // COMPRESSÃO ASSÍNCRONA E GRELHA LADO A LADO (2 COLUNAS) COM QUEBRA DE PÁGINA LIMPA
+    let blocosAnexosHTML = '';
+    for (let i = 0; i < rep.anexos.length; i += 4) {
+      const chunk = rep.anexos.slice(i, i + 4);
+      let itensChunkHtml = '';
+      
+      for (const anexo of chunk) {
+        const imagemOtimizada = await otimizarImagemBase64(anexo.imagem, 700, 700, 0.55);
+        itensChunkHtml += `
+          <div style="width: 48%; border: 1px solid #CBD5E1; padding: 8px; border-radius: 6px; text-align: center; background: #FFF; box-sizing: border-box; margin-bottom: 10px; page-break-inside: avoid;">
+            <div style="height: 180px; background: #F8FAFC; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;">
+              <img src="${imagemOtimizada}" style="max-width: 100%; max-height: 180px; width: auto; height: auto; display: block;">
+            </div>
+            <div style="text-align: left; padding: 0 2px;">
+              <div style="font-weight: bold; font-size: 11px; color: #0B132B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(anexo.titulo || 'Foto do Equipamento')}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      blocosAnexosHTML += `
+        <div style="page-break-before: always; width: 794px; background: #FFF; box-sizing: border-box;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 12px;">
+            <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
+            <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+            ${itensChunkHtml}
+          </div>
         </div>
       `;
-    });
-
-    const resultadosHtml = await Promise.all(promessasAnexos);
-
-    anexosHtml = `
-      <div style="page-break-before: always; height: 1px; margin-top: 10px;"></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #00F5D4; padding-bottom: 6px; align-items: center; margin-bottom: 10px;">
-        <img src="${logoSrc}" style="height: 30px; width: auto; max-width: 120px; object-fit: contain;">
-        <h1 style="font-size: 11px; text-transform: uppercase; margin: 0;">Anexos / Fotos do Equipamento</h1>
-      </div>
-      <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-        ${resultadosHtml.join('')}
-      </div>
-    `;
+    }
+    anexosHtml = blocosAnexosHTML;
   }
 
   document.getElementById('reportRenderArea').innerHTML = `
@@ -435,8 +449,8 @@ window.openReportPreview = async function(index) {
             <p style="margin: 0; font-size: 10px;"><strong>Assinatura do Cliente</strong></p>
           </div>
         </div>
-        ${anexosHtml}
       </div>
+      ${anexosHtml}
     </div>
   `;
 
@@ -547,10 +561,11 @@ function getPdfOptions(filename) {
   return {
     margin: [10, 0, 10, 0],
     filename,
-    image: { type: 'jpeg', quality: 0.85 },
+    image: { type: 'jpeg', quality: 0.92 },
     html2canvas: { 
-      scale: 1.25, // Escala segura otimizada para processar múltiplos anexos sem travar
+      scale: 1.5, 
       useCORS: true, 
+      allowTaint: true,
       letterRendering: true, 
       scrollY: 0,
       windowWidth: 794
