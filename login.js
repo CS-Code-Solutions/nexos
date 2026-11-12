@@ -33,14 +33,14 @@ async function validarAcessoSaaS(userEmail) {
 }
 
 function resolverDestinoInicial(isSuperAdmin) {
-  const temDashboard = isSuperAdmin || (localStorage.getItem('rg_page_dashboard') === 'true');
   const temRelatorios = isSuperAdmin || (localStorage.getItem('rg_page_relatorios') !== 'false');
   const temCadastros = isSuperAdmin || (localStorage.getItem('rg_page_cadastros') !== 'false');
   const temManutencoes = isSuperAdmin || (localStorage.getItem('rg_page_manutencoes') !== 'false');
   const temHorasExtras = isSuperAdmin || (localStorage.getItem('rg_mod_horas_extras') === 'true');
 
+  // Dashboard desativado temporariamente
   const paginasPermitidas = {
-    'dashboard.html': temDashboard,
+    'dashboard.html': false,
     'relatorios.html': temRelatorios,
     'novo-relatorio.html': temRelatorios,
     'cadastros.html': temCadastros,
@@ -50,12 +50,11 @@ function resolverDestinoInicial(isSuperAdmin) {
 
   let destino = (typeof window.getPaginaInicialNexOS === 'function')
     ? window.getPaginaInicialNexOS()
-    : (localStorage.getItem('rg_pagina_inicial') || 'dashboard.html');
+    : (localStorage.getItem('rg_pagina_inicial') || 'relatorios.html');
 
-  // Se o destino salvo não existe ou foi desativado para o cliente, redireciona para a primeira página permitida
+  // Se o destino salvo for dashboard ou estiver desativado para o cliente, usa a primeira página permitida
   if (!paginasPermitidas[destino]) {
     const ordemFallback = [
-      'dashboard.html',
       'relatorios.html',
       'cadastros.html',
       'manutencoes.html',
@@ -106,14 +105,14 @@ window.handleGoogleLogin = async function() {
       const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
       if (configDoc.exists) {
         const cfg = configDoc.data();
-        localStorage.setItem('rg_page_dashboard', cfg.pageDashboard === true ? 'true' : 'false');
+        localStorage.setItem('rg_page_dashboard', 'false');
         localStorage.setItem('rg_page_cadastros', cfg.pageCadastros !== false ? 'true' : 'false');
         localStorage.setItem('rg_page_relatorios', cfg.pageRelatorios !== false ? 'true' : 'false');
         localStorage.setItem('rg_page_orcamentos', cfg.pageOrcamentos !== false ? 'true' : 'false');
         localStorage.setItem('rg_page_manutencoes', cfg.pageManutencoes !== false ? 'true' : 'false');
         localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
         
-        if (cfg.paginaInicial) {
+        if (cfg.paginaInicial && cfg.paginaInicial !== 'dashboard.html') {
           localStorage.setItem('rg_pagina_inicial', cfg.paginaInicial);
         } else {
           localStorage.removeItem('rg_pagina_inicial');
