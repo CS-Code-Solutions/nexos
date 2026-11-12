@@ -382,19 +382,27 @@ function renderWidgetUltimosRS(lista) {
     const dataStr = r.date || r.data || '';
     const parts = dataStr.split('-');
     const dataBR = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dataStr;
+    const nomeCliente = r.client || r.cliente || 'Cliente';
+
     return `
       <div class="widget-item">
         <div>
-          <strong style="color: #0B132B; font-size: 0.88rem; display: block;">${escapeHTML(r.client || r.cliente || 'Cliente')}</strong>
+          <strong style="color: #0B132B; font-size: 0.88rem; display: block;">${escapeHTML(nomeCliente)}</strong>
           <span style="font-size: 0.78rem; color: #64748B;">${dataBR} • ${escapeHTML(r.machine || r.maquina || 'Equipamento')}</span>
         </div>
-        <a href="relatorios.html" style="background: #E0F2FE; color: #0369A1; padding: 5px 10px; border-radius: 5px; font-size: 0.78rem; font-weight: bold; text-decoration: none;">
+        <button type="button" data-cliente="${escapeHTML(nomeCliente)}" onclick="abrirRelatoriosDoCliente(this.getAttribute('data-cliente'))" style="background: #E0F2FE; color: #0369A1; border: none; padding: 6px 12px; border-radius: 5px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
           Abrir
-        </a>
+        </button>
       </div>
     `;
   }).join('');
 }
+
+window.abrirRelatoriosDoCliente = function(cliente) {
+  if (!cliente) return;
+  localStorage.setItem('rg_filtro_cliente_rs', cliente);
+  window.location.href = `relatorios.html?cliente=${encodeURIComponent(cliente)}`;
+};
 
 // =========================================================================
 // APLICAÇÃO DE VISIBILIDADE E ORDEM NO PAINEL
