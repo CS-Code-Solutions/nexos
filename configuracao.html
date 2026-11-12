@@ -70,18 +70,19 @@
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     
     <!-- LADO ESQUERDO: LOGO -->
-    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+    <a href="dashboard.html" id="linkLogoHeader" style="display: flex; align-items: center; text-decoration: none;">
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
-      <!-- CENTRO: MENU DESKTOP -->
-      <nav class="desktop-nav">
+    <!-- CENTRO: MENU DESKTOP -->
+    <nav class="desktop-nav">
+      <a href="dashboard.html" id="d-nav-dash"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
       <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="manutencoes.html" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
-      </nav>
+    </nav>
 
     <!-- LADO DIREITO: BOTÃO SAIR -->
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s;" title="Encerrar Sessão">
@@ -163,6 +164,23 @@
         <div class="form-group">
           <label for="configNextRs">Próximo Número de Sequência de RS (Inicial / Automático):</label>
           <input type="number" id="configNextRs" value="1000">
+        </div>
+
+        <!-- PREFERÊNCIA DE PÁGINA INICIAL -->
+        <h3 style="margin-top: 25px;">🏠 Preferências de Navegação</h3>
+        <div class="form-group">
+          <label for="configPaginaInicial">Página Inicial ao Abrir o Sistema:</label>
+          <select id="configPaginaInicial" style="width: 100%; padding: 10px; border: 1px solid #CBD5E1; border-radius: 6px; background: #FFF; color: #0B132B; font-weight: bold;">
+            <option value="dashboard.html">Dashboard (Painel de Controle)</option>
+            <option value="relatorios.html">Relatórios (RS)</option>
+            <option value="novo-relatorio.html">Novo Relatório (RS)</option>
+            <option value="cadastros.html">Cadastros</option>
+            <option value="manutencoes.html" id="opt-inicio-plan">Planejamento de Preventivas</option>
+            <option value="horas-extras.html" id="opt-inicio-horas">Horas Extras</option>
+          </select>
+          <small style="display: block; color: #64748B; font-size: 0.8rem; margin-top: 4px;">
+            Define qual tela será carregada automaticamente após o login ou ao tocar no logótipo.
+          </small>
         </div>
 
         <h3 style="margin-top: 25px;">💳 Dados Bancários - Conta 1</h3>
@@ -260,8 +278,12 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-<!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="dashboard.html" id="nav-item-dash">
+      <i class="fa-solid fa-chart-pie"></i>
+      <span>Dash</span>
+    </a>
     <a href="cadastros.html">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
@@ -270,7 +292,7 @@
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html">
+    <a href="manutencoes.html" id="nav-item-plan">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
     </a>
@@ -278,7 +300,7 @@
       <i class="fa-solid fa-clock"></i>
       <span>Horas</span>
     </a>
-    <a href="configuracao.html" class="active"id="nav-item-config">
+    <a href="configuracao.html" class="active" id="nav-item-config">
       <i class="fa-solid fa-gear"></i>
       <span>Config</span>
     </a>
@@ -287,7 +309,7 @@
   <!-- SCRIPT EXTERNO SEPARADO -->
   <script src="configuracao.js?v=2"></script>
 
-  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
+  <!-- SCRIPT DE CONTROLO DE PERMISSÕES, LOGÓTIPO E PÁGINA INICIAL -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const imgLogo = document.getElementById('logo-cliente');
@@ -301,17 +323,50 @@
       }
 
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
       const navHoras = document.getElementById('nav-item-horas');
       const dNavHoras = document.getElementById('d-nav-horas');
+      const optHoras = document.getElementById('opt-inicio-horas');
+      const optPlan = document.getElementById('opt-inicio-plan');
 
-      if (navHoras) {
-        navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      if (navHoras) navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      if (dNavHoras) dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      if (optHoras && !isSuperAdmin && showHoras !== 'true') optHoras.remove();
+      if (optPlan && !isSuperAdmin && showManutencoes === 'false') optPlan.remove();
+
+      // Carrega e salva a preferência de Página Inicial
+      const selectPaginaInicial = document.getElementById('configPaginaInicial');
+      const linkLogoHeader = document.getElementById('linkLogoHeader');
+      const paginaSalva = localStorage.getItem('rg_pagina_inicial') || 'dashboard.html';
+
+      if (linkLogoHeader) {
+        linkLogoHeader.href = paginaSalva;
       }
-      if (dNavHoras) {
-        dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+
+      if (selectPaginaInicial) {
+        if ([...selectPaginaInicial.options].some(o => o.value === paginaSalva)) {
+          selectPaginaInicial.value = paginaSalva;
+        }
+
+        // Salva automaticamente ao alterar o select ou submeter o formulário
+        const persistirPaginaInicial = () => {
+          const destino = selectPaginaInicial.value || 'dashboard.html';
+          localStorage.setItem('rg_pagina_inicial', destino);
+          if (linkLogoHeader) linkLogoHeader.href = destino;
+          if (typeof DataSync !== 'undefined' && DataSync.save) {
+            DataSync.save('rg_pagina_inicial', destino).catch(() => {});
+          }
+        };
+
+        selectPaginaInicial.addEventListener('change', persistirPaginaInicial);
+
+        const configForm = document.getElementById('configForm');
+        if (configForm) {
+          configForm.addEventListener('submit', persistirPaginaInicial);
+        }
       }
     });
   </script>
@@ -320,29 +375,36 @@
   <script>
     (function() {
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
+      let css = '';
       if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
+        css += '#nav-item-horas, #d-nav-horas { display: none !important; }';
       }
+      if (!isSuperAdmin && showManutencoes === 'false') {
+        css += '#nav-item-plan, #d-nav-plan { display: none !important; }';
+      }
+      if (css) document.write('<style>' + css + '</style>');
     })();
   </script>
+
   <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const bottomNav = document.getElementById('mainBottomNav');
-    if (bottomNav) {
-      const activeItem = bottomNav.querySelector('a.active');
-      if (activeItem) {
-        setTimeout(() => {
-          bottomNav.scrollTo({
-            left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
-            behavior: 'smooth'
-          });
-        }, 100);
+    document.addEventListener("DOMContentLoaded", () => {
+      const bottomNav = document.getElementById('mainBottomNav');
+      if (bottomNav) {
+        const activeItem = bottomNav.querySelector('a.active');
+        if (activeItem) {
+          setTimeout(() => {
+            bottomNav.scrollTo({
+              left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
+              behavior: 'smooth'
+            });
+          }, 100);
+        }
       }
-    }
-  });
-</script>
+    });
+  </script>
 </body>
 </html>
