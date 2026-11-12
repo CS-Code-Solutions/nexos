@@ -239,6 +239,15 @@
         <p style="margin-top: 0; color: #475569; font-size: 0.88rem;">Olá! Preparamos importantes optimizações e melhorias na experiência de uso do sistema para o ajudar no dia a dia:</p>
         
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+
+          <!-- NOVO DESTAQUE NO TOPO -->
+          <div style="display: flex; gap: 12px; background: #F0FDF4; padding: 12px; border-radius: 8px; border-left: 4px solid #00F5D4;">
+            <i class="fa-solid fa-house-user" style="font-size: 1.2rem; color: #0D9488; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Preferências de Navegação: Página Inicial Personalizada</strong>
+              <span style="font-size: 0.84rem; color: #475569;">Agora você pode escolher qual tela será carregada automaticamente ao iniciar o sistema! Acesse <strong>Config &gt; Preferências de Navegação &gt; Página Inicial ao Abrir o Sistema</strong> para definir seu atalho padrão (Relatórios, Novo Relatório, Cadastros, Planejamento ou Horas).</span>
+            </div>
+          </div>
           
           <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #3B82F6;">
             <i class="fa-solid fa-layer-group" style="font-size: 1.2rem; color: #3B82F6; margin-top: 2px;"></i>
@@ -282,7 +291,7 @@
     // 💡 GUIA DE ALTERAÇÃO DA VERSÃO:
     // Altere apenas esta linha abaixo quando quiser exibir um novo aviso.
     // =========================================================================
-    const VERSAO_ATUAL_SISTEMA = "nexos_update_v2026_11_dia16";
+    const VERSAO_ATUAL_SISTEMA = "nexos_update_v2026_11_dia17";
 
     document.addEventListener("DOMContentLoaded", () => {
       const jaViuAtualizacao = localStorage.getItem(VERSAO_ATUAL_SISTEMA);
