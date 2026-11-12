@@ -151,6 +151,77 @@ window.salvarAssinaturaTech = async function() {
   }
 };
 
+/**
+ * Filtra as opções do select "Página Inicial" para mostrar APENAS
+ * as páginas que o cliente tem habilitadas em seu contrato/configuração.
+ */
+function aplicarPermissoesPaginaInicial(config) {
+  const userRole = localStorage.getItem('rg_user_role');
+  const isSuperAdmin = (userRole === 'super_admin');
+
+  const temDashboard = isSuperAdmin || (config.pageDashboard === true);
+  const temCadastros = isSuperAdmin || (config.pageCadastros !== false);
+  const temRelatorios = isSuperAdmin || (config.pageRelatorios !== false);
+  const temManutencoes = isSuperAdmin || (config.pageManutencoes !== false);
+  const temHorasExtras = isSuperAdmin || (config.modHorasExtras === true);
+
+  // Sincroniza flags no localStorage
+  localStorage.setItem('rg_page_dashboard', config.pageDashboard === true ? 'true' : 'false');
+  localStorage.setItem('rg_page_cadastros', config.pageCadastros !== false ? 'true' : 'false');
+  localStorage.setItem('rg_page_relatorios', config.pageRelatorios !== false ? 'true' : 'false');
+  localStorage.setItem('rg_page_manutencoes', config.pageManutencoes !== false ? 'true' : 'false');
+  localStorage.setItem('rg_mod_horas_extras', config.modHorasExtras === true ? 'true' : 'false');
+
+  // Atualiza visibilidade dos itens de navegação na tela atual
+  const toggleNav = (ids, visible) => {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = visible ? 'flex' : 'none';
+    });
+  };
+  toggleNav(['nav-item-dash', 'd-nav-dash'], temDashboard);
+  toggleNav(['nav-item-cad', 'd-nav-cad'], temCadastros);
+  toggleNav(['nav-item-rel', 'd-nav-rel'], temRelatorios);
+  toggleNav(['nav-item-plan', 'd-nav-plan'], temManutencoes);
+  toggleNav(['nav-item-horas', 'd-nav-horas'], temHorasExtras);
+
+  // Filtra opções do <select id="configPaginaInicial">
+  const selectPagina = document.getElementById('configPaginaInicial');
+  if (!selectPagina) return;
+
+  const permissoesMap = {
+    'dashboard.html': temDashboard,
+    'relatorios.html': temRelatorios,
+    'novo-relatorio.html': temRelatorios,
+    'cadastros.html': temCadastros,
+    'manutencoes.html': temManutencoes,
+    'horas-extras.html': temHorasExtras
+  };
+
+  Array.from(selectPagina.options).forEach(opt => {
+    if (permissoesMap[opt.value] === false) {
+      opt.remove();
+    }
+  });
+
+  // Define o valor selecionado validando se ele ainda existe entre as opções permitidas
+  const paginaSalva = config.paginaInicial || localStorage.getItem('rg_pagina_inicial') || 'dashboard.html';
+  const opcoesRestantes = Array.from(selectPagina.options).map(o => o.value);
+
+  let destinoFinal = paginaSalva;
+  if (!opcoesRestantes.includes(destinoFinal)) {
+    destinoFinal = opcoesRestantes.length > 0 ? opcoesRestantes[0] : 'configuracao.html';
+  }
+
+  selectPagina.value = destinoFinal;
+  localStorage.setItem('rg_pagina_inicial', destinoFinal);
+
+  const linkLogoHeader = document.getElementById('linkLogoHeader');
+  if (linkLogoHeader) {
+    linkLogoHeader.href = destinoFinal;
+  }
+}
+
 let dadosPendentesSalvar = null;
 
 async function carregarConfiguracoesIniciais() {
@@ -175,6 +246,30 @@ async function carregarConfiguracoesIniciais() {
     document.getElementById('configAccount2').value = config.account2 || '';
 
     document.getElementById('configNextRs').value = config.nextRsNumber || '1000';
+
+    // Aplica filtro de permissões nas opções de Página Inicial
+    aplicarPermissoesPaginaInicial(config);
+
+    // Salva automaticamente ao trocar o select de Página Inicial
+    const selectPagina = document.getElementById('configPaginaInicial');
+    if (selectPagina && !selectPagina.dataset.listenerAttached) {
+      selectPagina.dataset.listenerAttached = 'true';
+      selectPagina.addEventListener('change', async () => {
+        const novaPagina = selectPagina.value;
+        localStorage.setItem('rg_pagina_inicial', novaPagina);
+        const linkLogoHeader = document.getElementById('linkLogoHeader');
+        if (linkLogoHeader) linkLogoHeader.href = novaPagina;
+
+        try {
+          const tenantId = localStorage.getItem('rg_tenant_id');
+          if (tenantId) {
+            await db.collection('rg_config').doc(tenantId).set({ paginaInicial: novaPagina }, { merge: true });
+          }
+        } catch (e) {
+          console.warn("Aviso ao sincronizar página inicial:", e);
+        }
+      });
+    }
 
     if (config.techSignature && config.techSignature.length > 100 && ctx && canvas) {
       currentTechSignature = config.techSignature;
@@ -213,6 +308,9 @@ if (configFormEl) {
         currentTechSignature = currentTechSignature || configAtual.techSignature || '';
       }
 
+      const selectPagina = document.getElementById('configPaginaInicial');
+      const paginaInicialEscolhida = selectPagina ? selectPagina.value : (configAtual.paginaInicial || 'relatorios.html');
+
       dadosPendentesSalvar = {
         ...configAtual,
         name: document.getElementById('configName').value || '',
@@ -222,6 +320,7 @@ if (configFormEl) {
         email: document.getElementById('configEmail').value || '',
         contact: document.getElementById('configContact').value || '',
         location: document.getElementById('configLocation').value || '',
+        paginaInicial: paginaInicialEscolhida,
         nomeConta1: document.getElementById('configNomeConta1').value || '',
         bank1: document.getElementById('configBank1').value || '',
         agency1: document.getElementById('configAgency1').value || '',
@@ -254,11 +353,16 @@ if (configFormEl) {
 async function executarSalvamentoConfiguracoes() {
   if (!dadosPendentesSalvar) return;
   try {
-    await DataSync.save('rg_config', dadosPendentesSalvar);
-    
     const tenantId = localStorage.getItem('rg_tenant_id');
     if (tenantId) {
-       await db.collection('rg_config').doc(tenantId).set(dadosPendentesSalvar, { merge: true });
+      await db.collection('rg_config').doc(tenantId).set(dadosPendentesSalvar, { merge: true });
+    }
+    localStorage.setItem('rg_config', JSON.stringify(dadosPendentesSalvar));
+
+    if (dadosPendentesSalvar.paginaInicial) {
+      localStorage.setItem('rg_pagina_inicial', dadosPendentesSalvar.paginaInicial);
+      const linkLogoHeader = document.getElementById('linkLogoHeader');
+      if (linkLogoHeader) linkLogoHeader.href = dadosPendentesSalvar.paginaInicial;
     }
 
     localStorage.setItem('rg_lgpd_consent', 'true');
@@ -266,7 +370,7 @@ async function executarSalvamentoConfiguracoes() {
     hasDrawn = false;
     dadosPendentesSalvar = null;
   } catch (err) {
-    console.error("Erro no DataSync.save:", err);
+    console.error("Erro ao guardar configurações:", err);
     alert('Erro ao guardar na nuvem: ' + err.message);
   }
 }
