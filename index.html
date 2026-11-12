@@ -1,36 +1,257 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>
+  (function() {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+    }
+  })();
+</script>
+
+  <link rel="icon" href="nexosico192.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NexOS</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0B132B">
+  <title>NexOS - Gestão de Cadastros</title>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script src="global-modal.js"></script>
+
+  <!-- Firebase SDKs Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script src="firebase-init.js?v=2"></script>
+  <script src="firebase-sync.js?v=2"></script>
+
+  <style>
+    .desktop-nav { display: flex; align-items: center; gap: 20px; }
+    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
+    .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
+    @media (max-width: 768px) { .desktop-nav { display: none !important; } }
+    @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
+
+    /* Estilos do Acordeão de Clientes e Máquinas */
+    .client-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-left: 5px solid var(--tech-blue);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+    .client-header {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      background: #FFFFFF;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .client-header:hover {
+      background: #F8FAFC;
+    }
+    .client-machines-drawer {
+      display: none;
+      padding: 14px 16px;
+      background: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
+    }
+    .client-card.open .client-machines-drawer {
+      display: block;
+    }
+    .machine-item {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+  </style>
+
+  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS NO MOBILE E DESKTOP -->
   <script>
     (function() {
-      const logado = localStorage.getItem('rg_logged') === 'true';
-      if (!logado) {
-        window.location.replace('login.html');
-        return;
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      if (!isSuperAdmin && showHoras !== 'true') {
+        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
       }
-
-      const paginasValidas = [
-        'dashboard.html',
-        'relatorios.html',
-        'novo-relatorio.html',
-        'cadastros.html',
-        'manutencoes.html',
-        'horas-extras.html'
-      ];
-
-      let destino = localStorage.getItem('rg_pagina_inicial') || 'dashboard.html';
-      if (!paginasValidas.includes(destino)) {
-        destino = 'dashboard.html';
-      }
-
-      window.location.replace(destino);
     })();
   </script>
 </head>
-<body style="background-color: #0B132B; margin: 0;"></body>
+<body>
+
+  <!-- CABEÇALHO -->
+  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
+    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
+    </a>
+
+<nav class="desktop-nav">
+      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+    </nav>
+
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
+      <i class="fa-solid fa-power-off"></i>
+    </button>
+  </header>
+
+  <main style="max-width: 900px; margin: 20px auto; padding: 0 15px; padding-bottom: 80px;">
+
+    <!-- BARRA SUPERIOR DE AÇÕES -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;" class="no-print">
+      <div>
+        <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Clientes & Equipamentos</h2>
+        <p style="color: #64748B; font-size: 0.85rem; margin: 2px 0 0 0;">Gestão unificada de cadastros</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn" onclick="abrirFormCliente()" style="background-color: var(--tech-blue); color: white; font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
+          <i class="fa-solid fa-user-plus"></i> + Cliente
+        </button>
+        <button type="button" class="btn" onclick="abrirFormMaquina()" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 9px 14px; font-size: 0.9rem;">
+          <i class="fa-solid fa-gears"></i> + Máquina
+        </button>
+      </div>
+    </div>
+
+    <!-- CAMPO DE PESQUISA RÁPIDA -->
+    <div class="card no-print" style="padding: 12px; margin-bottom: 15px; border-top: none;">
+      <input type="text" id="inputPesquisa" oninput="filtrarCadastros()" placeholder="🔍 Pesquisar por cliente, CPF/CNPJ, máquina ou marca..." style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.95rem;">
+    </div>
+
+    <!-- FORMULÁRIO DE CLIENTE COMPLETO -->
+    <section class="card no-print" id="clienteFormSection" style="display: none; border-top: 4px solid var(--tech-blue); margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 id="cliente-form-title" style="color: #0B132B; font-size: 1.15rem; margin: 0;">Cadastrar Novo Cliente</h3>
+        <button type="button" onclick="fecharFormCliente()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748B;">&times;</button>
+      </div>
+      <form id="cliente-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div style="grid-column: 1 / -1;">
+            <label for="c-nome" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nome / Razão Social:*</label>
+            <input type="text" id="c-nome" required placeholder="Ex: Metalúrgica Silva LTDA" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-doc" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">CPF / CNPJ:*</label>
+            <input type="text" id="c-doc" required placeholder="00.000.000/0001-00" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-email" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">E-mail:</label>
+            <input type="email" id="c-email" placeholder="cliente@empresa.com" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-contato" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Pessoa de Contato:</label>
+            <input type="text" id="c-contato" placeholder="Ex: Eng. Roberto" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="c-telefone" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Telefone / WhatsApp:</label>
+            <input type="text" id="c-telefone" placeholder="(51) 99999-9999" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label for="c-endereco" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Endereço / Morada:</label>
+            <input type="text" id="c-endereco" placeholder="Rua, Número, Bairro, Cidade - UF" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" id="btn-submit-c" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1;">Guardar Cliente</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px;" onclick="fecharFormCliente()">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- FORMULÁRIO DE MÁQUINA COMPLETO -->
+    <section class="card no-print" id="maquinaFormSection" style="display: none; border-top: 4px solid var(--electric-cyan); margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 id="maquina-form-title" style="color: #0B132B; font-size: 1.15rem; margin: 0;">Cadastrar Nova Máquina</h3>
+        <button type="button" onclick="fecharFormMaquina()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748B;">&times;</button>
+      </div>
+      <form id="maquina-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div style="grid-column: 1 / -1;">
+            <label for="m-cliente-select" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Cliente Pertencente:*</label>
+            <select id="m-cliente-select" required style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;">
+              <option value="">Selecione o cliente...</option>
+            </select>
+          </div>
+          <div>
+            <label for="m-nome" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nome / Equipamento:*</label>
+            <input type="text" id="m-nome" required placeholder="Ex: Prensa Hidráulica 02" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-marca" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Marca / Fabricante:</label>
+            <input type="text" id="m-marca" placeholder="Ex: Trumpf / Bystronic / Romi" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-modelo" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Modelo:</label>
+            <input type="text" id="m-modelo" placeholder="Ex: TruLaser 3030" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+          <div>
+            <label for="m-numserie" style="display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem;">Nº de Série / Tag:</label>
+            <input type="text" id="m-numserie" placeholder="Ex: SN-2024-8890" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #CBD5E1; border-radius: 4px;">
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" id="btn-submit-m" class="btn" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 18px; flex: 1;">Guardar Máquina</button>
+          <button type="button" class="btn" style="background-color: #64748B; color: white; padding: 9px 18px;" onclick="fecharFormMaquina()">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- LISTA PRINCIPAL HIERÁRQUICA (CLIENTES E SUAS MÁQUINAS) -->
+    <section id="cadastrosContainer">
+      <p style="text-align: center; color: #64748B; padding: 30px;">A carregar lista de cadastros...</p>
+    </section>
+
+  </main>
+
+  <footer class="no-print">
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+
+<!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+  <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="cadastros.html">
+      <i class="fa-solid fa-address-book"></i>
+      <span>Cadastros</span>
+    </a>
+    <a href="relatorios.html" class="active">
+      <i class="fa-solid fa-file-lines"></i>
+      <span>Relatórios</span>
+    </a>
+    <a href="manutencoes.html">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Plan</span>
+    </a>
+    <a href="horas-extras.html" id="nav-item-horas">
+      <i class="fa-solid fa-clock"></i>
+      <span>Horas</span>
+    </a>
+    <a href="configuracao.html" id="nav-item-config">
+      <i class="fa-solid fa-gear"></i>
+      <span>Config</span>
+    </a>
+  </nav>
+
+  </script>
+</body>
 </html>

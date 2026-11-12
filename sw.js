@@ -2,13 +2,11 @@
  * NexOS - Service Worker (sw.js)
  */
 
-const CACHE_NAME = 'nexos-cache-v5';
+const CACHE_NAME = 'nexos-cache-v3';
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './dashboard.html',
-  './dashboard.js',
   './manutencoes.html',
   './cadastros.html',
   './relatorios.html',
@@ -45,7 +43,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Ativação e Limpeza de Caches Antigos
+// Ativação e Limpeza de Caches Antigos (Remove as versões v1, v2 anteriores)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
