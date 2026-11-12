@@ -21,7 +21,7 @@
 
   <!-- Inicialização do Firebase e Sincronização -->
   <script src="firebase-init.js?v=2"></script>
-  <script src="firebase-sync.js?v=2"></script>
+  <script src="firebase-sync.js?v=3"></script>
 
   <style>
     .desktop-nav {
@@ -72,7 +72,7 @@
       <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Configigurações</a>
+      <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Configurações</a>
     </nav>
 
     <!-- LADO DIREITO: BOTÃO SAIR -->
@@ -88,7 +88,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <div>
           <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 5px;">Painel de Controle Global</h2>
-          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Clientes | <strong>CS Code Solutions</strong></p>
+          <p style="color: #475569; font-size: 0.9rem; margin: 0;">Gestão de Clientes e Licenças | <strong>CS Code Solutions</strong></p>
         </div>
         <button type="button" class="btn" onclick="abrirModalCliente()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 18px;">
           <i class="fa-solid fa-user-plus"></i> Novo Cliente
@@ -109,7 +109,7 @@
 
   <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE TENANT -->
   <div id="tenantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 78vh; overflow: hidden; margin: auto;">
+    <div style="background: white; width: 100%; max-width: 650px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 82vh; overflow: hidden; margin: auto;">
       
       <!-- Cabeçalho Fixo do Modal -->
       <div style="background: var(--deep-navy); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--electric-cyan); flex-shrink: 0;">
@@ -135,6 +135,28 @@
           <div class="form-group" style="margin-bottom: 12px;">
             <label for="tenantEmail"><strong>E-mail de Acesso:</strong></label>
             <input type="email" id="tenantEmail" placeholder="cliente@empresa.com" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px;">
+          </div>
+
+          <!-- CONTROLE DE LICENÇA E VALIDADE (7 DIAS / 1 ANO / VITALÍCIO) -->
+          <div style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: #1E3A8A;"><i class="fa-solid fa-hourglass-half"></i> Prazo de Acesso & Licença</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="tenantTipoLicenca"><strong>Plano / Duração:</strong></label>
+                <select id="tenantTipoLicenca" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF; font-weight:bold; color:#0B132B;">
+                  <option value="7_dias">Avaliação Gratuita (7 Dias)</option>
+                  <option value="1_ano">Licença Anual (1 Ano / 365 dias)</option>
+                  <option value="definitivo">Vitalício / Sem Vencimento</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="tenantDataInicioLicenca"><strong>Data de Início da Contagem:</strong></label>
+                <input type="date" id="tenantDataInicioLicenca" style="width:100%; padding:8px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+              </div>
+            </div>
+            <small style="display: block; color: #475569; margin-top: 6px; font-size: 0.78rem;">
+              Pode alterar a data de início mesmo para clientes já ativos. Ao vencer, o sistema bloqueia o acesso automaticamente.
+            </small>
           </div>
 
           <!-- WHITE-LABEL: LOGO E MARCA D'ÁGUA -->
@@ -284,7 +306,7 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="admin.js?v=10"></script>
+  <script src="admin.js?v=11"></script>
 
   <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
   <script>
