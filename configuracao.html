@@ -1,14 +1,66 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script>
-  (function() {
-    const logoSalva = localStorage.getItem('rg_logo_base64');
-    if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-    }
-  })();
-</script>
+  <!-- SCRIPT SÍNCRONO UNIVERSAL DE BLINDAGEM E PERMISSÕES (EVITA PISCADAS) -->
+  <script>
+    (function() {
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+      
+      const showDashboard = localStorage.getItem('rg_page_dashboard');
+      const showCadastros = localStorage.getItem('rg_page_cadastros');
+      const showRelatorios = localStorage.getItem('rg_page_relatorios');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+
+      // Bloqueia usuário nível 'tecnico' de acessar as Configurações da Empresa
+      if (!isSuperAdmin && userRole === 'tecnico') {
+        window.location.replace('relatorios.html');
+        return;
+      }
+
+      let cssRules = '';
+
+      if (!isSuperAdmin) {
+        if (showDashboard === 'false') {
+          cssRules += 'a[href="dashboard.html"], #nav-item-dash, #d-nav-dash { display: none !important; }';
+        }
+        if (showCadastros === 'false') {
+          cssRules += 'a[href="cadastros.html"], #nav-item-cad, #d-nav-cad { display: none !important; }';
+        }
+        if (showRelatorios === 'false') {
+          cssRules += 'a[href="relatorios.html"], #nav-item-rel, #d-nav-rel { display: none !important; }';
+        }
+        if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
+          cssRules += 'a[href="manutencoes.html"], #nav-item-plan, #d-nav-plan { display: none !important; }';
+        }
+        if (showOrcamentos === 'false') {
+          cssRules += 'a[href="orcamentos.html"], a[href="novo-orcamento.html"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
+        }
+        if (showHoras !== 'true') {
+          cssRules += 'a[href="horas-extras.html"], #nav-item-horas, #d-nav-horas { display: none !important; }';
+        }
+      }
+
+      if (userRole === 'tecnico') {
+        cssRules += '.finance-sensitive, a[href="configuracao.html"], #nav-item-config, #d-nav-config { display: none !important; }';
+      }
+
+      if (cssRules) {
+        document.write('<style>' + cssRules + '</style>');
+      }
+    })();
+  </script>
+
+  <script>
+    (function() {
+      const logoSalva = localStorage.getItem('rg_logo_base64');
+      if (logoSalva && logoSalva.startsWith('data:image')) {
+        document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+      }
+    })();
+  </script>
 
   <link rel="icon" href="nexosico192.png" type="image/png">
   <link rel="manifest" href="manifest.json">
@@ -308,37 +360,6 @@
 
   <!-- SCRIPT EXTERNO SEPARADO -->
   <script src="configuracao.js?v=3"></script>
-
-  <!-- SCRIPT SÍNCRONO INSTANTÂNEO DE PERMISSÕES VISUAIS -->
-  <script>
-    (function() {
-      const showDash = localStorage.getItem('rg_page_dashboard');
-      const showCad = localStorage.getItem('rg_page_cadastros');
-      const showRel = localStorage.getItem('rg_page_relatorios');
-      const showPlan = localStorage.getItem('rg_page_manutencoes');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      let css = '';
-      if (!isSuperAdmin && showDash !== 'true') {
-        css += '#nav-item-dash, #d-nav-dash { display: none !important; }';
-      }
-      if (!isSuperAdmin && showCad === 'false') {
-        css += '#nav-item-cad, #d-nav-cad { display: none !important; }';
-      }
-      if (!isSuperAdmin && showRel === 'false') {
-        css += '#nav-item-rel, #d-nav-rel { display: none !important; }';
-      }
-      if (!isSuperAdmin && showPlan === 'false') {
-        css += '#nav-item-plan, #d-nav-plan { display: none !important; }';
-      }
-      if (!isSuperAdmin && showHoras !== 'true') {
-        css += '#nav-item-horas, #d-nav-horas { display: none !important; }';
-      }
-      if (css) document.write('<style>' + css + '</style>');
-    })();
-  </script>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
