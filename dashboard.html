@@ -3,7 +3,7 @@
 <head>
 <script>
   (function() {
-    // 1. Aplica o logótipo instantaneamente assim que o DOM estiver pronto
+    // 1. Aplica o logótipo instantaneamente de forma segura
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
       document.addEventListener('DOMContentLoaded', () => {
@@ -12,26 +12,32 @@
       });
     }
 
-    // 2. Ocultação rigorosa de módulos restritos com base estricta nas flags
+    // 2. Ocultação cirúrgica apenas para módulos explicitamente desativados (false)
     const userRole = localStorage.getItem('rg_user_role');
     const isSuperAdmin = (userRole === 'super_admin');
     let cssRules = 'main { animation: dashFadeIn 0.15s ease-out; } @keyframes dashFadeIn { from { opacity: 0; } to { opacity: 1; } }';
 
     if (!isSuperAdmin) {
-      // Se a página de manutenções/planeamento estiver desativada (false)
-      if (localStorage.getItem('rg_page_manutencoes') === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
-        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
+      if (localStorage.getItem('rg_page_dashboard') === 'false') {
+        cssRules += 'a[href="dashboard.html"] { display: none !important; }';
       }
-      // Se o módulo de horas extras não for explicitamente true
-      if (localStorage.getItem('rg_mod_horas_extras') !== 'true') {
-        cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
-      }
-      // Outras páginas restritas
       if (localStorage.getItem('rg_page_cadastros') === 'false') {
         cssRules += 'a[href="cadastros.html"] { display: none !important; }';
       }
+      // Relatórios só some se explicitamente false
       if (localStorage.getItem('rg_page_relatorios') === 'false') {
         cssRules += 'a[href="relatorios.html"] { display: none !important; }';
+      }
+      // Planejamento / Manutenções
+      if (localStorage.getItem('rg_page_manutencoes') === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
+        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
+      }
+      // Horas Extras
+      if (localStorage.getItem('rg_mod_horas_extras') === 'false') {
+        cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
+      }
+      if (localStorage.getItem('rg_page_orcamentos') === 'false') {
+        cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
       }
     }
     if (userRole === 'tecnico') {
