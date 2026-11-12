@@ -2,11 +2,11 @@
  * NexOS - Service Worker (sw.js)
  */
 
-const CACHE_NAME = 'nexos-cache-v3';
+const CACHE_NAME = 'nexos-cache-v4';
 
 const ASSETS_TO_CACHE = [
   './',
-  './index.html',
+  './login.html',
   './manutencoes.html',
   './cadastros.html',
   './relatorios.html',
@@ -15,7 +15,6 @@ const ASSETS_TO_CACHE = [
   './horas-extras.html',
   './configuracao.html',
   './admin.html',
-  './login.html',
   './style.css',
   './admin.js',
   './cadastros.js',
@@ -34,16 +33,22 @@ const ASSETS_TO_CACHE = [
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
 
-// Instalação e Cache dos Ficheiros Estáticos
+// Instalação resiliente (não trava se algum arquivo opcional falhar)
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of ASSETS_TO_CACHE) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('[SW] Ignorando asset na pré-instalação:', asset);
+        }
+      }
     }).then(() => self.skipWaiting())
   );
 });
 
-// Ativação e Limpeza de Caches Antigos (Remove as versões v1, v2 anteriores)
+// Ativação e Limpeza de Caches Antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -58,12 +63,14 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Interceção de Requisições (Estratégia: Tenta Rede, se falhar pega do Cache)
+// Interceção de Requisições (Network-First ignorando cache HTTP antigo)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const isSameOrigin = event.request.url.startsWith(self.location.origin);
+
   event.respondWith(
-    fetch(event.request)
+    fetch(isSameOrigin ? new Request(event.request, { cache: 'no-store' }) : event.request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
