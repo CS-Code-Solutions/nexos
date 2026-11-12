@@ -1,14 +1,65 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script>
-  (function() {
-    const logoSalva = localStorage.getItem('rg_logo_base64');
-    if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-    }
-  })();
-</script>
+  <!-- SCRIPT SÍNCRONO UNIVERSAL DE BLINDAGEM E PERMISSÕES (EVITA PISCADAS) -->
+  <script>
+    (function() {
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+      
+      const showDashboard = localStorage.getItem('rg_page_dashboard');
+      const showCadastros = localStorage.getItem('rg_page_cadastros');
+      const showRelatorios = localStorage.getItem('rg_page_relatorios');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+
+      if (!isSuperAdmin && (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false')) {
+        window.location.replace('cadastros.html');
+        return;
+      }
+
+      let cssRules = '';
+
+      if (!isSuperAdmin) {
+        if (showDashboard === 'false') {
+          cssRules += 'a[href="dashboard.html"], #nav-item-dash, #d-nav-dash { display: none !important; }';
+        }
+        if (showCadastros === 'false') {
+          cssRules += 'a[href="cadastros.html"], #nav-item-cad, #d-nav-cad { display: none !important; }';
+        }
+        if (showRelatorios === 'false') {
+          cssRules += 'a[href="relatorios.html"], #nav-item-rel, #d-nav-rel { display: none !important; }';
+        }
+        if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
+          cssRules += 'a[href="manutencoes.html"], #nav-item-plan, #d-nav-plan { display: none !important; }';
+        }
+        if (showOrcamentos === 'false') {
+          cssRules += 'a[href="orcamentos.html"], a[href="novo-orcamento.html"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
+        }
+        if (showHoras !== 'true') {
+          cssRules += 'a[href="horas-extras.html"], #nav-item-horas, #d-nav-horas { display: none !important; }';
+        }
+      }
+
+      if (userRole === 'tecnico') {
+        cssRules += '.finance-sensitive, a[href="configuracao.html"], #nav-item-config, #d-nav-config { display: none !important; }';
+      }
+
+      if (cssRules) {
+        document.write('<style>' + cssRules + '</style>');
+      }
+    })();
+  </script>
+
+  <script>
+    (function() {
+      const logoSalva = localStorage.getItem('rg_logo_base64');
+      if (logoSalva && logoSalva.startsWith('data:image')) {
+        document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+      }
+    })();
+  </script>
 
   <link rel="icon" href="nexosico192.png" type="image/png">
   <link rel="manifest" href="manifest.json">
@@ -35,24 +86,6 @@
     @media (max-width: 768px) { .desktop-nav { display: none !important; } }
     @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
   </style>
-
-  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS INSTANTANEAMENTE -->
-  <script>
-    (function() {
-      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      if (!isSuperAdmin && showManutencoes === 'false') {
-        alert('Acesso restrito: A página de Planejamento encontra-se desativada para a sua conta.');
-        window.location.href = 'index.html';
-      }
-      if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas { display: none !important; }</style>');
-      }
-    })();
-  </script>
 </head>
 <body>
 
@@ -62,12 +95,12 @@
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
-<nav class="desktop-nav">
-      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html" class="active"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+    <nav class="desktop-nav">
+      <a href="cadastros.html" id="d-nav-cad"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html" id="d-nav-rel"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html" class="active" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+      <a href="configuracao.html" id="d-nav-config"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
@@ -146,17 +179,17 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-<!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="cadastros.html">
+    <a href="cadastros.html" id="nav-item-cad">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html">
+    <a href="relatorios.html" id="nav-item-rel">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html" class="active">
+    <a href="manutencoes.html" class="active" id="nav-item-plan">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
     </a>
@@ -172,113 +205,105 @@
 
   <script src="manutencoes.js?v=2"></script>
   <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const bottomNav = document.getElementById('mainBottomNav');
-    if (bottomNav) {
-      const activeItem = bottomNav.querySelector('a.active');
-      if (activeItem) {
-        setTimeout(() => {
-          bottomNav.scrollTo({
-            left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
-            behavior: 'smooth'
-          });
-        }, 100);
+    document.addEventListener("DOMContentLoaded", () => {
+      const bottomNav = document.getElementById('mainBottomNav');
+      if (bottomNav) {
+        const activeItem = bottomNav.querySelector('a.active');
+        if (activeItem) {
+          setTimeout(() => {
+            bottomNav.scrollTo({
+              left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
+              behavior: 'smooth'
+            });
+          }, 100);
+        }
       }
-    }
-  });
-</script>
-<!-- MODAL FLUTUANTE DE ATUALIZAÇÃO DO SISTEMA (RELEASE NOTES) -->
-<div id="updateModalRelease" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
-  <div style="background: white; width: 100%; max-width: 520px; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;">
-    
-    <!-- Cabeçalho do Modal -->
-    <div style="background: var(--deep-navy, #0B132B); color: white; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--electric-cyan, #00F5D4);">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <i class="fa-solid fa-bullhorn" style="font-size: 1.3rem; color: var(--electric-cyan, #00F5D4);"></i>
-        <h3 style="margin: 0; font-size: 1.1rem; font-weight: bold;">Novidades na Versão Recente</h3>
-      </div>
-      <span style="background: rgba(0, 245, 212, 0.15); color: var(--electric-cyan, #00F5D4); font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;">NexOS Update</span>
-    </div>
+    });
+  </script>
 
-    <!-- Corpo com as Atualizações -->
-    <div style="padding: 20px; color: #334155; font-size: 0.9rem; line-height: 1.5; max-height: 60vh; overflow-y: auto;">
-      <p style="margin-top: 0; color: #475569; font-size: 0.88rem;">Olá! Preparamos importantes optimizações e melhorias na experiência de uso do sistema para o ajudar no dia a dia:</p>
+  <!-- MODAL FLUTUANTE DE ATUALIZAÇÃO DO SISTEMA (RELEASE NOTES) -->
+  <div id="updateModalRelease" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+    <div style="background: white; width: 100%; max-width: 520px; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;">
       
-      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
-        
-        <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #3B82F6;">
-          <i class="fa-solid fa-layer-group" style="font-size: 1.2rem; color: #3B82F6; margin-top: 2px;"></i>
-          <div>
-            <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Reestruturação e Agrupamento de Funções</strong>
-            <span style="font-size: 0.84rem; color: #64748B;">Recursos e ferramentas semelhantes foram unificados e organizados de forma mais intuitiva, agilizando o fluxo de trabalho operacional.</span>
-          </div>
+      <!-- Cabeçalho do Modal -->
+      <div style="background: var(--deep-navy, #0B132B); color: white; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--electric-cyan, #00F5D4);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-bullhorn" style="font-size: 1.3rem; color: var(--electric-cyan, #00F5D4);"></i>
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: bold;">Novidades na Versão Recente</h3>
         </div>
-
-        <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #10B981;">
-          <i class="fa-solid fa-file-signature" style="font-size: 1.2rem; color: #10B981; margin-top: 2px;"></i>
-          <div>
-            <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Segurança de Valores na Assinatura</strong>
-            <span style="font-size: 0.84rem; color: #64748B;">Nova dinâmica na emissão de relatórios e documentos: agora, o cliente final que vai realizar a assinatura digital do serviço gerado <strong>não visualiza informações financeiras ou valores monetários</strong>, garantindo total sigilo comercial.</span>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #8B5CF6;">
-          <i class="fa-solid fa-gauge-high" style="font-size: 1.2rem; color: #8B5CF6; margin-top: 2px;"></i>
-          <div>
-            <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Optimização Geral e Performance</strong>
-            <span style="font-size: 0.84rem; color: #64748B;">Correções internas gerais, melhoria na velocidade de sincronização de dados com a nuvem e navegação ainda mais fluida em dispositivos móveis e computadores.</span>
-          </div>
-        </div>
-
+        <span style="background: rgba(0, 245, 212, 0.15); color: var(--electric-cyan, #00F5D4); font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;">NexOS Update</span>
       </div>
-    </div>
 
-    <!-- Rodapé com Botão de Ação -->
-    <div style="background: #F1F5F9; padding: 15px 20px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
-      <button type="button" class="btn" onclick="fecharModalAtualizacao()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 24px; border-radius: 6px; cursor: pointer; border: none; font-size: 0.9rem; transition: background 0.2s;">
-        <i class="fa-solid fa-check"></i> OK, Entendi
-      </button>
-    </div>
+      <!-- Corpo com as Atualizações -->
+      <div style="padding: 20px; color: #334155; font-size: 0.9rem; line-height: 1.5; max-height: 60vh; overflow-y: auto;">
+        <p style="margin-top: 0; color: #475569; font-size: 0.88rem;">Olá! Preparamos importantes optimizações e melhorias na experiência de uso do sistema para o ajudar no dia a dia:</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+          
+          <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #3B82F6;">
+            <i class="fa-solid fa-layer-group" style="font-size: 1.2rem; color: #3B82F6; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Reestruturação e Agrupamento de Funções</strong>
+              <span style="font-size: 0.84rem; color: #64748B;">Recursos e ferramentas semelhantes foram unificados e organizados de forma mais intuitiva, agilizando o fluxo de trabalho operacional.</span>
+            </div>
+          </div>
 
+          <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #10B981;">
+            <i class="fa-solid fa-file-signature" style="font-size: 1.2rem; color: #10B981; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Segurança de Valores na Assinatura</strong>
+              <span style="font-size: 0.84rem; color: #64748B;">Nova dinâmica na emissão de relatórios e documentos: agora, o cliente final que vai realizar a assinatura digital do serviço gerado <strong>não visualiza informações financeiras ou valores monetários</strong>, garantindo total sigilo comercial.</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #8B5CF6;">
+            <i class="fa-solid fa-gauge-high" style="font-size: 1.2rem; color: #8B5CF6; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Optimização Geral e Performance</strong>
+              <span style="font-size: 0.84rem; color: #64748B;">Correções internas gerais, melhoria na velocidade de sincronização de dados com a nuvem e navegação ainda mais fluida em dispositivos móveis e computadores.</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Rodapé com Botão de Ação -->
+      <div style="background: #F1F5F9; padding: 15px 20px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
+        <button type="button" class="btn" onclick="fecharModalAtualizacao()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 24px; border-radius: 6px; cursor: pointer; border: none; font-size: 0.9rem; transition: background 0.2s;">
+          <i class="fa-solid fa-check"></i> OK, Entendi
+        </button>
+      </div>
+
+    </div>
   </div>
-</div>
 
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
+  <script>
     // =========================================================================
     // 💡 GUIA DE ALTERAÇÃO DA VERSÃO:
-    // Para fazer o aviso voltar a aparecer para todos os clientes, basta alterar 
-    // o final do texto da chave abaixo (ex: mude de _v1 para _v2, ou altere a data).
-    // Como o navegador do cliente guardará a chave antiga, ao mudar de nome, 
-    // o sistema entenderá que é uma nova versão e exibirá o pop-up novamente 
-    // apenas no primeiro acesso dele.
+    // Altere apenas esta linha abaixo quando quiser exibir um novo aviso.
     // =========================================================================
-    const versaoAtualSistema = "nexos_update_v2026_11_dia16"; 
-    
-    const jaViuAtualizacao = localStorage.getItem(versaoAtualSistema);
-    
-    if (!jaViuAtualizacao) {
+    const VERSAO_ATUAL_SISTEMA = "nexos_update_v2026_11_dia16";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const jaViuAtualizacao = localStorage.getItem(VERSAO_ATUAL_SISTEMA);
+      
+      if (!jaViuAtualizacao) {
+        const modal = document.getElementById('updateModalRelease');
+        if (modal) {
+          modal.style.display = 'flex';
+        }
+      }
+    });
+
+    window.fecharModalAtualizacao = function() {
+      localStorage.setItem(VERSAO_ATUAL_SISTEMA, 'true');
+      
       const modal = document.getElementById('updateModalRelease');
       if (modal) {
-        modal.style.display = 'flex';
+        modal.style.display = 'none';
       }
-    }
-  });
-
-  window.fecharModalAtualizacao = function() {
-    // =========================================================================
-    // ATENÇÃO: Mantenha exatamente o mesmo nome da chave definida acima 
-    // para que o navegador grave que o cliente já confirmou a leitura.
-    // =========================================================================
-    const versaoAtualSistema = "nexos_update_v2026_11_dia15";
-    localStorage.setItem(versaoAtualSistema, 'true');
-    
-    const modal = document.getElementById('updateModalRelease');
-    if (modal) {
-      modal.style.display = 'none';
-    }
-  };
-</script>
-<!-- FIM DO MODAL FLUTUANTE -->
+    };
+  </script>
+  <!-- FIM DO MODAL FLUTUANTE -->
 </body>
 </html>
