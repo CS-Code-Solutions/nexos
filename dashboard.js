@@ -447,15 +447,13 @@ function renderizarListasModalConfig() {
           <input type="checkbox" ${sec.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('secoes', ${idx}, this.checked)">
           <span>${escapeHTML(sec.label)}</span>
         </label>
-        <div class="config-row-right">
-          <div class="order-btns">
-            <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, -1)">
-              <i class="fa-solid fa-arrow-up"></i>
-            </button>
-            <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.secoes.length - 1 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, 1)">
-              <i class="fa-solid fa-arrow-down"></i>
-            </button>
-          </div>
+        <div class="order-btns">
+          <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, -1)">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+          <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.secoes.length - 1 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, 1)">
+            <i class="fa-solid fa-arrow-down"></i>
+          </button>
         </div>
       </div>
     `).join('');
@@ -474,18 +472,18 @@ function renderizarListasModalConfig() {
             <input type="checkbox" ${g.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('graficos', ${idx}, this.checked)">
             <span>${escapeHTML(g.label)}</span>
           </label>
-          <div class="config-row-right">
+          <div class="config-row-select">
             <select onchange="alterarFormatoGrafico(${idx}, this.value)">
               ${optionsHtml}
             </select>
-            <div class="order-btns">
-              <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, -1)">
-                <i class="fa-solid fa-arrow-up"></i>
-              </button>
-              <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.graficos.length - 1 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, 1)">
-                <i class="fa-solid fa-arrow-down"></i>
-              </button>
-            </div>
+          </div>
+          <div class="order-btns">
+            <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, -1)">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+            <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.graficos.length - 1 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, 1)">
+              <i class="fa-solid fa-arrow-down"></i>
+            </button>
           </div>
         </div>
       `;
