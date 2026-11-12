@@ -58,13 +58,13 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
       gap: 10px;
-      margin-bottom: 22px;
+      margin-bottom: 10px;
     }
     .config-tab-btn {
       background: #F8FAFC;
       border: 1px solid #CBD5E1;
       border-radius: 8px;
-      padding: 12px 10px;
+      padding: 14px 10px;
       cursor: pointer;
       display: flex;
       flex-direction: column;
@@ -98,6 +98,9 @@
 
     .config-panel-section {
       display: none;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid #E2E8F0;
       animation: fadeInTab 0.2s ease;
     }
     .config-panel-section.active {
@@ -189,9 +192,9 @@
         <span id="statusText" style="color: #10B981; font-weight: bold;">🟢 A verificar ligação à nuvem...</span>
       </div>
 
-      <!-- MENU DE BOTÕES DAS CATEGORIAS -->
+      <!-- MENU DE BOTÕES DAS CATEGORIAS (NENHUM PRÉ-SELECIONADO) -->
       <div class="config-tabs-grid">
-        <button type="button" class="config-tab-btn active" data-target="sec-empresa" onclick="abrirSecaoConfig('sec-empresa', this)">
+        <button type="button" class="config-tab-btn" data-target="sec-empresa" onclick="abrirSecaoConfig('sec-empresa', this)">
           <i class="fa-solid fa-building"></i>
           <span>Dados da Empresa</span>
         </button>
@@ -220,7 +223,7 @@
       <form id="configForm">
 
         <!-- 1. DADOS DA EMPRESA -->
-        <div id="sec-empresa" class="config-panel-section active">
+        <div id="sec-empresa" class="config-panel-section">
           <h3 style="margin-top: 0; margin-bottom: 15px; color: #0B132B;"><i class="fa-solid fa-building"></i> Dados da Empresa</h3>
           
           <div class="form-group">
@@ -348,8 +351,8 @@
           </div>
         </div>
 
-        <!-- BOTÃO SALVAR GERAL (EXIBIDO NAS ABAS DE FORMULÁRIO) -->
-        <div id="btnSalvarContainer" style="margin-top: 25px; display: flex; gap: 10px;">
+        <!-- BOTÃO SALVAR GERAL (INICIA OCULTO ATÉ ABRIR UMA CATEGORIA DE FORMULÁRIO) -->
+        <div id="btnSalvarContainer" style="margin-top: 25px; display: none; gap: 10px;">
           <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 12px 20px; width: 100%;">GUARDAR TODAS AS CONFIGURAÇÕES</button>
         </div>
       </form>
@@ -431,11 +434,14 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="configuracao.js?v=4"></script>
+  <script src="configuracao.js?v=5"></script>
 
   <!-- SCRIPT DE NAVEGAÇÃO DAS ABAS, PERMISSÕES E LOGÓTIPO -->
   <script>
     window.abrirSecaoConfig = function(secaoId, btnEl) {
+      const alvo = document.getElementById(secaoId);
+      const jaEstavaAtiva = alvo && alvo.classList.contains('active');
+
       document.querySelectorAll('.config-panel-section').forEach(sec => {
         sec.classList.remove('active');
       });
@@ -443,12 +449,17 @@
         btn.classList.remove('active');
       });
 
-      const alvo = document.getElementById(secaoId);
+      const btnSalvarContainer = document.getElementById('btnSalvarContainer');
+
+      // Se clicou no mesmo botão já aberto, recolhe tudo novamente
+      if (jaEstavaAtiva) {
+        if (btnSalvarContainer) btnSalvarContainer.style.display = 'none';
+        return;
+      }
+
       if (alvo) alvo.classList.add('active');
       if (btnEl) btnEl.classList.add('active');
 
-      // Oculta o botão de salvar formulário apenas na aba de Backup & App
-      const btnSalvarContainer = document.getElementById('btnSalvarContainer');
       if (btnSalvarContainer) {
         btnSalvarContainer.style.display = (secaoId === 'sec-backup') ? 'none' : 'flex';
       }
