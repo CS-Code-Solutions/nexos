@@ -8,7 +8,11 @@
   <!-- Helper global de página inicial e aplicação da logo salva -->
   <script>
     window.getPaginaInicialNexOS = function() {
-      return localStorage.getItem('rg_pagina_inicial') || 'manutencao.html';
+      const paginaSalva = localStorage.getItem('rg_pagina_inicial');
+      if (!paginaSalva || paginaSalva === 'dashboard.html' || paginaSalva === 'manutencao.html') {
+        return 'relatorios.html';
+      }
+      return paginaSalva;
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -170,7 +174,7 @@
     </div>
   </div>
 
-  <script src="login.js?v=3"></script>
+  <script src="login.js?v=4"></script>
 
   <script>
     let deferredPrompt;
