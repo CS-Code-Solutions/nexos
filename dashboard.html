@@ -344,40 +344,53 @@
     }
   </style>
 
-  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS NO MOBILE E DESKTOP -->
+  <!-- SCRIPT SÍNCRONO DE BLINDAGEM, PERMISSÕES E REDIRECIONAMENTO DE SEGURANÇA -->
   <script>
     (function() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
-      const showDashboard = localStorage.getItem('rg_page_dashboard');
-      const showRelatorios = localStorage.getItem('rg_page_relatorios');
-      const showCadastros = localStorage.getItem('rg_page_cadastros');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
+      
+      const showDashboard = localStorage.getItem('rg_page_dashboard');
+      const showCadastros = localStorage.getItem('rg_page_cadastros');
+      const showRelatorios = localStorage.getItem('rg_page_relatorios');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+
+      // Redirecionamento instantâneo se o utilizador não tiver permissão para ver o Dashboard
+      if (!isSuperAdmin && showDashboard === 'false') {
+        window.location.replace('cadastros.html');
+        return;
+      }
+
+      let cssRules = '';
 
       if (!isSuperAdmin) {
         if (showDashboard === 'false') {
-          document.write('<style>a[href="dashboard.html"] { display: none !important; }</style>');
+          cssRules += 'a[href="dashboard.html"] { display: none !important; }';
         }
         if (showCadastros === 'false') {
-          document.write('<style>a[href="cadastros.html"] { display: none !important; }</style>');
+          cssRules += 'a[href="cadastros.html"] { display: none !important; }';
         }
         if (showRelatorios === 'false') {
-          document.write('<style>a[href="relatorios.html"] { display: none !important; }</style>');
+          cssRules += 'a[href="relatorios.html"] { display: none !important; }';
         }
         if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
-          document.write('<style>#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }</style>');
+          cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas, a[href="manutencoes.html"] { display: none !important; }';
         }
         if (showOrcamentos === 'false') {
-          document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
+          cssRules += '#nav-item-orcamentos, #d-nav-orcamentos, a[href="orcamentos.html"] { display: none !important; }';
         }
         if (showHoras !== 'true') {
-          document.write('<style>#nav-item-horas, #d-nav-horas, #kpi-horas-extras-box { display: none !important; }</style>');
+          cssRules += '#nav-item-horas, #d-nav-horas, #kpi-horas-extras-box, a[href="horas-extras.html"] { display: none !important; }';
         }
       }
       if (userRole === 'tecnico') {
-        document.write('<style>.finance-sensitive { display: none !important; }</style>');
+        cssRules += '.finance-sensitive { display: none !important; }';
+      }
+
+      if (cssRules) {
+        document.write('<style>' + cssRules + '</style>');
       }
     })();
   </script>
