@@ -208,14 +208,14 @@
     .widget-item:last-child { margin-bottom: 0; }
 
     /* =====================================================================
-       MODAL DE PERSONALIZAÇÃO (CORREÇÃO MOBILE + ORDENAÇÃO)
+       MODAL DE PERSONALIZAÇÃO (MOBILE E DESKTOP COM SETAS ALINHADAS)
        ===================================================================== */
     #modalEditDash {
       display: none;
       position: fixed;
       inset: 0;
       background: rgba(11, 19, 43, 0.88);
-      z-index: 10005 !important; /* Acima da barra inferior mobile */
+      z-index: 10005 !important;
       justify-content: center;
       align-items: center;
       padding: 12px;
@@ -225,7 +225,7 @@
       background: #FFFFFF;
       width: 100%;
       max-width: 540px;
-      max-height: 86vh; /* Garante que cabe na tela do celular sem cortar botões */
+      max-height: 86vh;
       border-radius: 12px;
       box-shadow: 0 15px 35px rgba(0,0,0,0.4);
       overflow: hidden;
@@ -242,6 +242,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       padding: 10px 12px;
       background: #F8FAFC;
       border: 1px solid #E2E8F0;
@@ -257,7 +258,6 @@
       min-width: 0;
       cursor: pointer;
     }
-    /* Anula regras globais de width:100% do style.css nos checkboxes */
     .config-row-left input[type="checkbox"] {
       width: 18px !important;
       min-width: 18px !important;
@@ -275,25 +275,20 @@
       line-height: 1.25;
       word-break: break-word;
     }
-    .config-row-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-    .config-row-right select {
+    .config-row-select select {
       padding: 6px 8px;
       border-radius: 6px;
       border: 1px solid #CBD5E1;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       background: #FFF;
       color: #0B132B;
       width: auto !important;
-      max-width: 125px;
+      max-width: 135px;
     }
     .order-btns {
       display: flex;
-      gap: 4px;
+      gap: 5px;
+      flex-shrink: 0;
     }
     .btn-order {
       width: 30px;
@@ -343,17 +338,14 @@
       gap: 6px;
     }
     @media (max-width: 480px) {
-      .config-row {
-        flex-wrap: wrap;
-      }
-      .config-row-right {
+      .config-row-select {
+        order: 3;
         width: 100%;
-        justify-content: flex-end;
-        padding-top: 4px;
+        padding-top: 6px;
         border-top: 1px dashed #E2E8F0;
       }
-      .config-row-right select {
-        flex: 1;
+      .config-row-select select {
+        width: 100% !important;
         max-width: none;
       }
       .edit-modal-footer button {
@@ -588,7 +580,7 @@
     </a>
   </nav>
 
-  <!-- MODAL DE PERSONALIZAÇÃO DO DASHBOARD (COM ORDENAÇÃO E LAYOUT MOBILE CORRIGIDO) -->
+  <!-- MODAL DE PERSONALIZAÇÃO DO DASHBOARD -->
   <div id="modalEditDash">
     <div class="edit-modal-box">
       
@@ -660,7 +652,7 @@
     </div>
   </div>
 
-  <script src="dashboard.js?v=2"></script>
+  <script src="dashboard.js?v=3"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const bottomNav = document.getElementById('mainBottomNav');
