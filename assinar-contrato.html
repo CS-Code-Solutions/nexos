@@ -6,6 +6,13 @@
   <title>Assinatura Digital de Contrato - CS Code Solutions</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase SDKs Compat (para buscar a Razão Social pelo ID da URL) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+
   <!-- Bibliotecas PDF-Lib e PDF.js para renderização e carimbo nativo -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -54,7 +61,8 @@
       margin-bottom: 20px;
     }
     .header h1 { font-size: 1.35rem; color: var(--accent-blue); margin-bottom: 4px; }
-    .header p { font-size: 0.85rem; color: var(--text-sub); }
+    .header p { font-size: 0.9rem; color: var(--text-sub); font-weight: 500; }
+    .header p span#headerClientName { color: #F8FAFC; font-weight: 700; }
 
     /* Caixa de pré-visualização direta via PDF.js */
     .pdf-container {
@@ -305,7 +313,7 @@
   <div class="container">
     <div class="header">
       <h1>Assinatura de Contrato Comercial</h1>
-      <p>Service JLB Ltda | CS Code Solutions</p>
+      <p><span id="headerClientName">Carregando cliente...</span> | CS Code Solutions</p>
     </div>
 
     <!-- Pré-visualização Direta do PDF na Página -->
@@ -438,6 +446,7 @@
     let totalPaginas = 0;
     let pdfOriginalUrl = '';
     let isSigned = false;
+    let razaoSocialCliente = '';
 
     const canvasSig = document.getElementById('signatureCanvas');
     const ctxSig = canvasSig.getContext('2d');
@@ -453,14 +462,106 @@
       }
     }
 
+    function atualizarNomeClienteUI(nomeEmpresa) {
+      if (!nomeEmpresa) return;
+      razaoSocialCliente = nomeEmpresa.trim();
+      const el = document.getElementById('headerClientName');
+      if (el) el.textContent = razaoSocialCliente;
+      document.title = `Assinatura de Contrato - ${razaoSocialCliente} | CS Code Solutions`;
+    }
+
+    // Busca a Razão Social pela URL, Firebase ou diretamente do PDF
+    async function buscarRazaoSocialCliente(contractId, urlParams) {
+      // 1. Verifica se veio explicitamente via parâmetro na URL (?id=...&cliente=Nome ou &razao=Nome)
+      const paramNome = urlParams.get('cliente') || urlParams.get('razao') || urlParams.get('empresa') || urlParams.get('name');
+      if (paramNome) {
+        atualizarNomeClienteUI(decodeURIComponent(paramNome));
+        return;
+      }
+
+      // 2. Tenta buscar no Firestore usando o contractId (ex: cs_master -> rg_config/cs_master ou saas_users)
+      if (typeof db !== 'undefined' && contractId) {
+        try {
+          // Busca em rg_config pelo ID do contrato/tenant
+          const cfgSnap = await db.collection('rg_config').doc(contractId).get();
+          if (cfgSnap.exists) {
+            const data = cfgSnap.data();
+            const nome = data.razaoSocial || data.empresa || data.companyName || data.nomeEmpresa || data.name;
+            if (nome) {
+              atualizarNomeClienteUI(nome);
+              return;
+            }
+          }
+
+          // Busca na coleção saas_users onde tenant_id == contractId
+          const usersSnap = await db.collection('saas_users').where('tenant_id', '==', contractId).limit(1).get();
+          if (!usersSnap.empty) {
+            const uData = usersSnap.docs[0].data();
+            const nome = uData.razaoSocial || uData.empresa || uData.companyName || uData.nome;
+            if (nome) {
+              atualizarNomeClienteUI(nome);
+              return;
+            }
+          }
+
+          // Busca em contratos / propostas caso exista coleção dedicada
+          const propSnap = await db.collection('rg_contratos').doc(contractId).get();
+          if (propSnap.exists) {
+            const pData = propSnap.data();
+            const nome = pData.razaoSocial || pData.cliente || pData.empresa;
+            if (nome) {
+              atualizarNomeClienteUI(nome);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Aviso ao consultar Firestore para razão social:", err);
+        }
+      }
+    }
+
+    // Extrai a Razão Social lendo o texto da 1ª página do PDF caso ainda não tenha sido encontrada
+    async function extrairRazaoSocialDoPdf(pdfDocument) {
+      if (razaoSocialCliente) return;
+      try {
+        const page1 = await pdfDocument.getPage(1);
+        const textContent = await page1.getTextContent();
+        const textoCompleto = textContent.items.map(item => item.str).join(' ');
+
+        // Procura padrões comuns de contrato: "Contratante: Nome", "Razão Social: Nome", "Cliente: Nome"
+        const regexPadroes = [
+          /CONTRATANTE\s*:\s*([^,\n\-|]+?)(?=\s*(?:CNPJ|CPF|inscrit|sediad|doravante|Endereço|E-mail|$))/i,
+          /Razão\s+Social\s*:\s*([^,\n\-|]+?)(?=\s*(?:CNPJ|CPF|Endereço|E-mail|$))/i,
+          /Cliente\s*:\s*([^,\n\-|]+?)(?=\s*(?:CNPJ|CPF|Proposta|Data|$))/i
+        ];
+
+        for (const regex of regexPadroes) {
+          const match = textoCompleto.match(regex);
+          if (match && match[1] && match[1].trim().length > 2) {
+            atualizarNomeClienteUI(match[1].trim());
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Não foi possível extrair texto do PDF:", e);
+      }
+
+      // Fallback final limpo caso nenhuma fonte tenha o nome
+      if (!razaoSocialCliente) {
+        atualizarNomeClienteUI("Cliente Contratante");
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       initCanvas();
       
       const urlParams = new URLSearchParams(window.location.search);
       const contractId = urlParams.get('id') || 'CONTRATO_JLB_2026';
       
+      // Inicia a busca da Razão Social em paralelo
+      await buscarRazaoSocialCliente(contractId, urlParams);
+
       pdfOriginalUrl = new URL(`./contratos/${contractId}.pdf`, window.location.href).href;
-      
       await carregarEVisualizarPdf(pdfOriginalUrl);
     });
 
@@ -469,6 +570,9 @@
         const loadingTask = pdfjsLib.getDocument(url);
         pdfDocGlobal = await loadingTask.promise;
         totalPaginas = pdfDocGlobal.numPages;
+
+        // Tenta extrair o nome diretamente do PDF caso não tenha vindo da URL ou Firestore
+        await extrairRazaoSocialDoPdf(pdfDocGlobal);
         
         document.getElementById('pageCount').textContent = totalPaginas;
         if (totalPaginas > 1) {
@@ -478,6 +582,7 @@
         renderizarPaginaPdf(paginaAtual);
       } catch (err) {
         console.error("Erro ao carregar pré-visualização do PDF:", err);
+        if (!razaoSocialCliente) atualizarNomeClienteUI("Cliente Contratante");
       }
     }
 
@@ -636,6 +741,7 @@
 
         const dataHoraStr = new Date().toLocaleString('pt-BR');
         const codigoValidacao = 'NX-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString().slice(-4);
+        const empresaExibicao = razaoSocialCliente && razaoSocialCliente !== 'Cliente Contratante' ? razaoSocialCliente : nome;
 
         // 1. CARIMBA A ASSINATURA NA ÚLTIMA PÁGINA DO CONTRATO ORIGINAL
         const pages = pdfDoc.getPages();
@@ -648,7 +754,7 @@
           height: 60,
         });
 
-        const textoAuditoria = `Assinado digitalmente por: ${nome}\nData/Hora: ${dataHoraStr} | Hash: ${codigoValidacao}\nPlataforma NexOS - CS Code Solutions (Vide Anexo I de Escopo)`;
+        const textoAuditoria = `Assinado digitalmente por: ${nome} (${empresaExibicao})\nData/Hora: ${dataHoraStr} | Hash: ${codigoValidacao}\nPlataforma NexOS - CS Code Solutions (Vide Anexo I de Escopo)`;
         lastContractPage.drawText(textoAuditoria, {
           x: 100,
           y: 85,
@@ -664,7 +770,7 @@
 
         // Paleta de Cores Executiva
         const navy = PDFLib.rgb(0.043, 0.075, 0.169);       // #0B132B
-        const cyan = PDFLib.rgb(0.0, 0.72, 0.62);          // #00B89E (legível no papel)
+        const cyan = PDFLib.rgb(0.0, 0.72, 0.62);          // #00B89E
         const cyanBright = PDFLib.rgb(0.0, 0.96, 0.83);    // #00F5D4
         const slateDark = PDFLib.rgb(0.12, 0.16, 0.23);    // #1E293B
         const slateMuted = PDFLib.rgb(0.39, 0.45, 0.54);   // #64748B
@@ -680,7 +786,6 @@
           height: 85,
           color: navy
         });
-        // Linha Ciano de Destaque
         annexPage.drawRectangle({
           x: 0,
           y: height - 88,
@@ -706,40 +811,40 @@
 
         let cursorY = height - 125;
 
-        // Bloco de Identificação do Contratante
+        // Bloco de Identificação do Contratante (Razão Social + Responsável)
         annexPage.drawRectangle({
           x: 45,
-          y: cursorY - 45,
+          y: cursorY - 52,
           width: width - 90,
-          height: 55,
+          height: 62,
           color: bgBox,
           borderColor: borderGray,
           borderWidth: 1
         });
 
-        annexPage.drawText('RESPONSÁVEL / CONTRATANTE:', {
+        annexPage.drawText('EMPRESA CONTRATANTE / RAZÃO SOCIAL:', {
           x: 60,
-          y: cursorY - 12,
-          size: 8,
+          y: cursorY - 10,
+          size: 7.5,
           font: fontBold,
           color: slateMuted
         });
-        annexPage.drawText(nome.toUpperCase(), {
+        annexPage.drawText(empresaExibicao.toUpperCase(), {
           x: 60,
-          y: cursorY - 26,
+          y: cursorY - 23,
           size: 11,
           font: fontBold,
           color: slateDark
         });
-        annexPage.drawText(`Data de Aceite: ${dataHoraStr}   |   Código de Registro: ${codigoValidacao}`, {
+        annexPage.drawText(`Responsável: ${nome}   |   Data: ${dataHoraStr}   |   Registro: ${codigoValidacao}`, {
           x: 60,
-          y: cursorY - 39,
+          y: cursorY - 40,
           size: 8,
           font: fontRegular,
           color: slateMuted
         });
 
-        cursorY -= 80;
+        cursorY -= 85;
 
         // SEÇÃO 1: MÓDULOS DO SISTEMA
         annexPage.drawText('1. MÓDULOS DO SISTEMA CONTRATADOS', {
@@ -846,7 +951,6 @@
         cursorY -= 24;
 
         criteriosCobranca.forEach(crit => {
-          // Caixa suave de fundo para cada linha
           annexPage.drawRectangle({
             x: 45,
             y: cursorY - 5,
@@ -880,7 +984,7 @@
         });
 
         // BLOCO DE ASSINATURA E VALIDAÇÃO NO ANEXO
-        const sigBoxY = 110;
+        const sigBoxY = 105;
         annexPage.drawRectangle({
           x: 45,
           y: sigBoxY,
@@ -967,14 +1071,15 @@
           color: slateMuted
         });
 
-        // Salva e baixa o PDF completo
+        // Salva e baixa o PDF completo com o nome dinâmico da empresa
         const pdfAssinadoBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfAssinadoBytes], { type: 'application/pdf' });
+        const nomeArquivoLimpo = empresaExibicao.replace(/[^a-zA-Z0-9À-ÿ\s]/g, '').trim().replace(/\s+/g, '_');
         
         const downloadUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `Contrato_NexOS_${nome.replace(/\s+/g, '_')}_Assinado.pdf`;
+        a.download = `Contrato_NexOS_${nomeArquivoLimpo}_Assinado.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
