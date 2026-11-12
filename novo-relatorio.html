@@ -1,14 +1,65 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script>
-  (function() {
-    const logoSalva = localStorage.getItem('rg_logo_base64');
-    if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-    }
-  })();
-</script>
+  <!-- SCRIPT SÍNCRONO UNIVERSAL DE BLINDAGEM E PERMISSÕES (EVITA PISCADAS) -->
+  <script>
+    (function() {
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+      
+      const showDashboard = localStorage.getItem('rg_page_dashboard');
+      const showCadastros = localStorage.getItem('rg_page_cadastros');
+      const showRelatorios = localStorage.getItem('rg_page_relatorios');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+
+      if (!isSuperAdmin && showRelatorios === 'false') {
+        window.location.replace('cadastros.html');
+        return;
+      }
+
+      let cssRules = '';
+
+      if (!isSuperAdmin) {
+        if (showDashboard === 'false') {
+          cssRules += 'a[href="dashboard.html"], #nav-item-dash, #d-nav-dash { display: none !important; }';
+        }
+        if (showCadastros === 'false') {
+          cssRules += 'a[href="cadastros.html"], #nav-item-cad, #d-nav-cad { display: none !important; }';
+        }
+        if (showRelatorios === 'false') {
+          cssRules += 'a[href="relatorios.html"], #nav-item-rel, #d-nav-rel { display: none !important; }';
+        }
+        if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
+          cssRules += 'a[href="manutencoes.html"], #nav-item-plan, #d-nav-plan { display: none !important; }';
+        }
+        if (showOrcamentos === 'false') {
+          cssRules += 'a[href="orcamentos.html"], a[href="novo-orcamento.html"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
+        }
+        if (showHoras !== 'true') {
+          cssRules += 'a[href="horas-extras.html"], #nav-item-horas, #d-nav-horas { display: none !important; }';
+        }
+      }
+
+      if (userRole === 'tecnico') {
+        cssRules += '.finance-sensitive, a[href="configuracao.html"], #nav-item-config, #d-nav-config { display: none !important; }';
+      }
+
+      if (cssRules) {
+        document.write('<style>' + cssRules + '</style>');
+      }
+    })();
+  </script>
+
+  <script>
+    (function() {
+      const logoSalva = localStorage.getItem('rg_logo_base64');
+      if (logoSalva && logoSalva.startsWith('data:image')) {
+        document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+      }
+    })();
+  </script>
 
   <link rel="icon" href="nexosico192.png" type="image/png">
   <link rel="manifest" href="manifest.json">
@@ -25,25 +76,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="firebase-init.js?v=2"></script>
   <script src="firebase-sync.js?v=2"></script>
-
-  <!-- SCRIPT DE PERMISSÕES SÍNCRONO -->
-  <script>
-    (function() {
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      if (!isSuperAdmin) {
-        let estilosOcultacao = '';
-        if (showHoras !== 'true') {
-          estilosOcultacao += ' #d-nav-horas, #nav-item-horas { display: none !important; } ';
-        }
-        if (estilosOcultacao) {
-          document.write('<style>' + estilosOcultacao + '</style>');
-        }
-      }
-    })();
-  </script>
 
   <style>
     .signature-pad {
@@ -75,12 +107,12 @@
     </a>
 
     <nav class="desktop-nav">
-      <a href="dashboard.html"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="dashboard.html" id="d-nav-dash"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+      <a href="cadastros.html" id="d-nav-cad"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html" class="active" id="d-nav-rel"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+      <a href="configuracao.html" id="d-nav-config"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Encerrar Sessão">
@@ -340,19 +372,19 @@
   </footer>
 
   <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="dashboard.html">
+    <a href="dashboard.html" id="nav-item-dash">
       <i class="fa-solid fa-chart-pie"></i>
       <span>Dash</span>
     </a>
-    <a href="cadastros.html">
+    <a href="cadastros.html" id="nav-item-cad">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html" class="active">
+    <a href="relatorios.html" class="active" id="nav-item-rel">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html">
+    <a href="manutencoes.html" id="nav-item-plan">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
     </a>
