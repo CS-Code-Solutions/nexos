@@ -19,6 +19,38 @@ if ('serviceWorker' in navigator) {
 let tenantsCache = [];
 let tenantParaExcluir = null;
 
+function formatarResumoLicencaAdmin(data) {
+  const tipo = data.tipoLicenca || 'definitivo';
+  if (tipo === 'definitivo') {
+    return `<span style="background: #DCFCE7; color: #166534; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">Vitalício</span>`;
+  }
+
+  const diasPlano = tipo === '1_ano' ? 365 : 7;
+  const labelPlano = tipo === '1_ano' ? 'Anual (1 Ano)' : 'Teste (7 Dias)';
+
+  if (!data.dataInicioLicenca) {
+    return `<span style="background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">${labelPlano} • Inicia no 1º acesso</span>`;
+  }
+
+  const [ano, mes, dia] = data.dataInicioLicenca.split('-').map(Number);
+  const inicio = new Date(ano, mes - 1, dia, 0, 0, 0);
+  const expira = new Date(inicio);
+  expira.setDate(expira.getDate() + diasPlano);
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const restantes = Math.ceil((expira - hoje) / (1000 * 60 * 60 * 24));
+  const dataExpBR = expira.toLocaleDateString('pt-BR');
+
+  if (restantes <= 0) {
+    return `<span style="background: #FEE2E2; color: #991B1B; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">EXPIRADO (${labelPlano} • Venceu ${dataExpBR})</span>`;
+  }
+
+  const corBg = restantes <= 5 ? '#FEF3C7' : '#DBEAFE';
+  const corTxt = restantes <= 5 ? '#92400E' : '#1E40AF';
+  return `<span style="background: ${corBg}; color: ${corTxt}; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">${labelPlano} • ${restantes}d restantes (até ${dataExpBR})</span>`;
+}
+
 async function carregarPainelAdmin() {
   const container = document.getElementById('adminTenantList');
   if (!container) return;
@@ -74,6 +106,7 @@ async function carregarPainelAdmin() {
       const nomeEmpresa = data.name || data.nomeEmpresa || 'Empresa Sem Nome';
       const exibeEmail = data.email || 'E-mail não informado';
       const temLogo = data.logoBase64 ? 'Sim (Personalizado)' : 'Padrão (marca.png)';
+      const badgeLicenca = formatarResumoLicencaAdmin(data);
 
       let botaoContratoHtml = '';
       if (contratoAssinadoUrl) {
@@ -86,7 +119,10 @@ async function carregarPainelAdmin() {
       html += `
         <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
           <div style="flex: 1; min-width: 250px;">
-            <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong><br>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+              <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong>
+              ${badgeLicenca}
+            </div>
             <span style="font-size: 0.85rem; color: #475569;"><strong>UID:</strong> ${uid} | <strong>E-mail:</strong> ${escapeHTML(exibeEmail)}</span><br>
             <span style="font-size: 0.85rem; color: #0D9488;"><strong>Logótipo:</strong> ${temLogo}</span><br>
             <span style="font-size: 0.85rem; color: #D97706; font-weight: bold;">💾 Consumo DB: ${tamanhoKb} KB</span>
@@ -186,10 +222,6 @@ window.exportarBackupCSV = async function(uid, nomeEmpresa) {
   }
 };
 
-/**
- * Processa o upload de imagem otimizando a largura/altura para no máximo 350px.
- * Mantém o ficheiro leve (< 40KB) para evitar exceder o limite de documento do Firestore.
- */
 window.processarUploadLogo = function(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -248,6 +280,10 @@ window.abrirModalCliente = function() {
   inputUid.value = '';
   inputUid.readOnly = false;
   inputUid.style.background = '#F8FAFC';
+
+  // Padrão para novo cliente: Avaliação 7 dias iniciando hoje
+  document.getElementById('tenantTipoLicenca').value = '7_dias';
+  document.getElementById('tenantDataInicioLicenca').value = new Date().toISOString().split('T')[0];
   
   removerLogoForm();
   document.getElementById('modalTenantTitle').textContent = 'Adicionar Novo Cliente / Tenant';
@@ -270,6 +306,10 @@ window.editarTenant = function(uid) {
   document.getElementById('tenantNome').value = t.name || t.nomeEmpresa || '';
   document.getElementById('tenantEmail').value = t.email || '';
   document.getElementById('tenantWatermark').value = t.watermark || '';
+
+  // Licença e Data de Início (permite editar clientes que já estão rodando)
+  document.getElementById('tenantTipoLicenca').value = t.tipoLicenca || 'definitivo';
+  document.getElementById('tenantDataInicioLicenca').value = t.dataInicioLicenca || new Date().toISOString().split('T')[0];
   
   const logoBase64Val = t.logoBase64 || '';
   document.getElementById('tenantLogoBase64').value = logoBase64Val;
@@ -307,6 +347,8 @@ if (tenantFormEl) {
     let uid = document.getElementById('tenantUid').value.trim();
     const emailCliente = document.getElementById('tenantEmail').value.trim();
     const nomeCliente = document.getElementById('tenantNome').value.trim() || 'Empresa Sem Nome';
+    const tipoLicenca = document.getElementById('tenantTipoLicenca').value;
+    const dataInicioLicenca = document.getElementById('tenantDataInicioLicenca').value || new Date().toISOString().split('T')[0];
     
     if (!uid) {
       uid = 'tenant_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
@@ -318,6 +360,8 @@ if (tenantFormEl) {
       name: nomeCliente,
       nomeEmpresa: nomeCliente,
       email: emailCliente,
+      tipoLicenca: tipoLicenca,
+      dataInicioLicenca: dataInicioLicenca,
       logoBase64: logoBase64Final,
       watermark: document.getElementById('tenantWatermark').value.trim(),
       
@@ -343,7 +387,7 @@ if (tenantFormEl) {
       // 1. Grava no Firestore para o tenant alvo
       await db.collection('rg_config').doc(uid).set(tenantData, { merge: true });
 
-      // 2. ISOLAMENTO MULTI-TENANT: SÓ atualiza o localStorage local se o administrador estiver a editar o SEU próprio tenant
+      // 2. ISOLAMENTO MULTI-TENANT
       const meuTenantId = localStorage.getItem('rg_tenant_id') || 'cs_master';
       if (uid === meuTenantId) {
         if (logoBase64Final) {
@@ -363,11 +407,13 @@ if (tenantFormEl) {
           status: "ativo",
           tenant_id: uid,
           email: emailCliente,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          tipoLicenca: tipoLicenca,
+          dataInicioLicenca: dataInicioLicenca,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
       }
 
-      alert('✅ Configurações e logótipo salvos no banco de dados com sucesso!');
+      alert('✅ Configurações, licença e logótipo salvos com sucesso!');
       fecharModalCliente();
       carregarPainelAdmin();
     } catch (err) {
