@@ -30,7 +30,7 @@
 
   <!-- Inicialização do Firebase e Sincronização -->
   <script src="firebase-init.js?v=2"></script>
-  <script src="firebase-sync.js?v=2"></script>
+  <script src="firebase-sync.js?v=3"></script>
 
   <style>
     .desktop-nav {
@@ -158,7 +158,7 @@
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
-    <!-- CENTRO: MENU DESKTOP (SEM DASHBOARD POR HORA) -->
+    <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
       <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
@@ -187,9 +187,15 @@
     <section class="card" style="border-top: 4px solid var(--electric-cyan);">
       <h2 style="color: #0B132B; font-size: 1.5rem; margin-bottom: 15px;">Configurações & Administração</h2>
       
-      <div id="systemStatusBox" style="padding: 10px; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; margin-bottom: 20px;">
-        <strong>Status do Sistema:</strong> 
-        <span id="statusText" style="color: #10B981; font-weight: bold;">🟢 A verificar ligação à nuvem...</span>
+      <div id="systemStatusBox" style="padding: 12px; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; margin-bottom: 20px;">
+        <div>
+          <strong>Status do Sistema:</strong> 
+          <span id="statusText" style="color: #10B981; font-weight: bold;">🟢 A verificar ligação à nuvem...</span>
+        </div>
+        <!-- EXIBIÇÃO EXCLUSIVA DO PLANO E VALIDADE DA LICENÇA -->
+        <div id="boxStatusLicenca" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #E2E8F0; font-size: 0.86rem; color: #334155;">
+          <strong>Plano / Validade:</strong> <span id="textoStatusLicenca"></span>
+        </div>
       </div>
 
       <!-- MENU DE BOTÕES DAS CATEGORIAS (NENHUM PRÉ-SELECIONADO) -->
@@ -451,7 +457,6 @@
 
       const btnSalvarContainer = document.getElementById('btnSalvarContainer');
 
-      // Se clicou no mesmo botão já aberto, recolhe tudo novamente
       if (jaEstavaAtiva) {
         if (btnSalvarContainer) btnSalvarContainer.style.display = 'none';
         return;
@@ -465,7 +470,32 @@
       }
     };
 
+    // Atualiza o status da licença na caixa de Status do Sistema
+    function atualizarInfoLicencaConfig() {
+      const info = window.nexosLicencaInfo;
+      const box = document.getElementById('boxStatusLicenca');
+      const txt = document.getElementById('textoStatusLicenca');
+      if (!info || !box || !txt) return;
+
+      if (info.tipoLicenca === 'definitivo') {
+        txt.innerHTML = `<span style="color: #0D9488; font-weight: bold;">Licença Vitalícia Ativa</span>`;
+        box.style.display = 'block';
+        return;
+      }
+
+      const nomePlano = info.tipoLicenca === '1_ano' ? 'Licença Anual (1 Ano)' : 'Avaliação Gratuita (7 Dias)';
+      const corDias = info.diasRestantes <= 5 ? '#EF4444' : '#0D9488';
+      const whatsRenovar = "https://wa.me/5551981061618?text=" + encodeURIComponent("Olá! Gostaria de falar sobre a licença do NexOS.");
+
+      txt.innerHTML = `${nomePlano} &bull; Válido até <strong>${info.dataExpiracaoStr}</strong> (<span style="color: ${corDias}; font-weight: bold;">${Math.max(0, info.diasRestantes)} dias restantes</span>) &nbsp;<a href="${whatsRenovar}" target="_blank" style="color: #0284C7; font-weight: bold; text-decoration: underline;">Renovar / Suporte</a>`;
+      box.style.display = 'block';
+    }
+
+    window.addEventListener('nexosLicencaCarregada', atualizarInfoLicencaConfig);
+
     document.addEventListener("DOMContentLoaded", () => {
+      atualizarInfoLicencaConfig();
+
       const imgLogo = document.getElementById('logo-cliente');
       if (imgLogo) {
         const logoSalva = localStorage.getItem('rg_logo_base64');
@@ -483,7 +513,6 @@
       if (optHoras && !isSuperAdmin && showHoras !== 'true') optHoras.remove();
       if (optPlan && !isSuperAdmin && showManutencoes === 'false') optPlan.remove();
 
-      // Aplica imediatamente o valor salvo no localStorage enquanto a nuvem carrega
       const selectPaginaInicial = document.getElementById('configPaginaInicial');
       const linkLogoHeader = document.getElementById('linkLogoHeader');
       let paginaSalva = localStorage.getItem('rg_pagina_inicial') || 'relatorios.html';
@@ -497,7 +526,6 @@
         selectPaginaInicial.value = paginaSalva;
       }
 
-      // Centraliza item ativo no menu mobile
       const bottomNav = document.getElementById('mainBottomNav');
       if (bottomNav) {
         const activeItem = bottomNav.querySelector('a.active');
