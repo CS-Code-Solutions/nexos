@@ -1,29 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- SCRIPT SÍNCRONO UNIVERSAL DE BLINDAGEM E PERMISSÕES -->
-  <script>
-    (function() {
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      // Bloqueio estrito: apenas Super Admin pode acessar o painel global
-      if (!isSuperAdmin) {
-        window.location.replace('cadastros.html');
-        return;
-      }
-    })();
-  </script>
-
-  <script>
-    (function() {
-      const logoSalva = localStorage.getItem('rg_logo_base64');
-      if (logoSalva && logoSalva.startsWith('data:image')) {
-        document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-      }
-    })();
-  </script>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NexOS - Painel Super Admin (CS Code Solutions)</title>
@@ -91,12 +68,11 @@
     
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
-      <a href="dashboard.html" id="d-nav-dash"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-      <a href="cadastros.html" id="d-nav-cad"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html" id="d-nav-rel"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html" class="active" id="d-nav-config"><i class="fa-solid fa-gear"></i> Config</a>
+      <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
     <!-- LADO DIREITO: BOTÃO SAIR -->
@@ -187,9 +163,6 @@
           <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
             <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--deep-navy);">📑 Controle de Páginas Gerais</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="pageDashboard" style="width: 16px; height: 16px;"> Dashboard
-              </label>
               <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
                 <input type="checkbox" id="pageCadastros" checked style="width: 16px; height: 16px;"> Cadastros
               </label>
@@ -288,19 +261,15 @@
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="dashboard.html" id="nav-item-dash">
-      <i class="fa-solid fa-chart-pie"></i>
-      <span>Dash</span>
-    </a>
-    <a href="cadastros.html" id="nav-item-cad">
+    <a href="cadastros.html">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html" id="nav-item-rel">
+    <a href="relatorios.html">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html" id="nav-item-plan">
+    <a href="manutencoes.html">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
     </a>
@@ -315,6 +284,30 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="admin.js?v=11"></script>
+  <script src="admin.js?v=10"></script>
+
+  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const imgLogo = document.getElementById('logo-cliente');
+      if (imgLogo) {
+        const logoSalva = localStorage.getItem('rg_logo_base64');
+        if (logoSalva && logoSalva.startsWith('data:image')) {
+          imgLogo.src = logoSalva;
+        } else {
+          imgLogo.src = 'marca.png';
+        }
+      }
+
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      const navHoras = document.getElementById('nav-item-horas');
+      if (navHoras) {
+        navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      }
+    });
+  </script>
 </body>
 </html>
