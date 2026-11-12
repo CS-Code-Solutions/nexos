@@ -268,6 +268,7 @@
     }
     .edit-modal-body {
       padding: 16px;
+      padding-bottom: 75px !important;
       overflow-y: auto;
       flex: 1;
       -webkit-overflow-scrolling: touch;
@@ -357,6 +358,8 @@
       gap: 10px;
       border-top: 1px solid #E2E8F0;
       flex-shrink: 0;
+      position: relative;
+      z-index: 10;
     }
     .edit-modal-footer button {
       padding: 10px 14px;
@@ -378,7 +381,7 @@
   <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="dashboard.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent; display: block;">
     </a>
 
     <nav class="desktop-nav">
@@ -390,7 +393,7 @@
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
-    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; padding: 5px;" title="Sair">
       <i class="fa-solid fa-power-off"></i>
     </button>
   </header>
