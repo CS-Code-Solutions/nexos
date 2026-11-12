@@ -86,15 +86,23 @@
   <script>
     (function() {
       const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
       const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
 
+      let css = '';
       if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
+        css += '#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
+      }
+      if (!isSuperAdmin && showManutencoes === 'false') {
+        css += '#nav-item-plan, #d-nav-plan { display: none !important; }';
       }
       if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
+        css += '#nav-item-horas, #d-nav-horas { display: none !important; }';
+      }
+      if (css) {
+        document.write('<style>' + css + '</style>');
       }
     })();
   </script>
@@ -103,15 +111,16 @@
 
   <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
-    <a href="cadastros.html" style="display: flex; align-items: center; text-decoration: none;">
+    <a href="dashboard.html" id="linkLogoHeader" style="display: flex; align-items: center; text-decoration: none;">
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
+      <a href="dashboard.html" id="d-nav-dash"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
       <a href="cadastros.html" class="active"><i class="fa-solid fa-address-book"></i> Cadastros</a>
       <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="manutencoes.html" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
@@ -235,6 +244,10 @@
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="dashboard.html" id="nav-item-dash">
+      <i class="fa-solid fa-chart-pie"></i>
+      <span>Dash</span>
+    </a>
     <a href="cadastros.html" class="active">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
@@ -243,7 +256,7 @@
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html">
+    <a href="manutencoes.html" id="nav-item-plan">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
     </a>
@@ -260,6 +273,13 @@
   <script src="cadastros.js?v=3"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      // Atualiza o destino do logótipo conforme a página inicial escolhida nas configurações
+      const linkLogoHeader = document.getElementById('linkLogoHeader');
+      if (linkLogoHeader) {
+        linkLogoHeader.href = localStorage.getItem('rg_pagina_inicial') || 'dashboard.html';
+      }
+
+      // Centraliza item ativo no menu inferior mobile
       const bottomNav = document.getElementById('mainBottomNav');
       if (bottomNav) {
         const activeItem = bottomNav.querySelector('a.active');
