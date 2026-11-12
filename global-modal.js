@@ -75,3 +75,57 @@
         });
     };
 })();
+document.addEventListener("DOMContentLoaded", () => {
+  const bottomNav = document.getElementById("mainBottomNav");
+  if (!bottomNav) return;
+
+  // Cria os indicadores visuais nas extremidades
+  const hintLeft = document.createElement("div");
+  hintLeft.className = "nav-scroll-hint left";
+  hintLeft.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+
+  const hintRight = document.createElement("div");
+  hintRight.className = "nav-scroll-hint right";
+  hintRight.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+
+  document.body.appendChild(hintLeft);
+  document.body.appendChild(hintRight);
+
+  function atualizarIndicadoresNav() {
+    // Se a barra estiver oculta (desktop), esconde ambos
+    if (bottomNav.offsetParent === null) {
+      hintLeft.classList.remove("visible");
+      hintRight.classList.remove("visible");
+      return;
+    }
+
+    const temOverflow = bottomNav.scrollWidth > bottomNav.clientWidth + 2;
+    if (!temOverflow) {
+      hintLeft.classList.remove("visible");
+      hintRight.classList.remove("visible");
+      return;
+    }
+
+    // Mostra seta esquerda se já rolou para a direita
+    if (bottomNav.scrollLeft > 8) {
+      hintLeft.classList.add("visible");
+    } else {
+      hintLeft.classList.remove("visible");
+    }
+
+    // Mostra seta direita se ainda há conteúdo oculto à direita
+    const maxScroll = bottomNav.scrollWidth - bottomNav.clientWidth;
+    if (bottomNav.scrollLeft < maxScroll - 8) {
+      hintRight.classList.add("visible");
+    } else {
+      hintRight.classList.remove("visible");
+    }
+  }
+
+  bottomNav.addEventListener("scroll", atualizarIndicadoresNav, { passive: true });
+  window.addEventListener("resize", atualizarIndicadoresNav);
+
+  // Executa na carga inicial e após o scroll automático do item ativo
+  atualizarIndicadoresNav();
+  setTimeout(atualizarIndicadoresNav, 350);
+});
