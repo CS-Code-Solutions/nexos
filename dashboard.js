@@ -43,7 +43,7 @@ function getPreferenciasDash() {
       }
     }
   } catch (e) {
-    console.warn("Erro ao ler preferências do dashboard:", e);
+    console.warn("Erro ao ler preferências locais do dashboard:", e);
   }
   return JSON.parse(JSON.stringify(PREFS_DEFAULT));
 }
@@ -79,6 +79,13 @@ firebase.auth().onAuthStateChanged(async (user) => {
 
     DataSync.listen('rg_reports', () => carregarTodosDadosDashboard());
     DataSync.listen('rg_manutencoes', () => carregarTodosDadosDashboard());
+    DataSync.listen('rg_dash_prefs', (prefsNuvem) => {
+      if (prefsNuvem && typeof prefsNuvem === 'object') {
+        localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsNuvem));
+        aplicarLayoutEOrdemDash();
+        atualizarDashboard();
+      }
+    });
     if (localStorage.getItem('rg_mod_horas_extras') === 'true') {
       DataSync.listen('rg_horas_extras', () => carregarTodosDadosDashboard());
     }
@@ -87,6 +94,18 @@ firebase.auth().onAuthStateChanged(async (user) => {
 
 async function carregarTodosDadosDashboard() {
   try {
+    // Sincroniza preferências da nuvem (Firestore) com prioridade
+    if (typeof DataSync !== 'undefined' && DataSync.load) {
+      try {
+        const prefsNuvem = await DataSync.load('rg_dash_prefs');
+        if (prefsNuvem && typeof prefsNuvem === 'object' && Array.isArray(prefsNuvem.secoes)) {
+          localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsNuvem));
+        }
+      } catch (errPrefs) {
+        console.warn("Não foi possível carregar preferências da nuvem:", errPrefs);
+      }
+    }
+
     const [reps, manuts, horas] = await Promise.all([
       DataSync.load('rg_reports'),
       DataSync.load('rg_manutencoes'),
@@ -97,6 +116,7 @@ async function carregarTodosDadosDashboard() {
     manutencoesGlobais = Array.isArray(manuts) ? manuts : [];
     horasExtrasGlobais = Array.isArray(horas) ? horas : [];
 
+    aplicarLayoutEOrdemDash();
     atualizarDashboard();
   } catch (err) {
     console.error("Erro ao carregar dados do Dashboard:", err);
@@ -601,17 +621,31 @@ window.fecharModalEditarDash = function() {
   document.getElementById('modalEditDash').style.display = 'none';
 };
 
-window.salvarPreferenciasDash = function() {
+window.salvarPreferenciasDash = async function() {
   if (prefsTempEdicao) {
     localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsTempEdicao));
+    try {
+      if (typeof DataSync !== 'undefined' && DataSync.save) {
+        await DataSync.save('rg_dash_prefs', prefsTempEdicao);
+      }
+    } catch (err) {
+      console.warn("Erro ao salvar preferências na nuvem:", err);
+    }
   }
   aplicarLayoutEOrdemDash();
   atualizarDashboard();
   fecharModalEditarDash();
 };
 
-window.restaurarPadraoDash = function() {
+window.restaurarPadraoDash = async function() {
   localStorage.removeItem('nexos_dash_prefs_v3');
+  try {
+    if (typeof DataSync !== 'undefined' && DataSync.save) {
+      await DataSync.save('rg_dash_prefs', PREFS_DEFAULT);
+    }
+  } catch (err) {
+    console.warn("Erro ao restaurar preferências na nuvem:", err);
+  }
   aplicarLayoutEOrdemDash();
   atualizarDashboard();
   fecharModalEditarDash();
