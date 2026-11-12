@@ -32,6 +32,37 @@ async function validarAcessoSaaS(userEmail) {
   }
 }
 
+function resolverDestinoInicial(isSuperAdmin) {
+  const paginasValidas = [
+    'dashboard.html',
+    'relatorios.html',
+    'novo-relatorio.html',
+    'cadastros.html',
+    'manutencoes.html',
+    'horas-extras.html'
+  ];
+
+  let destino = (typeof window.getPaginaInicialNexOS === 'function')
+    ? window.getPaginaInicialNexOS()
+    : (localStorage.getItem('rg_pagina_inicial') || 'dashboard.html');
+
+  if (!paginasValidas.includes(destino)) {
+    destino = 'dashboard.html';
+  }
+
+  // Garante que não redirecione para um módulo desativado para o utilizador
+  if (!isSuperAdmin) {
+    if (destino === 'manutencoes.html' && localStorage.getItem('rg_page_manutencoes') === 'false') {
+      destino = 'dashboard.html';
+    }
+    if (destino === 'horas-extras.html' && localStorage.getItem('rg_mod_horas_extras') !== 'true') {
+      destino = 'dashboard.html';
+    }
+  }
+
+  return destino;
+}
+
 window.handleGoogleLogin = async function() {
   const errorBox = document.getElementById('loginError');
   const btnGoogle = document.getElementById('btnGoogle');
@@ -64,7 +95,7 @@ window.handleGoogleLogin = async function() {
     localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
     localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
     
-    // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS E A LOGO DO TENANT ESPECÍFICO DO UTILIZADOR ---
+    // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS, PÁGINA INICIAL E LOGO DO TENANT ---
     try {
       const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
       if (configDoc.exists) {
@@ -73,6 +104,10 @@ window.handleGoogleLogin = async function() {
         localStorage.setItem('rg_page_manutencoes', cfg.pageManutencoes !== false ? 'true' : 'false');
         localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
         
+        if (cfg.paginaInicial) {
+          localStorage.setItem('rg_pagina_inicial', cfg.paginaInicial);
+        }
+
         if (cfg.logoBase64 && cfg.logoBase64.startsWith('data:image')) {
           localStorage.setItem('rg_logo_base64', cfg.logoBase64);
         } else {
@@ -88,7 +123,8 @@ window.handleGoogleLogin = async function() {
       console.warn("Aviso ao carregar permissões visuais:", cErr);
     }
 
-    window.location.href = 'manutencoes.html';
+    const isSuperAdmin = (acessoSaaS.role === 'super_admin');
+    window.location.href = resolverDestinoInicial(isSuperAdmin);
 
   } catch (error) {
     console.error("Erro no login Google:", error);
