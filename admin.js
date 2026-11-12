@@ -281,7 +281,6 @@ window.editarTenant = function(uid) {
   }
 
   // Feature Flags
-  document.getElementById('pageDashboard').checked = t.pageDashboard === true;
   document.getElementById('pageCadastros').checked = t.pageCadastros !== false;
   document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
   document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
@@ -322,7 +321,6 @@ if (tenantFormEl) {
       logoBase64: logoBase64Final,
       watermark: document.getElementById('tenantWatermark').value.trim(),
       
-      pageDashboard: document.getElementById('pageDashboard').checked,
       pageCadastros: document.getElementById('pageCadastros').checked,
       pageRelatorios: document.getElementById('pageRelatorios').checked,
       pageOrcamentos: document.getElementById('pageOrcamentos').checked,
