@@ -367,3 +367,42 @@ footer {
     display: none !important;
   }
 }
+
+/* Indicadores visuais de rolagem na barra inferior mobile */
+.nav-scroll-hint {
+  position: fixed;
+  bottom: 0;
+  height: 62px; /* Mesma altura da sua .bottom-nav */
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00F5D4;
+  font-size: 0.85rem;
+  z-index: 1002;
+  pointer-events: none; /* Permite clicar nos botões normalmente por baixo */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.nav-scroll-hint.visible {
+  opacity: 1;
+}
+
+.nav-scroll-hint.left {
+  left: 0;
+  background: linear-gradient(to right, #0B132B 45%, rgba(11, 19, 43, 0));
+  padding-right: 6px;
+}
+
+.nav-scroll-hint.right {
+  right: 0;
+  background: linear-gradient(to left, #0B132B 45%, rgba(11, 19, 43, 0));
+  padding-left: 6px;
+}
+
+@media (min-width: 769px) {
+  .nav-scroll-hint {
+    display: none !important;
+  }
+}
