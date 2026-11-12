@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Assinatura Digital de Contrato - CS Code Solutions</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Bibliotecas PDF-Lib e PDF.js para renderização nativa -->
+  <!-- Bibliotecas PDF-Lib e PDF.js para renderização e carimbo nativo -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -17,6 +17,7 @@
     :root {
       --bg-dark: #0F172A;
       --card-bg: #1E293B;
+      --panel-bg: #0B132B;
       --accent: #00F5D4;
       --accent-blue: #38BDF8;
       --text: #F8FAFC;
@@ -38,7 +39,7 @@
 
     .container {
       width: 100%;
-      max-width: 750px;
+      max-width: 780px;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -52,7 +53,7 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 20px;
     }
-    .header h1 { font-size: 1.3rem; color: var(--accent-blue); margin-bottom: 4px; }
+    .header h1 { font-size: 1.35rem; color: var(--accent-blue); margin-bottom: 4px; }
     .header p { font-size: 0.85rem; color: var(--text-sub); }
 
     /* Caixa de pré-visualização direta via PDF.js */
@@ -62,7 +63,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
       text-align: center;
       max-height: 450px;
       overflow-y: auto;
@@ -78,7 +79,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       background: #0F172A;
       padding: 8px 12px;
       border-radius: 6px;
@@ -89,20 +90,122 @@
       background: var(--border);
       color: #FFF;
       border: none;
-      padding: 5px 12px;
+      padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
       font-weight: bold;
+      transition: 0.2s;
     }
     .btn-page:hover { background: var(--accent-blue); color: #0F172A; }
 
-    .form-group { margin-bottom: 15px; }
+    /* Seções de Escopo do Sistema */
+    .config-section {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .config-section h2 {
+      font-size: 1.05rem;
+      color: var(--accent);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .config-section .subtitle {
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      margin-bottom: 14px;
+    }
+
+    .sub-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent-blue);
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .grid-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .grid-options:last-child { margin-bottom: 0; }
+
+    .option-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .option-card:hover {
+      border-color: var(--accent-blue);
+    }
+    .option-card.fixed {
+      opacity: 0.85;
+      cursor: default;
+      border-color: rgba(56, 189, 248, 0.35);
+      background: rgba(30, 41, 59, 0.6);
+    }
+    .option-card.checked {
+      border-color: var(--accent);
+      background: rgba(0, 245, 212, 0.08);
+    }
+
+    .option-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .option-info i {
+      color: var(--accent-blue);
+      width: 16px;
+      text-align: center;
+    }
+    .option-card.checked .option-info i {
+      color: var(--accent);
+    }
+
+    .badge-fixed {
+      font-size: 0.68rem;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .option-card input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 17px;
+      height: 17px;
+      cursor: pointer;
+    }
+
+    .form-group { margin-bottom: 16px; }
     .form-group label {
       display: block;
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       font-weight: 600;
-      color: var(--text-sub);
-      margin-bottom: 4px;
+      color: var(--text);
+      margin-bottom: 6px;
     }
     .form-group input {
       width: 100%;
@@ -113,16 +216,20 @@
       color: #FFF;
       font-size: 0.95rem;
     }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
 
     .signature-area {
       background: #0F172A;
       border: 2px dashed var(--accent-blue);
       border-radius: 8px;
-      padding: 12px;
+      padding: 14px;
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
-    .signature-area p { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; }
+    .signature-area p { font-size: 0.82rem; color: var(--text-sub); margin-bottom: 10px; }
     .signature-canvas {
       background: #FFFFFF;
       border-radius: 6px;
@@ -141,14 +248,18 @@
       border-radius: 6px;
       border: none;
       font-weight: bold;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      transition: 0.2s;
     }
-    .btn-clear { background: #64748B; color: #FFF; }
-    .btn-submit { background: var(--accent); color: #0F172A; width: 100%; justify-content: center; }
+    .btn-clear { background: #475569; color: #FFF; }
+    .btn-clear:hover { background: #64748B; }
+    .btn-submit { background: var(--accent); color: #0B132B; width: 100%; justify-content: center; }
+    .btn-submit:hover { filter: brightness(1.08); box-shadow: 0 0 15px rgba(0, 245, 212, 0.35); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .overlay {
       display: none;
@@ -168,6 +279,25 @@
       max-width: 420px;
       width: 90%;
     }
+    .modal-btn {
+      background: var(--accent);
+      color: #0B132B;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      display: none;
+    }
+
+    footer {
+      margin-top: 20px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      text-align: center;
+    }
+    footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -189,9 +319,85 @@
       <canvas id="pdfCanvas"></canvas>
     </div>
 
+    <!-- 1. SELEÇÃO DE MÓDULOS DO SISTEMA -->
+    <div class="config-section">
+      <h2><i class="fa-solid fa-cubes"></i> 1. Módulos do Sistema (NexOS)</h2>
+      <p class="subtitle">Os módulos base já estão inclusos no plano. Selecione abaixo os módulos opcionais que deseja ativar no seu ambiente:</p>
+
+      <span class="sub-label">Módulos Base (Inclusos)</span>
+      <div class="grid-options">
+        <div class="option-card fixed">
+          <div class="option-info"><i class="fa-solid fa-address-book"></i> Cadastros</div>
+          <span class="badge-fixed">Incluso</span>
+        </div>
+        <div class="option-card fixed">
+          <div class="option-info"><i class="fa-solid fa-file-lines"></i> Relatórios (RS)</div>
+          <span class="badge-fixed">Incluso</span>
+        </div>
+        <div class="option-card fixed">
+          <div class="option-info"><i class="fa-solid fa-calendar-check"></i> Planejamento</div>
+          <span class="badge-fixed">Incluso</span>
+        </div>
+        <div class="option-card fixed">
+          <div class="option-info"><i class="fa-solid fa-gear"></i> Configurações</div>
+          <span class="badge-fixed">Incluso</span>
+        </div>
+      </div>
+
+      <span class="sub-label">Módulos Opcionais (Selecione os desejados)</span>
+      <div class="grid-options">
+        <label class="option-card" id="card-mod-orcamentos">
+          <div class="option-info"><i class="fa-solid fa-file-invoice-dollar"></i> Orçamentos</div>
+          <input type="checkbox" id="modOrcamentos" onchange="toggleCardStyle(this, 'card-mod-orcamentos')">
+        </label>
+        <label class="option-card" id="card-mod-horas">
+          <div class="option-info"><i class="fa-solid fa-clock"></i> Controle de Horas Extras</div>
+          <input type="checkbox" id="modHorasExtras" onchange="toggleCardStyle(this, 'card-mod-horas')">
+        </label>
+      </div>
+    </div>
+
+    <!-- 2. CRITÉRIOS DE COBRANÇA NOS RELATÓRIOS -->
+    <div class="config-section">
+      <h2><i class="fa-solid fa-calculator"></i> 2. Critérios de Cobrança nos Relatórios</h2>
+      <p class="subtitle">Escolha quais regras de faturamento e apontamento ficarão disponíveis para sua equipe técnica:</p>
+
+      <div class="grid-options">
+        <label class="option-card checked" id="card-crit-empreitada">
+          <div class="option-info"><i class="fa-solid fa-handshake"></i> Empreitada (Valor Fechado)</div>
+          <input type="checkbox" id="critEmpreitada" checked onchange="toggleCardStyle(this, 'card-crit-empreitada')">
+        </label>
+
+        <label class="option-card checked" id="card-crit-hora-intervalo">
+          <div class="option-info"><i class="fa-solid fa-business-time"></i> Hora Trab. (Com Intervalo)</div>
+          <input type="checkbox" id="critHoraIntervalo" checked onchange="toggleCardStyle(this, 'card-crit-hora-intervalo')">
+        </label>
+
+        <label class="option-card checked" id="card-crit-hora-direto">
+          <div class="option-info"><i class="fa-solid fa-stopwatch"></i> Hora Trab. (Turno Direto)</div>
+          <input type="checkbox" id="critHoraDireto" checked onchange="toggleCardStyle(this, 'card-crit-hora-direto')">
+        </label>
+
+        <label class="option-card checked" id="card-crit-deslocamento">
+          <div class="option-info"><i class="fa-solid fa-truck-fast"></i> Hora de Deslocamento</div>
+          <input type="checkbox" id="critDeslocamento" checked onchange="toggleCardStyle(this, 'card-crit-deslocamento')">
+        </label>
+
+        <label class="option-card checked" id="card-crit-hospedagem">
+          <div class="option-info"><i class="fa-solid fa-hotel"></i> Hospedagem</div>
+          <input type="checkbox" id="critHospedagem" checked onchange="toggleCardStyle(this, 'card-crit-hospedagem')">
+        </label>
+
+        <label class="option-card checked" id="card-crit-outras">
+          <div class="option-info"><i class="fa-solid fa-utensils"></i> Outras Despesas / Alim.</div>
+          <input type="checkbox" id="critOutras" checked onchange="toggleCardStyle(this, 'card-crit-outras')">
+        </label>
+      </div>
+    </div>
+
     <!-- Nome do Responsável -->
     <div class="form-group">
-      <label for="signerName">Nome Completo do Responsável:</label>
+      <label for="signerName">Nome Completo do Responsável pela Assinatura:</label>
       <input type="text" id="signerName" placeholder="Ex: Jean Luc Bouchard">
     </div>
 
@@ -207,17 +413,22 @@
       </button>
     </div>
 
-    <button type="button" class="btn btn-submit" onclick="processarAssinatura()">
+    <button type="button" id="btnSubmitSign" class="btn btn-submit" onclick="processarAssinatura()">
       <i class="fa-solid fa-check-double"></i> Confirmar e Descarregar Contrato Assinado
     </button>
   </div>
 
-  <!-- Modal de Carregamento -->
+  <footer>
+    <p>&copy; 2026 | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank">CS Code Solutions</a></p>
+  </footer>
+
+  <!-- Modal de Carregamento e Feedback -->
   <div id="statusOverlay" class="overlay">
     <div class="modal-box">
       <i id="statusIcon" class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 15px;"></i>
       <h3 id="statusTitle" style="margin-bottom: 10px; color: #FFF;">A processar assinatura...</h3>
-      <p id="statusMsg" style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 15px;">A carimbar o documento de segurança.</p>
+      <p id="statusMsg" style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 15px;">A carimbar o documento e gerar anexo de configuração.</p>
+      <button type="button" id="statusOkBtn" class="modal-btn" onclick="fecharModalStatus()">Concluir</button>
     </div>
   </div>
 
@@ -232,6 +443,16 @@
     const ctxSig = canvasSig.getContext('2d');
     let isDrawing = false;
 
+    function toggleCardStyle(checkbox, cardId) {
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      if (checkbox.checked) {
+        card.classList.add('checked');
+      } else {
+        card.classList.remove('checked');
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       initCanvas();
       
@@ -240,7 +461,6 @@
       
       pdfOriginalUrl = new URL(`./contratos/${contractId}.pdf`, window.location.href).href;
       
-      // Carrega e desenha o PDF diretamente na página
       await carregarEVisualizarPdf(pdfOriginalUrl);
     });
 
@@ -339,68 +559,435 @@
       isSigned = false;
     }
 
+    function mostrarModal(titulo, msg, estado = 'loading') {
+      const overlay = document.getElementById('statusOverlay');
+      const icon = document.getElementById('statusIcon');
+      const titleEl = document.getElementById('statusTitle');
+      const msgEl = document.getElementById('statusMsg');
+      const okBtn = document.getElementById('statusOkBtn');
+
+      titleEl.textContent = titulo;
+      msgEl.textContent = msg;
+
+      if (estado === 'loading') {
+        icon.className = 'fa-solid fa-circle-notch fa-spin';
+        icon.style.color = '#00F5D4';
+        okBtn.style.display = 'none';
+      } else if (estado === 'success') {
+        icon.className = 'fa-solid fa-circle-check';
+        icon.style.color = '#10B981';
+        okBtn.style.display = 'inline-block';
+      } else {
+        icon.className = 'fa-solid fa-circle-xmark';
+        icon.style.color = '#EF4444';
+        okBtn.style.display = 'inline-block';
+      }
+
+      overlay.style.display = 'flex';
+    }
+
+    function fecharModalStatus() {
+      document.getElementById('statusOverlay').style.display = 'none';
+    }
+
     async function processarAssinatura() {
       const nome = document.getElementById('signerName').value.trim();
+      const btnSubmit = document.getElementById('btnSubmitSign');
 
       if (!nome) {
-        alert("Por favor, preencha o Nome do Responsável.");
+        mostrarModal("Campo Obrigatório", "Por favor, preencha o Nome Completo do Responsável antes de assinar.", "error");
         return;
       }
 
       if (!isSigned) {
-        alert("Por favor, desenhe a sua assinatura no quadro.");
+        mostrarModal("Assinatura Ausente", "Por favor, desenhe a sua assinatura no quadro branco antes de confirmar.", "error");
         return;
       }
 
-      document.getElementById('statusOverlay').style.display = 'flex';
+      // Captura seleções de Módulos e Critérios
+      const modulosOpcionais = [
+        { nome: "Orçamentos e Propostas", ativo: document.getElementById('modOrcamentos').checked },
+        { nome: "Controle de Horas Extras", ativo: document.getElementById('modHorasExtras').checked }
+      ];
+
+      const criteriosCobranca = [
+        { nome: "Regime de Empreitada (Valor Fechado)", ativo: document.getElementById('critEmpreitada').checked },
+        { nome: "Hora Trabalhada - Com Intervalo (Manhã/Tarde)", ativo: document.getElementById('critHoraIntervalo').checked },
+        { nome: "Hora Trabalhada - Turno Único / Direto", ativo: document.getElementById('critHoraDireto').checked },
+        { nome: "Hora de Deslocamento", ativo: document.getElementById('critDeslocamento').checked },
+        { nome: "Despesas com Hospedagem", ativo: document.getElementById('critHospedagem').checked },
+        { nome: "Outras Despesas / Alimentação", ativo: document.getElementById('critOutras').checked }
+      ];
+
+      btnSubmit.disabled = true;
+      mostrarModal("A processar documento...", "A carimbar a assinatura e gerar o Anexo I de configuração do sistema.", "loading");
 
       try {
         const response = await fetch(pdfOriginalUrl);
+        if (!response.ok) throw new Error("Não foi possível carregar o ficheiro PDF base.");
         const pdfArrayBuffer = await response.arrayBuffer();
         
         const pdfDoc = await PDFLib.PDFDocument.load(pdfArrayBuffer);
         const signatureBase64 = canvasSig.toDataURL('image/png');
         const signatureImage = await pdfDoc.embedPng(signatureBase64);
 
-        const pages = pdfDoc.getPages();
-        const lastPage = pages[pages.length - 1];
+        const fontRegular = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
 
-        lastPage.drawImage(signatureImage, {
+        const dataHoraStr = new Date().toLocaleString('pt-BR');
+        const codigoValidacao = 'NX-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString().slice(-4);
+
+        // 1. CARIMBA A ASSINATURA NA ÚLTIMA PÁGINA DO CONTRATO ORIGINAL
+        const pages = pdfDoc.getPages();
+        const lastContractPage = pages[pages.length - 1];
+
+        lastContractPage.drawImage(signatureImage, {
           x: 100,
           y: 110,
           width: 180,
           height: 60,
         });
 
-        const dataHoraStr = new Date().toLocaleString('pt-BR');
-        const textoAuditoria = `Assinado digitalmente por: ${nome}\nData/Hora: ${dataHoraStr}\nPlataforma NexOS - CS Code Solutions`;
-
-        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-        lastPage.drawText(textoAuditoria, {
+        const textoAuditoria = `Assinado digitalmente por: ${nome}\nData/Hora: ${dataHoraStr} | Hash: ${codigoValidacao}\nPlataforma NexOS - CS Code Solutions (Vide Anexo I de Escopo)`;
+        lastContractPage.drawText(textoAuditoria, {
           x: 100,
           y: 85,
           size: 7,
-          font: font,
+          font: fontRegular,
           color: PDFLib.rgb(0.2, 0.2, 0.2),
           lineHeight: 9
         });
 
+        // 2. CRIA PÁGINA DEDICADA DE ANEXO TÉCNICO (FORMATO A4: 595.28 x 841.89)
+        const annexPage = pdfDoc.addPage([595.28, 841.89]);
+        const { width, height } = annexPage.getSize();
+
+        // Paleta de Cores Executiva
+        const navy = PDFLib.rgb(0.043, 0.075, 0.169);       // #0B132B
+        const cyan = PDFLib.rgb(0.0, 0.72, 0.62);          // #00B89E (legível no papel)
+        const cyanBright = PDFLib.rgb(0.0, 0.96, 0.83);    // #00F5D4
+        const slateDark = PDFLib.rgb(0.12, 0.16, 0.23);    // #1E293B
+        const slateMuted = PDFLib.rgb(0.39, 0.45, 0.54);   // #64748B
+        const bgBox = PDFLib.rgb(0.97, 0.98, 0.99);        // #F8FAFC
+        const borderGray = PDFLib.rgb(0.82, 0.85, 0.90);   // #CBD5E1
+        const greenBadge = PDFLib.rgb(0.06, 0.55, 0.35);   // #108C59
+
+        // Cabeçalho Escuro Superior
+        annexPage.drawRectangle({
+          x: 0,
+          y: height - 85,
+          width: width,
+          height: 85,
+          color: navy
+        });
+        // Linha Ciano de Destaque
+        annexPage.drawRectangle({
+          x: 0,
+          y: height - 88,
+          width: width,
+          height: 3,
+          color: cyanBright
+        });
+
+        annexPage.drawText('ANEXO I - ESCOPO DE CONFIGURAÇÃO DO SISTEMA', {
+          x: 45,
+          y: height - 42,
+          size: 14,
+          font: fontBold,
+          color: PDFLib.rgb(1, 1, 1)
+        });
+        annexPage.drawText('Plataforma NexOS | CS Code Solutions - Definição de Módulos e Regras de Cobrança', {
+          x: 45,
+          y: height - 62,
+          size: 9,
+          font: fontRegular,
+          color: cyanBright
+        });
+
+        let cursorY = height - 125;
+
+        // Bloco de Identificação do Contratante
+        annexPage.drawRectangle({
+          x: 45,
+          y: cursorY - 45,
+          width: width - 90,
+          height: 55,
+          color: bgBox,
+          borderColor: borderGray,
+          borderWidth: 1
+        });
+
+        annexPage.drawText('RESPONSÁVEL / CONTRATANTE:', {
+          x: 60,
+          y: cursorY - 12,
+          size: 8,
+          font: fontBold,
+          color: slateMuted
+        });
+        annexPage.drawText(nome.toUpperCase(), {
+          x: 60,
+          y: cursorY - 26,
+          size: 11,
+          font: fontBold,
+          color: slateDark
+        });
+        annexPage.drawText(`Data de Aceite: ${dataHoraStr}   |   Código de Registro: ${codigoValidacao}`, {
+          x: 60,
+          y: cursorY - 39,
+          size: 8,
+          font: fontRegular,
+          color: slateMuted
+        });
+
+        cursorY -= 80;
+
+        // SEÇÃO 1: MÓDULOS DO SISTEMA
+        annexPage.drawText('1. MÓDULOS DO SISTEMA CONTRATADOS', {
+          x: 45,
+          y: cursorY,
+          size: 11,
+          font: fontBold,
+          color: navy
+        });
+        annexPage.drawLine({
+          start: { x: 45, y: cursorY - 5 },
+          end: { x: width - 45, y: cursorY - 5 },
+          thickness: 1.2,
+          color: cyan
+        });
+
+        cursorY -= 25;
+
+        // Módulos Fixos
+        annexPage.drawText('Módulos Base (Inclusos no Plano):', {
+          x: 45,
+          y: cursorY,
+          size: 9.5,
+          font: fontBold,
+          color: slateDark
+        });
+        cursorY -= 18;
+
+        const modulosFixos = [
+          'Cadastros Unificados (Clientes & Equipamentos)',
+          'Relatórios de Serviço (OS / RS Digital com Assinatura e Fotos)',
+          'Planejamento e Cronograma de Manutenções',
+          'Configurações Gerais e Identidade Visual'
+        ];
+
+        modulosFixos.forEach(mod => {
+          annexPage.drawText('[ INCLUSO ]', {
+            x: 55,
+            y: cursorY,
+            size: 8.5,
+            font: fontBold,
+            color: greenBadge
+          });
+          annexPage.drawText(mod, {
+            x: 120,
+            y: cursorY,
+            size: 9,
+            font: fontRegular,
+            color: slateDark
+          });
+          cursorY -= 16;
+        });
+
+        cursorY -= 10;
+
+        // Módulos Opcionais
+        annexPage.drawText('Módulos Opcionais Selecionados:', {
+          x: 45,
+          y: cursorY,
+          size: 9.5,
+          font: fontBold,
+          color: slateDark
+        });
+        cursorY -= 18;
+
+        modulosOpcionais.forEach(mod => {
+          const statusTxt = mod.ativo ? '[ CONTRATADO ]' : '[ NÃO INCLUSO ]';
+          const statusColor = mod.ativo ? greenBadge : slateMuted;
+
+          annexPage.drawText(statusTxt, {
+            x: 55,
+            y: cursorY,
+            size: 8.5,
+            font: fontBold,
+            color: statusColor
+          });
+          annexPage.drawText(mod.nome, {
+            x: 145,
+            y: cursorY,
+            size: 9,
+            font: mod.ativo ? fontBold : fontRegular,
+            color: mod.ativo ? slateDark : slateMuted
+          });
+          cursorY -= 16;
+        });
+
+        cursorY -= 20;
+
+        // SEÇÃO 2: CRITÉRIOS DE COBRANÇA
+        annexPage.drawText('2. CRITÉRIOS DE COBRANÇA HABILITADOS NOS RELATÓRIOS', {
+          x: 45,
+          y: cursorY,
+          size: 11,
+          font: fontBold,
+          color: navy
+        });
+        annexPage.drawLine({
+          start: { x: 45, y: cursorY - 5 },
+          end: { x: width - 45, y: cursorY - 5 },
+          thickness: 1.2,
+          color: cyan
+        });
+
+        cursorY -= 24;
+
+        criteriosCobranca.forEach(crit => {
+          // Caixa suave de fundo para cada linha
+          annexPage.drawRectangle({
+            x: 45,
+            y: cursorY - 5,
+            width: width - 90,
+            height: 20,
+            color: crit.ativo ? bgBox : PDFLib.rgb(1, 1, 1),
+            borderColor: borderGray,
+            borderWidth: 0.5
+          });
+
+          const tag = crit.ativo ? '[ ATIVO ]' : '[ INATIVO ]';
+          const tagColor = crit.ativo ? greenBadge : slateMuted;
+
+          annexPage.drawText(tag, {
+            x: 55,
+            y: cursorY + 1,
+            size: 8.5,
+            font: fontBold,
+            color: tagColor
+          });
+
+          annexPage.drawText(crit.nome, {
+            x: 125,
+            y: cursorY + 1,
+            size: 9,
+            font: crit.ativo ? fontBold : fontRegular,
+            color: crit.ativo ? slateDark : slateMuted
+          });
+
+          cursorY -= 24;
+        });
+
+        // BLOCO DE ASSINATURA E VALIDAÇÃO NO ANEXO
+        const sigBoxY = 110;
+        annexPage.drawRectangle({
+          x: 45,
+          y: sigBoxY,
+          width: width - 90,
+          height: 115,
+          color: bgBox,
+          borderColor: borderGray,
+          borderWidth: 1
+        });
+
+        annexPage.drawText('VALIDAÇÃO E ASSINATURA DIGITAL DO ANEXO', {
+          x: 60,
+          y: sigBoxY + 95,
+          size: 8.5,
+          font: fontBold,
+          color: navy
+        });
+
+        annexPage.drawImage(signatureImage, {
+          x: 60,
+          y: sigBoxY + 28,
+          width: 170,
+          height: 56
+        });
+
+        annexPage.drawLine({
+          start: { x: 60, y: sigBoxY + 25 },
+          end: { x: 260, y: sigBoxY + 25 },
+          thickness: 0.8,
+          color: slateDark
+        });
+
+        annexPage.drawText(nome, {
+          x: 60,
+          y: sigBoxY + 13,
+          size: 8.5,
+          font: fontBold,
+          color: slateDark
+        });
+
+        // Carimbo de auditoria à direita da assinatura
+        annexPage.drawText('Autenticação Eletrônica:', {
+          x: 290,
+          y: sigBoxY + 72,
+          size: 8,
+          font: fontBold,
+          color: slateDark
+        });
+        annexPage.drawText(`Data/Hora: ${dataHoraStr}`, {
+          x: 290,
+          y: sigBoxY + 59,
+          size: 7.5,
+          font: fontRegular,
+          color: slateMuted
+        });
+        annexPage.drawText(`Código Hash: ${codigoValidacao}`, {
+          x: 290,
+          y: sigBoxY + 47,
+          size: 7.5,
+          font: fontRegular,
+          color: slateMuted
+        });
+        annexPage.drawText('Documento vinculado integralmente', {
+          x: 290,
+          y: sigBoxY + 33,
+          size: 7.5,
+          font: fontRegular,
+          color: slateMuted
+        });
+        annexPage.drawText('ao Contrato Comercial Principal.', {
+          x: 290,
+          y: sigBoxY + 22,
+          size: 7.5,
+          font: fontRegular,
+          color: slateMuted
+        });
+
+        // Rodapé do Anexo
+        annexPage.drawText('© 2026 NexOS | Powered by CS Code Solutions', {
+          x: width / 2 - 95,
+          y: 45,
+          size: 8,
+          font: fontRegular,
+          color: slateMuted
+        });
+
+        // Salva e baixa o PDF completo
         const pdfAssinadoBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfAssinadoBytes], { type: 'application/pdf' });
         
         const downloadUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `Contrato_Service_JLB_Assinado.pdf`;
+        a.download = `Contrato_NexOS_${nome.replace(/\s+/g, '_')}_Assinado.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
 
-        document.getElementById('statusOverlay').style.display = 'none';
-        alert("Contrato assinado e descarregado com sucesso!");
+        mostrarModal(
+          "Contrato Assinado com Sucesso!",
+          "O documento principal e o Anexo I com os módulos e critérios escolhidos foram gerados e descarregados.",
+          "success"
+        );
       } catch (err) {
-        document.getElementById('statusOverlay').style.display = 'none';
-        alert("Erro ao processar assinatura: " + err.message);
+        mostrarModal("Erro ao Processar", "Não foi possível gerar o PDF assinado: " + err.message, "error");
+      } finally {
+        btnSubmit.disabled = false;
       }
     }
   </script>
