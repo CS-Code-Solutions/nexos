@@ -3,37 +3,20 @@
 <head>
 <script>
   (function() {
-    // 1. Aplica o logótipo instantaneamente
+    // 1. Aplica o logótipo instantaneamente de forma segura via atributo src se disponível
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+      window.addEventListener('DOMContentLoaded', () => {
+        const imgLogo = document.getElementById('logo-cliente');
+        if (imgLogo) imgLogo.src = logoSalva;
+      });
     }
 
-    // 2. Oculta módulos restritos e aplica transição suave imediata (Elimina o Flicker)
-    const userRole = localStorage.getItem('rg_user_role');
-    const isSuperAdmin = (userRole === 'super_admin');
+    // 2. Transição suave inicial para eliminar o flicker
     let cssRules = 'main { animation: dashFadeIn 0.15s ease-out; } @keyframes dashFadeIn { from { opacity: 0; } to { opacity: 1; } }';
-
-    if (!isSuperAdmin) {
-      if (localStorage.getItem('rg_page_dashboard') !== 'true') {
-        cssRules += 'a[href="dashboard.html"] { display: none !important; }';
-      }
-      if (localStorage.getItem('rg_page_cadastros') === 'false') {
-        cssRules += 'a[href="cadastros.html"] { display: none !important; }';
-      }
-      if (localStorage.getItem('rg_page_relatorios') === 'false') {
-        cssRules += 'a[href="relatorios.html"] { display: none !important; }';
-      }
-      if (localStorage.getItem('rg_page_manutencoes') === 'false') {
-        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
-      }
-      if (localStorage.getItem('rg_mod_horas_extras') !== 'true') {
-        cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
-      }
-      if (localStorage.getItem('rg_page_orcamentos') === 'false') {
-        cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
-      }
-    }
+    
+    // Restrições sensíveis apenas para perfil técnico se necessário
+    const userRole = localStorage.getItem('rg_user_role');
     if (userRole === 'tecnico') {
       cssRules += '.finance-sensitive { display: none !important; }';
     }
