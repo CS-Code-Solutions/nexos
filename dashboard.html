@@ -32,7 +32,7 @@
   <script src="firebase-init.js?v=2"></script>
   <script src="firebase-sync.js?v=2"></script>
 
-  <!-- Chart.js para gráficos leves e responsivos -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -42,19 +42,19 @@
     @media (max-width: 768px) { .desktop-nav { display: none !important; } }
     @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
 
-    /* Estilos específicos do Dashboard */
+    /* Barra superior do Dashboard */
     .dash-toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       flex-wrap: wrap;
       gap: 12px;
     }
     .dash-controls {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
     .period-select {
@@ -68,12 +68,24 @@
       cursor: pointer;
     }
 
+    /* Fluxo Principal Ordenável (12 colunas) */
+    .dash-flow-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .span-12 { grid-column: span 12; }
+    .span-6 { grid-column: span 6; }
+    @media (max-width: 768px) {
+      .span-6 { grid-column: span 12; }
+    }
+
     /* Ações Rápidas */
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
       gap: 10px;
-      margin-bottom: 20px;
     }
     .quick-btn {
       background: #0B132B;
@@ -81,7 +93,7 @@
       border: 1px solid rgba(0, 245, 212, 0.35);
       border-radius: 8px;
       padding: 12px 14px;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       font-weight: bold;
       display: flex;
       align-items: center;
@@ -102,15 +114,14 @@
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px;
-      margin-bottom: 20px;
+      gap: 12px;
     }
     .kpi-card {
       background: #FFFFFF;
       border: 1px solid #E2E8F0;
       border-left: 4px solid #00F5D4;
       border-radius: 8px;
-      padding: 16px;
+      padding: 15px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.04);
       display: flex;
       justify-content: space-between;
@@ -122,14 +133,14 @@
 
     .kpi-info span {
       display: block;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: bold;
       color: #64748B;
       text-transform: uppercase;
       margin-bottom: 4px;
     }
     .kpi-info strong {
-      font-size: 1.45rem;
+      font-size: 1.4rem;
       color: #0B132B;
       display: block;
     }
@@ -138,25 +149,25 @@
       color: #64748B;
     }
     .kpi-icon {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border-radius: 10px;
       background: #F1F5F9;
       color: #0B132B;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
+      flex-shrink: 0;
     }
 
     /* Grid de Gráficos */
     .charts-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
-      margin-bottom: 20px;
     }
-    @media (max-width: 480px) {
+    @media (max-width: 768px) {
       .charts-grid { grid-template-columns: 1fr; }
     }
     .chart-card {
@@ -168,7 +179,7 @@
     }
     .chart-card h3 {
       margin: 0 0 12px 0;
-      font-size: 1rem;
+      font-size: 0.98rem;
       color: #0B132B;
       display: flex;
       align-items: center;
@@ -178,19 +189,11 @@
     }
     .chart-wrapper {
       position: relative;
-      height: 250px;
+      height: 240px;
       width: 100%;
     }
 
     /* Widgets Operacionais */
-    .widgets-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-      gap: 16px;
-    }
-    @media (max-width: 480px) {
-      .widgets-grid { grid-template-columns: 1fr; }
-    }
     .widget-item {
       display: flex;
       justify-content: space-between;
@@ -204,7 +207,37 @@
     }
     .widget-item:last-child { margin-bottom: 0; }
 
-    /* Modal de Personalização do Dashboard */
+    /* =====================================================================
+       MODAL DE PERSONALIZAÇÃO (CORREÇÃO MOBILE + ORDENAÇÃO)
+       ===================================================================== */
+    #modalEditDash {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 19, 43, 0.88);
+      z-index: 10005 !important; /* Acima da barra inferior mobile */
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    .edit-modal-box {
+      background: #FFFFFF;
+      width: 100%;
+      max-width: 540px;
+      max-height: 86vh; /* Garante que cabe na tela do celular sem cortar botões */
+      border-radius: 12px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .edit-modal-body {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+      -webkit-overflow-scrolling: touch;
+    }
     .config-row {
       display: flex;
       justify-content: space-between;
@@ -212,26 +245,120 @@
       padding: 10px 12px;
       background: #F8FAFC;
       border: 1px solid #E2E8F0;
-      border-radius: 6px;
+      border-radius: 8px;
       margin-bottom: 8px;
-      gap: 10px;
+      gap: 8px;
     }
-    .config-row label {
+    .config-row-left {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
-      font-weight: bold;
-      color: #0B132B;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
       cursor: pointer;
     }
-    .config-row select {
-      padding: 5px 8px;
-      border-radius: 4px;
+    /* Anula regras globais de width:100% do style.css nos checkboxes */
+    .config-row-left input[type="checkbox"] {
+      width: 18px !important;
+      min-width: 18px !important;
+      height: 18px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      accent-color: #0B132B;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .config-row-left span {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #0B132B;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .config-row-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .config-row-right select {
+      padding: 6px 8px;
+      border-radius: 6px;
       border: 1px solid #CBD5E1;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       background: #FFF;
       color: #0B132B;
+      width: auto !important;
+      max-width: 125px;
+    }
+    .order-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .btn-order {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #CBD5E1;
+      background: #FFFFFF;
+      color: #0B132B;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0;
+      transition: 0.15s;
+    }
+    .btn-order:hover:not(:disabled) {
+      background: #0B132B;
+      color: #00F5D4;
+      border-color: #0B132B;
+    }
+    .btn-order:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .edit-modal-footer {
+      background: #F1F5F9;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid #E2E8F0;
+      flex-shrink: 0;
+    }
+    .edit-modal-footer button {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    @media (max-width: 480px) {
+      .config-row {
+        flex-wrap: wrap;
+      }
+      .config-row-right {
+        width: 100%;
+        justify-content: flex-end;
+        padding-top: 4px;
+        border-top: 1px dashed #E2E8F0;
+      }
+      .config-row-right select {
+        flex: 1;
+        max-width: none;
+      }
+      .edit-modal-footer button {
+        flex: 1;
+      }
     }
   </style>
 
@@ -254,7 +381,6 @@
       if (!isSuperAdmin && showOrcamentos === 'false') {
         cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
       }
-      // Se for perfil técnico operacional, oculta dados financeiros
       if (userRole === 'tecnico') {
         cssRules += '.finance-sensitive { display: none !important; }';
       }
@@ -287,12 +413,12 @@
     </button>
   </header>
 
-  <main style="max-width: 1050px; margin: 20px auto; padding: 0 15px; padding-bottom: 85px;">
+  <main style="max-width: 1050px; margin: 20px auto; padding: 0 15px; padding-bottom: 90px;">
 
     <!-- BARRA DE TÍTULO, FILTRO E BOTÃO DE EDIÇÃO -->
     <div class="dash-toolbar no-print">
       <div>
-        <h2 style="color: #0B132B; margin: 0; font-size: 1.5rem;">Painel de Controle</h2>
+        <h2 style="color: #0B132B; margin: 0; font-size: 1.45rem;">Painel de Controle</h2>
         <span id="dash-subtitle" style="font-size: 0.85rem; color: #64748B;">Visão geral da operação em tempo real</span>
       </div>
 
@@ -304,112 +430,110 @@
           <option value="todos">Todo o Período</option>
         </select>
 
-        <button type="button" class="btn" onclick="abrirModalEditarDash()" style="background-color: #0B132B; color: #00F5D4; border: 1px solid #00F5D4; font-weight: bold; padding: 9px 14px; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-sliders"></i> Personalizar Painel
+        <button type="button" class="btn" onclick="abrirModalEditarDash()" style="background-color: #0B132B; color: #00F5D4; border: 1px solid #00F5D4; font-weight: bold; padding: 9px 14px; font-size: 0.86rem; display: flex; align-items: center; gap: 6px; border-radius: 6px;">
+          <i class="fa-solid fa-sliders"></i> Personalizar
         </button>
       </div>
     </div>
 
-    <!-- AÇÕES RÁPIDAS -->
-    <div class="quick-actions no-print" id="block-quick-actions">
-      <a href="novo-relatorio.html" class="quick-btn">
-        <i class="fa-solid fa-file-circle-plus"></i> Novo Relatório (RS)
-      </a>
-      <a href="cadastros.html" class="quick-btn">
-        <i class="fa-solid fa-user-plus"></i> Novo Cliente / Máquina
-      </a>
-      <a href="manutencoes.html" class="quick-btn" id="quick-btn-plan">
-        <i class="fa-solid fa-calendar-plus"></i> Agendar Preventiva
-      </a>
-    </div>
+    <!-- CONTAINER PRINCIPAL ORDENÁVEL -->
+    <div class="dash-flow-grid" id="dashMainFlow">
 
-    <!-- CARTÕES DE RESUMO (KPIs) -->
-    <div class="kpi-grid" id="block-kpis">
-      <div class="kpi-card green finance-sensitive" id="kpi-faturamento-box">
-        <div class="kpi-info">
-          <span>Faturamento Estimado</span>
-          <strong id="kpi-faturamento">R$ 0,00</strong>
-          <small id="kpi-reembolsos">Despesas: R$ 0,00</small>
+      <!-- BLOCO 1: AÇÕES RÁPIDAS -->
+      <div class="quick-actions no-print span-12" id="block-quick-actions">
+        <a href="novo-relatorio.html" class="quick-btn">
+          <i class="fa-solid fa-file-circle-plus"></i> Novo Relatório (RS)
+        </a>
+        <a href="cadastros.html" class="quick-btn">
+          <i class="fa-solid fa-user-plus"></i> Novo Cliente / Máquina
+        </a>
+        <a href="manutencoes.html" class="quick-btn" id="quick-btn-plan">
+          <i class="fa-solid fa-calendar-plus"></i> Agendar Preventiva
+        </a>
+      </div>
+
+      <!-- BLOCO 2: CARTÕES DE RESUMO (KPIs) -->
+      <div class="kpi-grid span-12" id="block-kpis">
+        <div class="kpi-card green finance-sensitive" id="kpi-faturamento-box">
+          <div class="kpi-info">
+            <span>Faturamento Estimado</span>
+            <strong id="kpi-faturamento">R$ 0,00</strong>
+            <small id="kpi-reembolsos">Despesas: R$ 0,00</small>
+          </div>
+          <div class="kpi-icon" style="color: #10B981; background: #DCFCE7;">
+            <i class="fa-solid fa-sack-dollar"></i>
+          </div>
         </div>
-        <div class="kpi-icon" style="color: #10B981; background: #DCFCE7;">
-          <i class="fa-solid fa-sack-dollar"></i>
+
+        <div class="kpi-card blue">
+          <div class="kpi-info">
+            <span>Relatórios (RS)</span>
+            <strong id="kpi-total-rs">0</strong>
+            <small id="kpi-rs-detalhe">Atendimentos no período</small>
+          </div>
+          <div class="kpi-icon" style="color: #3B82F6; background: #DBEAFE;">
+            <i class="fa-solid fa-clipboard-check"></i>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-info">
+            <span>Horas Técnicas</span>
+            <strong id="kpi-horas-totais">0h 00m</strong>
+            <small id="kpi-horas-extras-box">Extras: <b id="kpi-horas-extras">0h 00m</b></small>
+          </div>
+          <div class="kpi-icon" style="color: #0D9488; background: #CCFBF1;">
+            <i class="fa-solid fa-stopwatch"></i>
+          </div>
+        </div>
+
+        <div class="kpi-card amber" id="kpi-plan-box">
+          <div class="kpi-info">
+            <span>Preventivas Próximas</span>
+            <strong id="kpi-preventivas">0</strong>
+            <small id="kpi-preventivas-sub">Agendadas no cronograma</small>
+          </div>
+          <div class="kpi-icon" style="color: #D97706; background: #FEF3C7;">
+            <i class="fa-solid fa-calendar-day"></i>
+          </div>
         </div>
       </div>
 
-      <div class="kpi-card blue">
-        <div class="kpi-info">
-          <span>Relatórios (RS)</span>
-          <strong id="kpi-total-rs">0</strong>
-          <small id="kpi-rs-detalhe">Atendimentos no período</small>
+      <!-- BLOCO 3: ÁREA DE GRÁFICOS DINÂMICOS -->
+      <div class="charts-grid span-12" id="charts-container">
+        <div class="chart-card" id="card-chart-tipos">
+          <h3><i class="fa-solid fa-wrench" style="color: #00B89E;"></i> Tipos de Atendimento</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartTipos"></canvas>
+          </div>
         </div>
-        <div class="kpi-icon" style="color: #3B82F6; background: #DBEAFE;">
-          <i class="fa-solid fa-clipboard-check"></i>
+
+        <div class="chart-card finance-sensitive" id="card-chart-receita">
+          <h3><i class="fa-solid fa-chart-column" style="color: #3B82F6;"></i> Composição de Faturamento</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartReceita"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card" id="card-chart-evolucao">
+          <h3><i class="fa-solid fa-chart-line" style="color: #8B5CF6;"></i> Evolução Mensal (Últimos 6 Meses)</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartEvolucao"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card" id="card-chart-clientes">
+          <h3><i class="fa-solid fa-building" style="color: #F59E0B;"></i> Top 5 Clientes Atendidos</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartClientes"></canvas>
+          </div>
         </div>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-info">
-          <span>Horas Técnicas</span>
-          <strong id="kpi-horas-totais">0h 00m</strong>
-          <small id="kpi-horas-extras-box">Extras: <b id="kpi-horas-extras">0h 00m</b></small>
-        </div>
-        <div class="kpi-icon" style="color: #0D9488; background: #CCFBF1;">
-          <i class="fa-solid fa-stopwatch"></i>
-        </div>
-      </div>
-
-      <div class="kpi-card amber" id="kpi-plan-box">
-        <div class="kpi-info">
-          <span>Preventivas Próximas</span>
-          <strong id="kpi-preventivas">0</strong>
-          <small id="kpi-preventivas-sub">Agendadas no cronograma</small>
-        </div>
-        <div class="kpi-icon" style="color: #D97706; background: #FEF3C7;">
-          <i class="fa-solid fa-calendar-day"></i>
-        </div>
-      </div>
-    </div>
-
-    <!-- ÁREA DE GRÁFICOS DINÂMICOS -->
-    <div class="charts-grid" id="charts-container">
-      <!-- Gráfico 1: Tipos de Manutenção -->
-      <div class="chart-card" id="card-chart-tipos">
-        <h3><i class="fa-solid fa-wrench" style="color: #00B89E;"></i> Tipos de Atendimento</h3>
-        <div class="chart-wrapper">
-          <canvas id="canvasChartTipos"></canvas>
-        </div>
-      </div>
-
-      <!-- Gráfico 2: Composição Financeira / Critérios -->
-      <div class="chart-card finance-sensitive" id="card-chart-receita">
-        <h3><i class="fa-solid fa-chart-column" style="color: #3B82F6;"></i> Composição de Faturamento</h3>
-        <div class="chart-wrapper">
-          <canvas id="canvasChartReceita"></canvas>
-        </div>
-      </div>
-
-      <!-- Gráfico 3: Evolução Mensal -->
-      <div class="chart-card" id="card-chart-evolucao">
-        <h3><i class="fa-solid fa-chart-line" style="color: #8B5CF6;"></i> Evolução Mensal (Últimos 6 Meses)</h3>
-        <div class="chart-wrapper">
-          <canvas id="canvasChartEvolucao"></canvas>
-        </div>
-      </div>
-
-      <!-- Gráfico 4: Top 5 Clientes -->
-      <div class="chart-card" id="card-chart-clientes">
-        <h3><i class="fa-solid fa-building" style="color: #F59E0B;"></i> Top 5 Clientes Atendidos</h3>
-        <div class="chart-wrapper">
-          <canvas id="canvasChartClientes"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- WIDGETS OPERACIONAIS (RADAR DE PREVENTIVAS E ÚLTIMOS RS) -->
-    <div class="widgets-grid">
-      <section class="card" id="widget-preventivas-card" style="margin: 0;">
+      <!-- BLOCO 4: RADAR DE PREVENTIVAS -->
+      <section class="card span-6" id="widget-preventivas-card" style="margin: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">
-          <h3 style="color: #0B132B; font-size: 1.05rem; margin: 0;"><i class="fa-solid fa-bell" style="color: #F59E0B;"></i> Radar de Preventivas</h3>
+          <h3 style="color: #0B132B; font-size: 1.02rem; margin: 0;"><i class="fa-solid fa-bell" style="color: #F59E0B;"></i> Radar de Preventivas</h3>
           <a href="manutencoes.html" style="font-size: 0.8rem; color: #0284C7; font-weight: bold; text-decoration: none;">Ver todas &rarr;</a>
         </div>
         <div id="lista-radar-preventivas">
@@ -417,15 +541,17 @@
         </div>
       </section>
 
-      <section class="card" id="widget-ultimos-rs-card" style="margin: 0;">
+      <!-- BLOCO 5: ÚLTIMOS RELATÓRIOS -->
+      <section class="card span-6" id="widget-ultimos-rs-card" style="margin: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">
-          <h3 style="color: #0B132B; font-size: 1.05rem; margin: 0;"><i class="fa-solid fa-clock-rotate-left" style="color: #10B981;"></i> Últimos Relatórios (RS)</h3>
+          <h3 style="color: #0B132B; font-size: 1.02rem; margin: 0;"><i class="fa-solid fa-clock-rotate-left" style="color: #10B981;"></i> Últimos Relatórios (RS)</h3>
           <a href="relatorios.html" style="font-size: 0.8rem; color: #0284C7; font-weight: bold; text-decoration: none;">Ver todos &rarr;</a>
         </div>
         <div id="lista-ultimos-rs">
           <p style="color: #64748B; font-size: 0.85rem; text-align: center;">A carregar relatórios...</p>
         </div>
       </section>
+
     </div>
 
   </main>
@@ -462,75 +588,35 @@
     </a>
   </nav>
 
-  <!-- MODAL DE PERSONALIZAÇÃO DO DASHBOARD -->
-  <div id="modalEditDash" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 9998; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 540px; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;">
+  <!-- MODAL DE PERSONALIZAÇÃO DO DASHBOARD (COM ORDENAÇÃO E LAYOUT MOBILE CORRIGIDO) -->
+  <div id="modalEditDash">
+    <div class="edit-modal-box">
       
-      <div style="background: #0B132B; color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #00F5D4;">
+      <div style="background: #0B132B; color: white; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #00F5D4; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <i class="fa-solid fa-sliders" style="color: #00F5D4; font-size: 1.2rem;"></i>
-          <h3 style="margin: 0; font-size: 1.1rem;">Personalizar Dashboard</h3>
+          <i class="fa-solid fa-sliders" style="color: #00F5D4; font-size: 1.15rem;"></i>
+          <h3 style="margin: 0; font-size: 1.05rem;">Personalizar Dashboard</h3>
         </div>
-        <button type="button" onclick="fecharModalEditarDash()" style="background: none; border: none; color: #94A3B8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <button type="button" onclick="fecharModalEditarDash()" style="background: none; border: none; color: #94A3B8; font-size: 1.6rem; line-height: 1; cursor: pointer;">&times;</button>
       </div>
 
-      <div style="padding: 20px; max-height: 65vh; overflow-y: auto;">
-        <p style="margin-top: 0; font-size: 0.85rem; color: #64748B;">Escolha quais blocos e gráficos deseja visualizar e defina o formato visual de cada gráfico:</p>
+      <div class="edit-modal-body">
+        <p style="margin: 0 0 12px 0; font-size: 0.83rem; color: #64748B; line-height: 1.4;">
+          Marque o que deseja exibir, escolha o tipo de gráfico e use as setas <strong>(&uarr; &darr;)</strong> para definir quem aparece primeiro:
+        </p>
 
-        <h4 style="font-size: 0.8rem; text-transform: uppercase; color: #0284C7; margin: 12px 0 8px 0;">Blocos Gerais</h4>
-        <div class="config-row">
-          <label><input type="checkbox" id="cfg-show-quick" checked> Barra de Ações Rápidas</label>
-        </div>
-        <div class="config-row">
-          <label><input type="checkbox" id="cfg-show-kpis" checked> Cartões de Indicadores (KPIs)</label>
-        </div>
-        <div class="config-row">
-          <label><input type="checkbox" id="cfg-show-preventivas" checked> Radar de Preventivas</label>
-        </div>
-        <div class="config-row">
-          <label><input type="checkbox" id="cfg-show-ultimos" checked> Lista de Últimos Relatórios</label>
-        </div>
+        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 10px 0 8px 0; letter-spacing: 0.5px;">1. Ordem e Visibilidade das Seções</h4>
+        <div id="lista-config-secoes"></div>
 
-        <h4 style="font-size: 0.8rem; text-transform: uppercase; color: #0284C7; margin: 16px 0 8px 0;">Gráficos e Formatos</h4>
-        
-        <div class="config-row">
-          <label><input type="checkbox" id="cfg-chart-tipos" checked> Tipos de Atendimento</label>
-          <select id="type-chart-tipos">
-            <option value="doughnut">Rosca (Donut)</option>
-            <option value="pie">Pizza</option>
-            <option value="bar">Barras</option>
-          </select>
-        </div>
-
-        <div class="config-row finance-sensitive">
-          <label><input type="checkbox" id="cfg-chart-receita" checked> Composição de Faturamento</label>
-          <select id="type-chart-receita">
-            <option value="bar">Barras Verticais</option>
-            <option value="doughnut">Rosca (Donut)</option>
-            <option value="polarArea">Área Polar</option>
-          </select>
-        </div>
-
-        <div class="config-row">
-          <label><input type="checkbox" id="cfg-chart-evolucao" checked> Evolução Mensal (6 Meses)</label>
-          <select id="type-chart-evolucao">
-            <option value="line">Linha Suave</option>
-            <option value="bar">Colunas</option>
-          </select>
-        </div>
-
-        <div class="config-row">
-          <label><input type="checkbox" id="cfg-chart-clientes" checked> Top 5 Clientes Atendidos</label>
-          <select id="type-chart-clientes">
-            <option value="bar">Barras Horizontais</option>
-            <option value="pie">Pizza</option>
-          </select>
-        </div>
+        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 16px 0 8px 0; letter-spacing: 0.5px;">2. Ordem e Formato dos Gráficos</h4>
+        <div id="lista-config-graficos"></div>
       </div>
 
-      <div style="background: #F1F5F9; padding: 14px 20px; display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #E2E8F0;">
-        <button type="button" class="btn" onclick="restaurarPadraoDash()" style="background-color: #64748B; color: white; padding: 9px 14px; font-size: 0.85rem;">Restaurar Padrão</button>
-        <button type="button" class="btn" onclick="salvarPreferenciasDash()" style="background-color: #10B981; color: white; font-weight: bold; padding: 9px 20px; font-size: 0.88rem;">
+      <div class="edit-modal-footer">
+        <button type="button" onclick="restaurarPadraoDash()" style="background-color: #64748B; color: white;">
+          <i class="fa-solid fa-rotate-left"></i> Restaurar
+        </button>
+        <button type="button" onclick="salvarPreferenciasDash()" style="background-color: #10B981; color: white;">
           <i class="fa-solid fa-check"></i> Aplicar Alterações
         </button>
       </div>
@@ -538,43 +624,43 @@
   </div>
 
   <!-- MODAL FLUTUANTE DE ATUALIZAÇÃO DO SISTEMA (RELEASE NOTES) -->
-  <div id="updateModalRelease" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 520px; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;">
-      <div style="background: var(--deep-navy, #0B132B); color: white; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--electric-cyan, #00F5D4);">
+  <div id="updateModalRelease" style="display: none; position: fixed; inset: 0; background: rgba(11, 19, 43, 0.88); z-index: 10010; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+    <div style="background: white; width: 100%; max-width: 520px; max-height: 85vh; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;">
+      <div style="background: var(--deep-navy, #0B132B); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--electric-cyan, #00F5D4); flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <i class="fa-solid fa-bullhorn" style="font-size: 1.3rem; color: var(--electric-cyan, #00F5D4);"></i>
-          <h3 style="margin: 0; font-size: 1.1rem; font-weight: bold;">Novidades na Versão Recente</h3>
+          <i class="fa-solid fa-bullhorn" style="font-size: 1.2rem; color: var(--electric-cyan, #00F5D4);"></i>
+          <h3 style="margin: 0; font-size: 1.05rem; font-weight: bold;">Novidades na Versão Recente</h3>
         </div>
-        <span style="background: rgba(0, 245, 212, 0.15); color: var(--electric-cyan, #00F5D4); font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;">NexOS Update</span>
+        <span style="background: rgba(0, 245, 212, 0.15); color: var(--electric-cyan, #00F5D4); font-size: 0.72rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;">NexOS Update</span>
       </div>
-      <div style="padding: 20px; color: #334155; font-size: 0.9rem; line-height: 1.5; max-height: 60vh; overflow-y: auto;">
-        <p style="margin-top: 0; color: #475569; font-size: 0.88rem;">Olá! Preparamos importantes optimizações e melhorias na experiência de uso do sistema:</p>
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+      <div style="padding: 18px; color: #334155; font-size: 0.9rem; line-height: 1.5; overflow-y: auto; flex: 1;">
+        <p style="margin-top: 0; color: #475569; font-size: 0.86rem;">Olá! Preparamos importantes optimizações e melhorias na experiência de uso do sistema:</p>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
           <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #3B82F6;">
             <i class="fa-solid fa-chart-pie" style="font-size: 1.2rem; color: #3B82F6; margin-top: 2px;"></i>
             <div>
-              <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Novo Painel de Controle Personalizável</strong>
-              <span style="font-size: 0.84rem; color: #64748B;">Acompanhe faturamento, horas técnicas e preventivas em gráficos interativos e escolha o formato visual que preferir.</span>
+              <strong style="color: #0B132B; display: block; font-size: 0.9rem; margin-bottom: 2px;">Novo Painel de Controle Personalizável</strong>
+              <span style="font-size: 0.83rem; color: #64748B;">Acompanhe faturamento, horas técnicas e preventivas em gráficos interativos, altere formatos e reordene os blocos como preferir.</span>
             </div>
           </div>
           <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #10B981;">
             <i class="fa-solid fa-file-signature" style="font-size: 1.2rem; color: #10B981; margin-top: 2px;"></i>
             <div>
-              <strong style="color: #0B132B; display: block; font-size: 0.92rem; margin-bottom: 2px;">Segurança de Valores na Assinatura</strong>
-              <span style="font-size: 0.84rem; color: #64748B;">O cliente final que assina o relatório digital não visualiza valores monetários, garantindo sigilo comercial.</span>
+              <strong style="color: #0B132B; display: block; font-size: 0.9rem; margin-bottom: 2px;">Segurança de Valores na Assinatura</strong>
+              <span style="font-size: 0.83rem; color: #64748B;">O cliente final que assina o relatório digital não visualiza valores monetários, garantindo sigilo comercial.</span>
             </div>
           </div>
         </div>
       </div>
-      <div style="background: #F1F5F9; padding: 15px 20px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0;">
-        <button type="button" class="btn" onclick="fecharModalAtualizacao()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 24px; border-radius: 6px; cursor: pointer; border: none; font-size: 0.9rem;">
+      <div style="background: #F1F5F9; padding: 12px 18px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0; flex-shrink: 0;">
+        <button type="button" class="btn" onclick="fecharModalAtualizacao()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 22px; border-radius: 6px; cursor: pointer; border: none; font-size: 0.88rem;">
           <i class="fa-solid fa-check"></i> OK, Entendi
         </button>
       </div>
     </div>
   </div>
 
-  <script src="dashboard.js?v=1"></script>
+  <script src="dashboard.js?v=2"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const bottomNav = document.getElementById('mainBottomNav');
