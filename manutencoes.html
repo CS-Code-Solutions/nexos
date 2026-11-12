@@ -1,65 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- SCRIPT SÍNCRONO UNIVERSAL DE BLINDAGEM E PERMISSÕES (EVITA PISCADAS) -->
-  <script>
-    (function() {
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-      
-      const showDashboard = localStorage.getItem('rg_page_dashboard');
-      const showCadastros = localStorage.getItem('rg_page_cadastros');
-      const showRelatorios = localStorage.getItem('rg_page_relatorios');
-      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-
-      if (!isSuperAdmin && (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false')) {
-        window.location.replace('cadastros.html');
-        return;
-      }
-
-      let cssRules = '';
-
-      if (!isSuperAdmin) {
-        if (showDashboard === 'false') {
-          cssRules += 'a[href="dashboard.html"], #nav-item-dash, #d-nav-dash { display: none !important; }';
-        }
-        if (showCadastros === 'false') {
-          cssRules += 'a[href="cadastros.html"], #nav-item-cad, #d-nav-cad { display: none !important; }';
-        }
-        if (showRelatorios === 'false') {
-          cssRules += 'a[href="relatorios.html"], #nav-item-rel, #d-nav-rel { display: none !important; }';
-        }
-        if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
-          cssRules += 'a[href="manutencoes.html"], #nav-item-plan, #d-nav-plan { display: none !important; }';
-        }
-        if (showOrcamentos === 'false') {
-          cssRules += 'a[href="orcamentos.html"], a[href="novo-orcamento.html"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
-        }
-        if (showHoras !== 'true') {
-          cssRules += 'a[href="horas-extras.html"], #nav-item-horas, #d-nav-horas { display: none !important; }';
-        }
-      }
-
-      if (userRole === 'tecnico') {
-        cssRules += '.finance-sensitive, a[href="configuracao.html"], #nav-item-config, #d-nav-config { display: none !important; }';
-      }
-
-      if (cssRules) {
-        document.write('<style>' + cssRules + '</style>');
-      }
-    })();
-  </script>
-
-  <script>
-    (function() {
-      const logoSalva = localStorage.getItem('rg_logo_base64');
-      if (logoSalva && logoSalva.startsWith('data:image')) {
-        document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-      }
-    })();
-  </script>
+<script>
+  (function() {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+    }
+  })();
+</script>
 
   <link rel="icon" href="nexosico192.png" type="image/png">
   <link rel="manifest" href="manifest.json">
@@ -86,6 +35,24 @@
     @media (max-width: 768px) { .desktop-nav { display: none !important; } }
     @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
   </style>
+
+  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS INSTANTANEAMENTE -->
+  <script>
+    (function() {
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      if (!isSuperAdmin && showManutencoes === 'false') {
+        alert('Acesso restrito: A página de Planejamento encontra-se desativada para a sua conta.');
+        window.location.href = 'index.html';
+      }
+      if (!isSuperAdmin && showHoras !== 'true') {
+        document.write('<style>#nav-item-horas { display: none !important; }</style>');
+      }
+    })();
+  </script>
 </head>
 <body>
 
@@ -95,13 +62,12 @@
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
-    <nav class="desktop-nav">
-      <a href="dashboard.html" id="d-nav-dash"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-      <a href="cadastros.html" id="d-nav-cad"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html" id="d-nav-rel"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html" class="active" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+<nav class="desktop-nav">
+      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html" class="active"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html" id="d-nav-config"><i class="fa-solid fa-gear"></i> Config</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
@@ -180,21 +146,17 @@
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
   </footer>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+<!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="dashboard.html" id="nav-item-dash">
-      <i class="fa-solid fa-chart-pie"></i>
-      <span>Dash</span>
-    </a>
-    <a href="cadastros.html" id="nav-item-cad">
+    <a href="cadastros.html">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html" id="nav-item-rel">
+    <a href="relatorios.html">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html" class="active" id="nav-item-plan">
+    <a href="manutencoes.html" class="active">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
     </a>
@@ -283,7 +245,16 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
+    // =========================================================================
+    // 💡 GUIA DE ALTERAÇÃO DA VERSÃO:
+    // Para fazer o aviso voltar a aparecer para todos os clientes, basta alterar 
+    // o final do texto da chave abaixo (ex: mude de _v1 para _v2, ou altere a data).
+    // Como o navegador do cliente guardará a chave antiga, ao mudar de nome, 
+    // o sistema entenderá que é uma nova versão e exibirá o pop-up novamente 
+    // apenas no primeiro acesso dele.
+    // =========================================================================
     const versaoAtualSistema = "nexos_update_v2026_11_dia15"; 
+    
     const jaViuAtualizacao = localStorage.getItem(versaoAtualSistema);
     
     if (!jaViuAtualizacao) {
@@ -295,6 +266,10 @@
   });
 
   window.fecharModalAtualizacao = function() {
+    // =========================================================================
+    // ATENÇÃO: Mantenha exatamente o mesmo nome da chave definida acima 
+    // para que o navegador grave que o cliente já confirmou a leitura.
+    // =========================================================================
     const versaoAtualSistema = "nexos_update_v2026_11_dia15";
     localStorage.setItem(versaoAtualSistema, 'true');
     
