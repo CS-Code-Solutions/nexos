@@ -3,52 +3,10 @@
 <head>
 <script>
   (function() {
-    // 1. Aplica o logótipo instantaneamente de forma segura
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
-      document.addEventListener('DOMContentLoaded', () => {
-        const imgLogo = document.getElementById('logo-cliente');
-        if (imgLogo) imgLogo.src = logoSalva;
-      });
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
     }
-
-    // 2. Ocultação cirúrgica apenas para módulos explicitamente desativados (false)
-    const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-    const showHoras = localStorage.getItem('rg_mod_horas_extras');
-    const showManutencoes = localStorage.getItem('rg_page_manutencoes');
-    const showDashboard = localStorage.getItem('rg_page_dashboard');
-    const showRelatorios = localStorage.getItem('rg_page_relatorios');
-    const showCadastros = localStorage.getItem('rg_page_cadastros');
-    const userRole = localStorage.getItem('rg_user_role');
-    const isSuperAdmin = (userRole === 'super_admin');
-
-    let cssRules = 'main { animation: dashFadeIn 0.15s ease-out; } @keyframes dashFadeIn { from { opacity: 0; } to { opacity: 1; } }';
-
-    if (!isSuperAdmin) {
-      if (showDashboard === 'false') {
-        cssRules += 'a[href="dashboard.html"] { display: none !important; }';
-      }
-      if (showCadastros === 'false') {
-        cssRules += 'a[href="cadastros.html"] { display: none !important; }';
-      }
-      if (showRelatorios === 'false') {
-        cssRules += 'a[href="relatorios.html"] { display: none !important; }';
-      }
-      if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
-        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
-      }
-      if (showHoras !== 'true') {
-        cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
-      }
-      if (showOrcamentos === 'false') {
-        cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
-      }
-    }
-    if (userRole === 'tecnico') {
-      cssRules += '.finance-sensitive { display: none !important; }';
-    }
-
-    document.write('<style>' + cssRules + '</style>');
   })();
 </script>
 
@@ -78,8 +36,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    .desktop-nav { display: flex; align-items: center; gap: 18px; }
-    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.92rem; display: flex; align-items: center; gap: 7px; transition: color 0.2s; }
+    .desktop-nav { display: flex; align-items: center; gap: 20px; }
+    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
     .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
     @media (max-width: 768px) { .desktop-nav { display: none !important; } }
     @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
@@ -385,15 +343,54 @@
       gap: 6px;
     }
   </style>
+
+  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS NO MOBILE E DESKTOP -->
+  <script>
+    (function() {
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showDashboard = localStorage.getItem('rg_page_dashboard');
+      const showRelatorios = localStorage.getItem('rg_page_relatorios');
+      const showCadastros = localStorage.getItem('rg_page_cadastros');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      if (!isSuperAdmin) {
+        if (showDashboard === 'false') {
+          document.write('<style>a[href="dashboard.html"] { display: none !important; }</style>');
+        }
+        if (showCadastros === 'false') {
+          document.write('<style>a[href="cadastros.html"] { display: none !important; }</style>');
+        }
+        if (showRelatorios === 'false') {
+          document.write('<style>a[href="relatorios.html"] { display: none !important; }</style>');
+        }
+        if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
+          document.write('<style>#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }</style>');
+        }
+        if (showOrcamentos === 'false') {
+          document.write('<style>#nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
+        }
+        if (showHoras !== 'true') {
+          document.write('<style>#nav-item-horas, #d-nav-horas, #kpi-horas-extras-box { display: none !important; }</style>');
+        }
+      }
+      if (userRole === 'tecnico') {
+        document.write('<style>.finance-sensitive { display: none !important; }</style>');
+      }
+    })();
+  </script>
 </head>
 <body>
 
   <!-- CABEÇALHO -->
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     <a href="dashboard.html" style="display: flex; align-items: center; text-decoration: none;">
-      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent; display: block;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
+    <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
       <a href="dashboard.html" class="active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
       <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
@@ -403,7 +400,7 @@
       <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
-    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer; padding: 5px;" title="Sair">
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
       <i class="fa-solid fa-power-off"></i>
     </button>
   </header>
@@ -622,5 +619,21 @@
   </div>
 
   <script src="dashboard.js?v=6"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const bottomNav = document.getElementById('mainBottomNav');
+      if (bottomNav) {
+        const activeItem = bottomNav.querySelector('a.active');
+        if (activeItem) {
+          setTimeout(() => {
+            bottomNav.scrollTo({
+              left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
+              behavior: 'smooth'
+            });
+          }, 100);
+        }
+      }
+    });
+  </script>
 </body>
 </html>
