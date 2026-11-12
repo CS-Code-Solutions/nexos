@@ -12,36 +12,30 @@
       });
     }
 
-    // 2. Ocultação rigorosa de módulos e permissões (Elimina o Flicker e botões indesejados)
+    // 2. Ocultação rigorosa de módulos e permissões (Elimina botões indesejados e o flicker)
     const userRole = localStorage.getItem('rg_user_role');
     const isSuperAdmin = (userRole === 'super_admin');
     let cssRules = 'main { animation: dashFadeIn 0.15s ease-out; } @keyframes dashFadeIn { from { opacity: 0; } to { opacity: 1; } }';
 
     if (!isSuperAdmin) {
-      // Se a página dashboard não estiver explicitamente permitida
       if (localStorage.getItem('rg_page_dashboard') === 'false') {
         cssRules += 'a[href="dashboard.html"] { display: none !important; }';
       }
-      // Cadastros
       if (localStorage.getItem('rg_page_cadastros') === 'false') {
         cssRules += 'a[href="cadastros.html"] { display: none !important; }';
       }
-      // Relatórios
       if (localStorage.getItem('rg_page_relatorios') === 'false') {
         cssRules += 'a[href="relatorios.html"] { display: none !important; }';
       }
-      // Manutenções / Planejamento (Oculta se for false ou se o módulo não estiver ativo)
       if (localStorage.getItem('rg_page_manutencoes') === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
         cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
       }
-      // Horas Extras (Oculta estritamente se não for true)
       if (localStorage.getItem('rg_mod_horas_extras') !== 'true') {
         cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
       }
-      // Orçamentos
       if (localStorage.getItem('rg_page_orcamentos') === 'false') {
         cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
-    }
+      }
     }
     if (userRole === 'tecnico') {
       cssRules += '.finance-sensitive { display: none !important; }';
