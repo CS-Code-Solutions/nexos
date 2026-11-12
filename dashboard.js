@@ -1,616 +1,691 @@
-/**
- * NexOS - Módulo de Dashboard Analítico e Personalizável (dashboard.js)
- */
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+  (function() {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+    }
+  })();
+</script>
 
-let relatoriosGlobais = [];
-let manutencoesGlobais = [];
-let horasExtrasGlobais = [];
-let chartsInstancias = {};
+  <link rel="icon" href="nexosico192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="nexos512.png" sizes="512x512" type="image/png">
+  <link rel="apple-touch-icon" href="nexos512.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0B132B">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexOS - Dashboard</title>
 
-// Configuração padrão com suporte a ordenação e ativação individual de Seções, KPIs e Gráficos
-const PREFS_DEFAULT = {
-  secoes: [
-    { id: 'block-quick-actions', label: 'Barra de Ações Rápidas', visible: true },
-    { id: 'block-kpis', label: 'Bloco de Indicadores (KPIs)', visible: true },
-    { id: 'charts-container', label: 'Painel de Gráficos', visible: true },
-    { id: 'widget-preventivas-card', label: 'Radar de Preventivas', visible: true },
-    { id: 'widget-ultimos-rs-card', label: 'Lista de Últimos Relatórios', visible: true }
-  ],
-  kpis: [
-    { id: 'kpi-card-faturamento', label: 'Faturamento Estimado', visible: true, sensitive: true, orderable: true },
-    { id: 'kpi-card-rs', label: 'Relatórios (RS)', visible: true, orderable: true },
-    { id: 'kpi-card-horas', label: 'Horas Técnicas', visible: true, orderable: true },
-    { id: 'kpi-card-preventivas', label: 'Preventivas Próximas', visible: true, orderable: true },
-    { id: 'kpi-horas-extras-box', label: 'Detalhe: Horas Extras (dentro de Horas)', visible: true, orderable: false }
-  ],
-  graficos: [
-    { id: 'card-chart-tipos', label: 'Tipos de Atendimento', visible: true, type: 'doughnut', allowedTypes: ['doughnut', 'pie', 'bar'] },
-    { id: 'card-chart-receita', label: 'Composição de Faturamento', visible: true, type: 'bar', allowedTypes: ['bar', 'doughnut', 'polarArea'], sensitive: true },
-    { id: 'card-chart-evolucao', label: 'Evolução Mensal (6 Meses)', visible: true, type: 'line', allowedTypes: ['line', 'bar'] },
-    { id: 'card-chart-clientes', label: 'Top 5 Clientes Atendidos', visible: true, type: 'bar', allowedTypes: ['bar', 'pie'] }
-  ]
-};
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-let prefsTempEdicao = null;
+  <script src="global-modal.js"></script>
 
-function getPreferenciasDash() {
-  try {
-    const salvo = localStorage.getItem('nexos_dash_prefs_v3');
-    if (salvo) {
-      const parsed = JSON.parse(salvo);
-      if (Array.isArray(parsed.secoes) && Array.isArray(parsed.kpis) && Array.isArray(parsed.graficos)) {
-        return parsed;
+  <!-- Firebase SDKs Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script src="firebase-init.js?v=2"></script>
+  <script src="firebase-sync.js?v=2"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    .desktop-nav { display: flex; align-items: center; gap: 18px; }
+    .desktop-nav a { color: #94A3B8; text-decoration: none; font-weight: bold; font-size: 0.92rem; display: flex; align-items: center; gap: 7px; transition: color 0.2s; }
+    .desktop-nav a:hover, .desktop-nav a.active { color: #00F5D4; }
+    @media (max-width: 768px) { .desktop-nav { display: none !important; } }
+    @media (min-width: 769px) { #mainBottomNav { display: none !important; } }
+
+    /* Barra superior do Dashboard */
+    .dash-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .dash-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .period-select {
+      padding: 9px 12px;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      background: #FFF;
+      color: #0B132B;
+      font-weight: bold;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    /* Fluxo Principal Ordenável (12 colunas) */
+    .dash-flow-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .span-12 { grid-column: span 12; }
+    .span-6 { grid-column: span 6; }
+    @media (max-width: 768px) {
+      .span-6 { grid-column: span 12; }
+    }
+
+    /* Ações Rápidas */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 10px;
+    }
+    .quick-btn {
+      background: #0B132B;
+      color: #FFF;
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.86rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .quick-btn i { color: #00F5D4; font-size: 1rem; }
+    .quick-btn:hover {
+      background: #1C2541;
+      border-color: #00F5D4;
+      transform: translateY(-2px);
+    }
+
+    /* KPIs no Topo */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .kpi-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-left: 4px solid #00F5D4;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kpi-card.blue { border-left-color: #3B82F6; }
+    .kpi-card.green { border-left-color: #10B981; }
+    .kpi-card.amber { border-left-color: #F59E0B; }
+
+    .kpi-info span {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: bold;
+      color: #64748B;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .kpi-info strong {
+      font-size: 1.4rem;
+      color: #0B132B;
+      display: block;
+    }
+    .kpi-info small {
+      font-size: 0.75rem;
+      color: #64748B;
+      display: block;
+      margin-top: 2px;
+    }
+    .kpi-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #F1F5F9;
+      color: #0B132B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+
+    /* Grid de Gráficos */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .chart-card h3 {
+      margin: 0 0 12px 0;
+      font-size: 0.98rem;
+      color: #0B132B;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #F1F5F9;
+      padding-bottom: 8px;
+    }
+    .chart-wrapper {
+      position: relative;
+      height: 240px;
+      width: 100%;
+    }
+
+    /* Widgets Operacionais */
+    .widget-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+    .widget-item:last-child { margin-bottom: 0; }
+
+    /* =====================================================================
+       MODAL DE PERSONALIZAÇÃO (MOBILE E DESKTOP COM SETAS ALINHADAS)
+       ===================================================================== */
+    #modalEditDash {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 19, 43, 0.88);
+      z-index: 10005 !important;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    .edit-modal-box {
+      background: #FFFFFF;
+      width: 100%;
+      max-width: 540px;
+      max-height: 86vh;
+      border-radius: 12px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .edit-modal-body {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+      -webkit-overflow-scrolling: touch;
+    }
+    .config-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .config-row-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+    }
+    .config-row-left input[type="checkbox"] {
+      width: 18px !important;
+      min-width: 18px !important;
+      height: 18px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      accent-color: #0B132B;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .config-row-left span {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #0B132B;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .config-row-select select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #CBD5E1;
+      font-size: 0.82rem;
+      background: #FFF;
+      color: #0B132B;
+      width: auto !important;
+      max-width: 135px;
+    }
+    .order-btns {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .btn-order {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #CBD5E1;
+      background: #FFFFFF;
+      color: #0B132B;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0;
+      transition: 0.15s;
+    }
+    .btn-order:hover:not(:disabled) {
+      background: #0B132B;
+      color: #00F5D4;
+      border-color: #0B132B;
+    }
+    .btn-order:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .edit-modal-footer {
+      background: #F1F5F9;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid #E2E8F0;
+      flex-shrink: 0;
+    }
+    .edit-modal-footer button {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    @media (max-width: 480px) {
+      .config-row-select {
+        order: 3;
+        width: 100%;
+        padding-top: 6px;
+        border-top: 1px dashed #E2E8F0;
+      }
+      .config-row-select select {
+        width: 100% !important;
+        max-width: none;
+      }
+      .edit-modal-footer button {
+        flex: 1;
       }
     }
-  } catch (e) {
-    console.warn("Erro ao ler preferências do dashboard:", e);
-  }
-  return JSON.parse(JSON.stringify(PREFS_DEFAULT));
-}
+  </style>
 
-// Autenticação e Sincronização em Tempo Real
-firebase.auth().onAuthStateChanged(async (user) => {
-  if (!user) {
-    window.location.href = 'login.html';
-  } else {
-    aplicarLayoutEOrdemDash();
-    await carregarTodosDadosDashboard();
+  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS INSTANTANEAMENTE (ANTI-FLICKER) -->
+  <script>
+    (function() {
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
 
-    DataSync.listen('rg_reports', () => carregarTodosDadosDashboard());
-    DataSync.listen('rg_manutencoes', () => carregarTodosDadosDashboard());
-    if (localStorage.getItem('rg_mod_horas_extras') === 'true') {
-      DataSync.listen('rg_horas_extras', () => carregarTodosDadosDashboard());
-    }
-  }
-});
-
-async function carregarTodosDadosDashboard() {
-  try {
-    const [reps, manuts, horas] = await Promise.all([
-      DataSync.load('rg_reports'),
-      DataSync.load('rg_manutencoes'),
-      localStorage.getItem('rg_mod_horas_extras') === 'true' ? DataSync.load('rg_horas_extras') : Promise.resolve([])
-    ]);
-
-    relatoriosGlobais = Array.isArray(reps) ? reps : [];
-    manutencoesGlobais = Array.isArray(manuts) ? manuts : [];
-    horasExtrasGlobais = Array.isArray(horas) ? horas : [];
-
-    atualizarDashboard();
-  } catch (err) {
-    console.error("Erro ao carregar dados do Dashboard:", err);
-  }
-}
-
-function filtrarPorPeriodo(lista, campoData = 'date') {
-  const filtro = document.getElementById('filtroPeriodo')?.value || 'mes_atual';
-  if (filtro === 'todos') return lista;
-
-  const hoje = new Date();
-  const anoAtual = hoje.getFullYear();
-  const mesAtual = hoje.getMonth();
-
-  return lista.filter(item => {
-    const dataStr = item[campoData] || item.data || item.createdAt;
-    if (!dataStr) return false;
-    const d = new Date(dataStr + (dataStr.length === 10 ? 'T12:00:00' : ''));
-    if (isNaN(d.getTime())) return false;
-
-    if (filtro === 'mes_atual') {
-      return d.getFullYear() === anoAtual && d.getMonth() === mesAtual;
-    }
-    if (filtro === '30_dias') {
-      const limite = new Date();
-      limite.setDate(hoje.getDate() - 30);
-      return d >= limite;
-    }
-    if (filtro === 'ano_atual') {
-      return d.getFullYear() === anoAtual;
-    }
-    return true;
-  });
-}
-
-function formatarMoeda(valor) {
-  return (Number(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function formatarHorasDecimais(horasDec) {
-  const totalMin = Math.round((Number(horasDec) || 0) * 60);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return `${h}h ${String(m).padStart(2, '0')}m`;
-}
-
-function parseValorNumerico(val) {
-  if (typeof val === 'number') return val;
-  if (!val) return 0;
-  const limpo = String(val).replace(/[R$\s.]/g, '').replace(',', '.');
-  return parseFloat(limpo) || 0;
-}
-
-window.atualizarDashboard = function() {
-  const prefs = getPreferenciasDash();
-  const relatoriosFiltrados = filtrarPorPeriodo(relatoriosGlobais, 'date');
-  const horasFiltradas = filtrarPorPeriodo(horasExtrasGlobais, 'data');
-
-  let totalFaturamento = 0;
-  let totalMaoDeObra = 0;
-  let totalEmpreitada = 0;
-  let totalDespesas = 0;
-  let totalHorasTrab = 0;
-
-  relatoriosFiltrados.forEach(r => {
-    const vTotal = parseValorNumerico(r.totalValue || r.valorTotal || r.total);
-    const vEmpreitada = parseValorNumerico(r.valorEmpreitada);
-    const vDesloc = parseValorNumerico(r.valorDeslocamento);
-    const vHosp = parseValorNumerico(r.valorHospedagem);
-    const vOutras = parseValorNumerico(r.valorOutrasDespesas || r.outrasDespesas);
-    const vHoras = parseValorNumerico(r.valorHoras);
-
-    const despesasItem = vDesloc + vHosp + vOutras;
-    totalDespesas += despesasItem;
-
-    if (vTotal > 0) {
-      totalFaturamento += vTotal;
-      if (vEmpreitada > 0) {
-        totalEmpreitada += vEmpreitada;
-      } else {
-        totalMaoDeObra += Math.max(0, vTotal - despesasItem);
+      let cssRules = '';
+      if (!isSuperAdmin && showManutencoes === 'false') {
+        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
       }
-    } else {
-      const somaCalculada = vHoras + vEmpreitada + despesasItem;
-      totalFaturamento += somaCalculada;
-      totalMaoDeObra += vHoras;
-      totalEmpreitada += vEmpreitada;
-    }
+      if (!isSuperAdmin && showHoras !== 'true') {
+        cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
+      }
+      if (!isSuperAdmin && showOrcamentos === 'false') {
+        cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
+      }
+      if (userRole === 'tecnico') {
+        cssRules += '.finance-sensitive { display: none !important; }';
+      }
 
-    const hApontadas = parseValorNumerico(r.totalHoras || r.horasTrabalhadas);
-    totalHorasTrab += hApontadas;
-  });
+      if (cssRules) {
+        document.write('<style>' + cssRules + '</style>');
+      }
+    })();
+  </script>
+</head>
+<body>
 
-  let totalHorasExtras = 0;
-  horasFiltradas.forEach(h => {
-    totalHorasExtras += parseValorNumerico(h.totalHoras || h.quantidade || h.horas);
-  });
+  <!-- CABEÇALHO -->
+  <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
+    <a href="dashboard.html" style="display: flex; align-items: center; text-decoration: none;">
+      <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
+    </a>
 
-  document.getElementById('kpi-faturamento').textContent = formatarMoeda(totalFaturamento);
-  document.getElementById('kpi-reembolsos').textContent = `Reembolsos/Viagem: ${formatarMoeda(totalDespesas)}`;
-  document.getElementById('kpi-total-rs').textContent = relatoriosFiltrados.length;
-  document.getElementById('kpi-horas-totais').textContent = formatarHorasDecimais(totalHorasTrab);
-  document.getElementById('kpi-horas-extras').textContent = formatarHorasDecimais(totalHorasExtras);
+    <nav class="desktop-nav">
+      <a href="dashboard.html" class="active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
+      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+    </nav>
 
-  const hojeStr = new Date().toISOString().split('T')[0];
-  const preventivasAtivas = manutencoesGlobais
-    .filter(m => (m.data || '') >= hojeStr)
-    .sort((a, b) => new Date(a.data) - new Date(b.data));
+    <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Sair">
+      <i class="fa-solid fa-power-off"></i>
+    </button>
+  </header>
 
-  document.getElementById('kpi-preventivas').textContent = preventivasAtivas.length;
+  <main style="max-width: 1050px; margin: 20px auto; padding: 0 15px; padding-bottom: 90px;">
 
-  // Renderiza cada gráfico configurado
-  prefs.graficos.forEach(g => {
-    if (!g.visible) return;
-    if (g.id === 'card-chart-tipos') renderChartTipos(relatoriosFiltrados, g.type);
-    if (g.id === 'card-chart-receita') renderChartReceita(totalMaoDeObra, totalEmpreitada, totalDespesas, g.type);
-    if (g.id === 'card-chart-evolucao') renderChartEvolucao(relatoriosGlobais, g.type);
-    if (g.id === 'card-chart-clientes') renderChartClientes(relatoriosFiltrados, g.type);
-  });
+    <!-- BARRA DE TÍTULO, FILTRO E BOTÃO DE EDIÇÃO -->
+    <div class="dash-toolbar no-print">
+      <div>
+        <h2 style="color: #0B132B; margin: 0; font-size: 1.45rem;">Painel de Controle</h2>
+        <span id="dash-subtitle" style="font-size: 0.85rem; color: #64748B;">Visão geral da operação em tempo real</span>
+      </div>
 
-  renderWidgetPreventivas(preventivasAtivas);
-  renderWidgetUltimosRS(relatoriosGlobais);
-};
+      <div class="dash-controls">
+        <select id="filtroPeriodo" class="period-select" onchange="atualizarDashboard()">
+          <option value="mes_atual">Este Mês</option>
+          <option value="30_dias">Últimos 30 dias</option>
+          <option value="ano_atual">Este Ano</option>
+          <option value="todos">Todo o Período</option>
+        </select>
 
-function recriarCanvasChart(canvasId, config) {
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-  if (chartsInstancias[canvasId]) {
-    chartsInstancias[canvasId].destroy();
-  }
-  chartsInstancias[canvasId] = new Chart(ctx, config);
-}
-
-function renderChartTipos(lista, tipoChart) {
-  const contagem = {};
-  lista.forEach(r => {
-    const tipo = r.serviceType || r.tipoServico || r.tipo || 'Manutenção Geral';
-    contagem[tipo] = (contagem[tipo] || 0) + 1;
-  });
-
-  const labels = Object.keys(contagem).length ? Object.keys(contagem) : ['Sem registros'];
-  const valores = Object.keys(contagem).length ? Object.values(contagem) : [0];
-
-  recriarCanvasChart('canvasChartTipos', {
-    type: tipoChart,
-    data: {
-      labels,
-      datasets: [{
-        label: 'Atendimentos',
-        data: valores,
-        backgroundColor: ['#00B89E', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#10B981'],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom' } }
-    }
-  });
-}
-
-function renderChartReceita(maoDeObra, empreitada, despesas, tipoChart) {
-  recriarCanvasChart('canvasChartReceita', {
-    type: tipoChart,
-    data: {
-      labels: ['Horas Técnicas', 'Empreitada', 'Desloc./Despesas'],
-      datasets: [{
-        label: 'Valor (R$)',
-        data: [maoDeObra, empreitada, despesas],
-        backgroundColor: ['#10B981', '#0B132B', '#F59E0B'],
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: tipoChart !== 'bar' } }
-    }
-  });
-}
-
-function renderChartEvolucao(todosRelatorios, tipoChart) {
-  const mesesLabels = [];
-  const chavesMes = [];
-  const hoje = new Date();
-
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-    const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const nomeMes = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
-    mesesLabels.push(nomeMes.toUpperCase());
-    chavesMes.push(chave);
-  }
-
-  const contagemPorMes = chavesMes.map(chave => {
-    return todosRelatorios.filter(r => (r.date || r.data || '').startsWith(chave)).length;
-  });
-
-  recriarCanvasChart('canvasChartEvolucao', {
-    type: tipoChart,
-    data: {
-      labels: mesesLabels,
-      datasets: [{
-        label: 'Relatórios Emitidos',
-        data: contagemPorMes,
-        borderColor: '#8B5CF6',
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
-        fill: true,
-        tension: 0.35,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-    }
-  });
-}
-
-function renderChartClientes(lista, tipoChart) {
-  const porCliente = {};
-  lista.forEach(r => {
-    const cli = r.client || r.cliente || 'Não informado';
-    porCliente[cli] = (porCliente[cli] || 0) + 1;
-  });
-
-  const top5 = Object.entries(porCliente)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-  const labels = top5.length ? top5.map(i => i[0]) : ['Sem dados'];
-  const valores = top5.length ? top5.map(i => i[1]) : [0];
-
-  recriarCanvasChart('canvasChartClientes', {
-    type: tipoChart,
-    data: {
-      labels,
-      datasets: [{
-        label: 'Qtd. Relatórios',
-        data: valores,
-        backgroundColor: ['#0B132B', '#00B89E', '#3B82F6', '#F59E0B', '#64748B'],
-        borderRadius: 6
-      }]
-    },
-    options: {
-      indexAxis: tipoChart === 'bar' ? 'y' : 'x',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: tipoChart !== 'bar' } },
-      scales: tipoChart === 'bar' ? { x: { beginAtZero: true, ticks: { precision: 0 } } } : {}
-    }
-  });
-}
-
-function renderWidgetPreventivas(lista) {
-  const container = document.getElementById('lista-radar-preventivas');
-  if (!container) return;
-
-  if (!lista.length) {
-    container.innerHTML = '<p style="color: #64748B; font-size: 0.85rem; text-align: center; padding: 15px 0;">Nenhuma preventiva próxima agendada.</p>';
-    return;
-  }
-
-  container.innerHTML = lista.slice(0, 4).map(item => {
-    const parts = (item.data || '').split('-');
-    const dataBR = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : item.data;
-    return `
-      <div class="widget-item">
-        <div>
-          <strong style="color: #0B132B; font-size: 0.88rem; display: block;">${escapeHTML(item.cliente)}</strong>
-          <span style="font-size: 0.78rem; color: #64748B;"><i class="fa-solid fa-calendar"></i> ${dataBR} • ${escapeHTML(item.maquina || item.tipo || 'Preventiva')}</span>
-        </div>
-        <button type="button" onclick="iniciarRSDoDashboard('${escapeHTML(item.cliente)}', '${escapeHTML(item.maquina || '')}', '${escapeHTML(item.tipo || 'Preventiva')}')" style="background: #10B981; color: #FFF; border: none; padding: 6px 10px; border-radius: 5px; font-size: 0.78rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
-          Gerar RS
+        <button type="button" class="btn" onclick="abrirModalEditarDash()" style="background-color: #0B132B; color: #00F5D4; border: 1px solid #00F5D4; font-weight: bold; padding: 9px 14px; font-size: 0.86rem; display: flex; align-items: center; gap: 6px; border-radius: 6px;">
+          <i class="fa-solid fa-sliders"></i> Personalizar
         </button>
       </div>
-    `;
-  }).join('');
-}
+    </div>
 
-window.iniciarRSDoDashboard = function(cliente, maquina, tipo) {
-  localStorage.setItem('rg_preencher_rs', JSON.stringify({
-    client: cliente,
-    machine: maquina,
-    description: `Manutenção Planeada (${tipo})`
-  }));
-  window.location.href = 'novo-relatorio.html';
-};
+    <!-- CONTAINER PRINCIPAL ORDENÁVEL -->
+    <div class="dash-flow-grid" id="dashMainFlow">
 
-function renderWidgetUltimosRS(lista) {
-  const container = document.getElementById('lista-ultimos-rs');
-  if (!container) return;
+      <!-- BLOCO 1: AÇÕES RÁPIDAS -->
+      <div class="quick-actions no-print span-12" id="block-quick-actions">
+        <a href="novo-relatorio.html" class="quick-btn">
+          <i class="fa-solid fa-file-circle-plus"></i> Novo Relatório (RS)
+        </a>
+        <a href="cadastros.html" class="quick-btn">
+          <i class="fa-solid fa-user-plus"></i> Novo Cliente / Máquina
+        </a>
+        <a href="manutencoes.html" class="quick-btn" id="quick-btn-plan">
+          <i class="fa-solid fa-calendar-plus"></i> Agendar Preventiva
+        </a>
+      </div>
 
-  if (!lista.length) {
-    container.innerHTML = '<p style="color: #64748B; font-size: 0.85rem; text-align: center; padding: 15px 0;">Nenhum relatório emitido ainda.</p>';
-    return;
-  }
-
-  const ordenados = [...lista].sort((a, b) => new Date(b.date || b.data || 0) - new Date(a.date || a.data || 0)).slice(0, 4);
-
-  container.innerHTML = ordenados.map(r => {
-    const dataStr = r.date || r.data || '';
-    const parts = dataStr.split('-');
-    const dataBR = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dataStr;
-    const nomeCliente = r.client || r.cliente || 'Cliente';
-
-    return `
-      <div class="widget-item">
-        <div>
-          <strong style="color: #0B132B; font-size: 0.88rem; display: block;">${escapeHTML(nomeCliente)}</strong>
-          <span style="font-size: 0.78rem; color: #64748B;">${dataBR} • ${escapeHTML(r.machine || r.maquina || 'Equipamento')}</span>
+      <!-- BLOCO 2: CARTÕES DE RESUMO INDIVIDUALIZADOS (KPIs) -->
+      <div class="kpi-grid span-12" id="block-kpis">
+        <div class="kpi-card green finance-sensitive" id="kpi-card-faturamento">
+          <div class="kpi-info">
+            <span>Faturamento Estimado</span>
+            <strong id="kpi-faturamento">R$ 0,00</strong>
+            <small id="kpi-reembolsos">Despesas: R$ 0,00</small>
+          </div>
+          <div class="kpi-icon" style="color: #10B981; background: #DCFCE7;">
+            <i class="fa-solid fa-sack-dollar"></i>
+          </div>
         </div>
-        <button type="button" data-cliente="${escapeHTML(nomeCliente)}" onclick="abrirRelatoriosDoCliente(this.getAttribute('data-cliente'))" style="background: #E0F2FE; color: #0369A1; border: none; padding: 6px 12px; border-radius: 5px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
-          Abrir
+
+        <div class="kpi-card blue" id="kpi-card-rs">
+          <div class="kpi-info">
+            <span>Relatórios (RS)</span>
+            <strong id="kpi-total-rs">0</strong>
+            <small id="kpi-rs-detalhe">Atendimentos no período</small>
+          </div>
+          <div class="kpi-icon" style="color: #3B82F6; background: #DBEAFE;">
+            <i class="fa-solid fa-clipboard-check"></i>
+          </div>
+        </div>
+
+        <div class="kpi-card" id="kpi-card-horas">
+          <div class="kpi-info">
+            <span>Horas Técnicas</span>
+            <strong id="kpi-horas-totais">0h 00m</strong>
+            <small id="kpi-horas-extras-box">Extras: <b id="kpi-horas-extras">0h 00m</b></small>
+          </div>
+          <div class="kpi-icon" style="color: #0D9488; background: #CCFBF1;">
+            <i class="fa-solid fa-stopwatch"></i>
+          </div>
+        </div>
+
+        <div class="kpi-card amber" id="kpi-card-preventivas">
+          <div class="kpi-info">
+            <span>Preventivas Próximas</span>
+            <strong id="kpi-preventivas">0</strong>
+            <small id="kpi-preventivas-sub">Agendadas no cronograma</small>
+          </div>
+          <div class="kpi-icon" style="color: #D97706; background: #FEF3C7;">
+            <i class="fa-solid fa-calendar-day"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCO 3: ÁREA DE GRÁFICOS DINÂMICOS -->
+      <div class="charts-grid span-12" id="charts-container">
+        <div class="chart-card" id="card-chart-tipos">
+          <h3><i class="fa-solid fa-wrench" style="color: #00B89E;"></i> Tipos de Atendimento</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartTipos"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card finance-sensitive" id="card-chart-receita">
+          <h3><i class="fa-solid fa-chart-column" style="color: #3B82F6;"></i> Composição de Faturamento</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartReceita"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card" id="card-chart-evolucao">
+          <h3><i class="fa-solid fa-chart-line" style="color: #8B5CF6;"></i> Evolução Mensal (Últimos 6 Meses)</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartEvolucao"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card" id="card-chart-clientes">
+          <h3><i class="fa-solid fa-building" style="color: #F59E0B;"></i> Top 5 Clientes Atendidos</h3>
+          <div class="chart-wrapper">
+            <canvas id="canvasChartClientes"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCO 4: RADAR DE PREVENTIVAS -->
+      <section class="card span-6" id="widget-preventivas-card" style="margin: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">
+          <h3 style="color: #0B132B; font-size: 1.02rem; margin: 0;"><i class="fa-solid fa-bell" style="color: #F59E0B;"></i> Radar de Preventivas</h3>
+          <a href="manutencoes.html" style="font-size: 0.8rem; color: #0284C7; font-weight: bold; text-decoration: none;">Ver todas &rarr;</a>
+        </div>
+        <div id="lista-radar-preventivas">
+          <p style="color: #64748B; font-size: 0.85rem; text-align: center;">A carregar cronograma...</p>
+        </div>
+      </section>
+
+      <!-- BLOCO 5: ÚLTIMOS RELATÓRIOS -->
+      <section class="card span-6" id="widget-ultimos-rs-card" style="margin: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #F1F5F9; padding-bottom: 8px;">
+          <h3 style="color: #0B132B; font-size: 1.02rem; margin: 0;"><i class="fa-solid fa-clock-rotate-left" style="color: #10B981;"></i> Últimos Relatórios (RS)</h3>
+          <a href="relatorios.html" style="font-size: 0.8rem; color: #0284C7; font-weight: bold; text-decoration: none;">Ver todos &rarr;</a>
+        </div>
+        <div id="lista-ultimos-rs">
+          <p style="color: #64748B; font-size: 0.85rem; text-align: center;">A carregar relatórios...</p>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <footer class="no-print">
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
+  <nav class="bottom-nav no-print" id="mainBottomNav">
+    <a href="dashboard.html" class="active">
+      <i class="fa-solid fa-chart-pie"></i>
+      <span>Dash</span>
+    </a>
+    <a href="cadastros.html">
+      <i class="fa-solid fa-address-book"></i>
+      <span>Cadastros</span>
+    </a>
+    <a href="relatorios.html">
+      <i class="fa-solid fa-file-lines"></i>
+      <span>Relatórios</span>
+    </a>
+    <a href="manutencoes.html" id="nav-item-plan">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Plan</span>
+    </a>
+    <a href="horas-extras.html" id="nav-item-horas">
+      <i class="fa-solid fa-clock"></i>
+      <span>Horas</span>
+    </a>
+    <a href="configuracao.html" id="nav-item-config">
+      <i class="fa-solid fa-gear"></i>
+      <span>Config</span>
+    </a>
+  </nav>
+
+  <!-- MODAL DE PERSONALIZAÇÃO DO DASHBOARD -->
+  <div id="modalEditDash">
+    <div class="edit-modal-box">
+      
+      <div style="background: #0B132B; color: white; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #00F5D4; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-sliders" style="color: #00F5D4; font-size: 1.15rem;"></i>
+          <h3 style="margin: 0; font-size: 1.05rem;">Personalizar Dashboard</h3>
+        </div>
+        <button type="button" onclick="fecharModalEditarDash()" style="background: none; border: none; color: #94A3B8; font-size: 1.6rem; line-height: 1; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="edit-modal-body">
+        <p style="margin: 0 0 12px 0; font-size: 0.83rem; color: #64748B; line-height: 1.4;">
+          Ative ou oculte cada cartão, escolha o formato dos gráficos e use as setas <strong>(&uarr; &darr;)</strong> para definir a ordem de exibição:
+        </p>
+
+        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 10px 0 8px 0; letter-spacing: 0.5px;">1. Ordem e Visibilidade das Seções</h4>
+        <div id="lista-config-secoes"></div>
+
+        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 16px 0 8px 0; letter-spacing: 0.5px;">2. Cartões de Indicadores (KPIs)</h4>
+        <div id="lista-config-kpis"></div>
+
+        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 16px 0 8px 0; letter-spacing: 0.5px;">3. Ordem e Formato dos Gráficos</h4>
+        <div id="lista-config-graficos"></div>
+      </div>
+
+      <div class="edit-modal-footer">
+        <button type="button" onclick="restaurarPadraoDash()" style="background-color: #64748B; color: white;">
+          <i class="fa-solid fa-rotate-left"></i> Restaurar
+        </button>
+        <button type="button" onclick="salvarPreferenciasDash()" style="background-color: #10B981; color: white;">
+          <i class="fa-solid fa-check"></i> Aplicar Alterações
         </button>
       </div>
-    `;
-  }).join('');
-}
+    </div>
+  </div>
 
-window.abrirRelatoriosDoCliente = function(cliente) {
-  if (!cliente) return;
-  localStorage.setItem('rg_filtro_cliente_rs', cliente);
-  window.location.href = `relatorios.html?cliente=${encodeURIComponent(cliente)}`;
-};
-
-// =========================================================================
-// APLICAÇÃO DE VISIBILIDADE E ORDEM NO PAINEL
-// =========================================================================
-
-function aplicarLayoutEOrdemDash() {
-  const prefs = getPreferenciasDash();
-
-  // 1. Aplica ordem e visibilidade individual dos KPIs
-  let algumKpiVisivel = false;
-  prefs.kpis.forEach((kpi, index) => {
-    const el = document.getElementById(kpi.id);
-    if (!el) return;
-    if (kpi.orderable !== false) {
-      el.style.order = index;
-      if (kpi.visible) algumKpiVisivel = true;
-    }
-    el.style.display = kpi.visible ? '' : 'none';
-  });
-
-  // 2. Aplica ordem e visibilidade das seções principais
-  prefs.secoes.forEach((sec, index) => {
-    const el = document.getElementById(sec.id);
-    if (!el) return;
-    el.style.order = index;
-
-    if (sec.id === 'block-kpis') {
-      el.style.display = (sec.visible && algumKpiVisivel) ? '' : 'none';
-    } else {
-      el.style.display = sec.visible ? '' : 'none';
-    }
-  });
-
-  // Expande widget lateral se o outro estiver oculto
-  const prevVisivel = prefs.secoes.find(s => s.id === 'widget-preventivas-card')?.visible;
-  const ultVisivel = prefs.secoes.find(s => s.id === 'widget-ultimos-rs-card')?.visible;
-  const elPrev = document.getElementById('widget-preventivas-card');
-  const elUlt = document.getElementById('widget-ultimos-rs-card');
-  if (elPrev && elUlt) {
-    elPrev.className = (prevVisivel && !ultVisivel) ? 'card span-12' : 'card span-6';
-    elUlt.className = (ultVisivel && !prevVisivel) ? 'card span-12' : 'card span-6';
-  }
-
-  // 3. Aplica ordem e visibilidade individual dos gráficos
-  prefs.graficos.forEach((g, index) => {
-    const el = document.getElementById(g.id);
-    if (!el) return;
-    el.style.order = index;
-    el.style.display = g.visible ? '' : 'none';
-  });
-}
-
-// =========================================================================
-// CONTROLES DO MODAL DE PERSONALIZAÇÃO (VISIBILIDADE + FORMATO + ORDEM)
-// =========================================================================
-
-const LABELS_FORMATO = {
-  doughnut: 'Rosca (Donut)',
-  pie: 'Pizza',
-  bar: 'Barras',
-  line: 'Linha Suave',
-  polarArea: 'Área Polar'
-};
-
-function renderizarListasModalConfig() {
-  const containerSecoes = document.getElementById('lista-config-secoes');
-  const containerKpis = document.getElementById('lista-config-kpis');
-  const containerGraficos = document.getElementById('lista-config-graficos');
-  const isTecnico = localStorage.getItem('rg_user_role') === 'tecnico';
-
-  if (containerSecoes && prefsTempEdicao) {
-    containerSecoes.innerHTML = prefsTempEdicao.secoes.map((sec, idx) => `
-      <div class="config-row">
-        <label class="config-row-left">
-          <input type="checkbox" ${sec.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('secoes', ${idx}, this.checked)">
-          <span>${escapeHTML(sec.label)}</span>
-        </label>
-        <div class="order-btns">
-          <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, -1)">
-            <i class="fa-solid fa-arrow-up"></i>
-          </button>
-          <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.secoes.length - 1 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, 1)">
-            <i class="fa-solid fa-arrow-down"></i>
-          </button>
+  <!-- MODAL FLUTUANTE DE ATUALIZAÇÃO DO SISTEMA (RELEASE NOTES) -->
+  <div id="updateModalRelease" style="display: none; position: fixed; inset: 0; background: rgba(11, 19, 43, 0.88); z-index: 10010; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+    <div style="background: white; width: 100%; max-width: 520px; max-height: 85vh; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;">
+      <div style="background: var(--deep-navy, #0B132B); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--electric-cyan, #00F5D4); flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-bullhorn" style="font-size: 1.2rem; color: var(--electric-cyan, #00F5D4);"></i>
+          <h3 style="margin: 0; font-size: 1.05rem; font-weight: bold;">Novidades na Versão Recente</h3>
+        </div>
+        <span style="background: rgba(0, 245, 212, 0.15); color: var(--electric-cyan, #00F5D4); font-size: 0.72rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;">NexOS Update</span>
+      </div>
+      <div style="padding: 18px; color: #334155; font-size: 0.9rem; line-height: 1.5; overflow-y: auto; flex: 1;">
+        <p style="margin-top: 0; color: #475569; font-size: 0.86rem;">Olá! Preparamos importantes optimizações e melhorias na experiência de uso do sistema:</p>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+          <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #3B82F6;">
+            <i class="fa-solid fa-chart-pie" style="font-size: 1.2rem; color: #3B82F6; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #0B132B; display: block; font-size: 0.9rem; margin-bottom: 2px;">Novo Painel de Controle Personalizável</strong>
+              <span style="font-size: 0.83rem; color: #64748B;">Acompanhe faturamento, horas técnicas e preventivas em gráficos interativos, altere formatos e reordene os blocos como preferir.</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #10B981;">
+            <i class="fa-solid fa-file-signature" style="font-size: 1.2rem; color: #10B981; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #0B132B; display: block; font-size: 0.9rem; margin-bottom: 2px;">Segurança de Valores na Assinatura</strong>
+              <span style="font-size: 0.83rem; color: #64748B;">O cliente final que assina o relatório digital não visualiza valores monetários, garantindo sigilo comercial.</span>
+            </div>
+          </div>
         </div>
       </div>
-    `).join('');
-  }
+      <div style="background: #F1F5F9; padding: 12px 18px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0; flex-shrink: 0;">
+        <button type="button" class="btn" onclick="fecharModalAtualizacao()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 22px; border-radius: 6px; cursor: pointer; border: none; font-size: 0.88rem;">
+          <i class="fa-solid fa-check"></i> OK, Entendi
+        </button>
+      </div>
+    </div>
+  </div>
 
-  if (containerKpis && prefsTempEdicao) {
-    const kpisOrdenaveis = prefsTempEdicao.kpis.filter(k => k.orderable !== false);
-    containerKpis.innerHTML = prefsTempEdicao.kpis.map((kpi, idx) => {
-      if (isTecnico && kpi.sensitive) return '';
-      const isOrderable = kpi.orderable !== false;
-      const posOrdenavel = kpisOrdenaveis.findIndex(item => item.id === kpi.id);
+  <script src="dashboard.js?v=5"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const bottomNav = document.getElementById('mainBottomNav');
+      if (bottomNav) {
+        const activeItem = bottomNav.querySelector('a.active');
+        if (activeItem) {
+          setTimeout(() => {
+            bottomNav.scrollTo({
+              left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
+              behavior: 'smooth'
+            });
+          }, 100);
+        }
+      }
 
-      const botoesOrdemHtml = isOrderable ? `
-        <div class="order-btns">
-          <button type="button" class="btn-order" title="Subir" ${posOrdenavel <= 0 ? 'disabled' : ''} onclick="moverItemLista('kpis', ${idx}, -1)">
-            <i class="fa-solid fa-arrow-up"></i>
-          </button>
-          <button type="button" class="btn-order" title="Descer" ${posOrdenavel === kpisOrdenaveis.length - 1 ? 'disabled' : ''} onclick="moverItemLista('kpis', ${idx}, 1)">
-            <i class="fa-solid fa-arrow-down"></i>
-          </button>
-        </div>
-      ` : '';
+      const versaoAtualSistema = "nexos_update_v2026_11_dia15";
+      if (!localStorage.getItem(versaoAtualSistema)) {
+        const modal = document.getElementById('updateModalRelease');
+        if (modal) modal.style.display = 'flex';
+      }
+    });
 
-      return `
-        <div class="config-row" style="${!isOrderable ? 'background: #F1F5F9; border-style: dashed;' : ''}">
-          <label class="config-row-left">
-            <input type="checkbox" ${kpi.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('kpis', ${idx}, this.checked)">
-            <span>${escapeHTML(kpi.label)}</span>
-          </label>
-          ${botoesOrdemHtml}
-        </div>
-      `;
-    }).join('');
-  }
-
-  if (containerGraficos && prefsTempEdicao) {
-    containerGraficos.innerHTML = prefsTempEdicao.graficos.map((g, idx) => {
-      if (isTecnico && g.sensitive) return '';
-      const optionsHtml = g.allowedTypes.map(t =>
-        `<option value="${t}" ${g.type === t ? 'selected' : ''}>${LABELS_FORMATO[t] || t}</option>`
-      ).join('');
-
-      return `
-        <div class="config-row">
-          <label class="config-row-left">
-            <input type="checkbox" ${g.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('graficos', ${idx}, this.checked)">
-            <span>${escapeHTML(g.label)}</span>
-          </label>
-          <div class="config-row-select">
-            <select onchange="alterarFormatoGrafico(${idx}, this.value)">
-              ${optionsHtml}
-            </select>
-          </div>
-          <div class="order-btns">
-            <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, -1)">
-              <i class="fa-solid fa-arrow-up"></i>
-            </button>
-            <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.graficos.length - 1 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, 1)">
-              <i class="fa-solid fa-arrow-down"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-}
-
-window.alterarVisibilidadeItem = function(grupo, index, checked) {
-  if (!prefsTempEdicao || !prefsTempEdicao[grupo][index]) return;
-  prefsTempEdicao[grupo][index].visible = checked;
-
-  // Se o usuário ativar qualquer KPI individualmente, garante que a seção principal de KPIs também fique ativa
-  if (grupo === 'kpis' && checked) {
-    const secKpi = prefsTempEdicao.secoes.find(s => s.id === 'block-kpis');
-    if (secKpi) secKpi.visible = true;
-  }
-};
-
-window.alterarFormatoGrafico = function(index, novoTipo) {
-  if (!prefsTempEdicao || !prefsTempEdicao.graficos[index]) return;
-  prefsTempEdicao.graficos[index].type = novoTipo;
-};
-
-window.moverItemLista = function(grupo, index, direcao) {
-  if (!prefsTempEdicao || !prefsTempEdicao[grupo]) return;
-  const lista = prefsTempEdicao[grupo];
-  const novoIndex = index + direcao;
-  if (novoIndex < 0 || novoIndex >= lista.length) return;
-  if (lista[novoIndex].orderable === false) return;
-
-  const temp = lista[index];
-  lista[index] = lista[novoIndex];
-  lista[novoIndex] = temp;
-
-  renderizarListasModalConfig();
-};
-
-window.abrirModalEditarDash = function() {
-  prefsTempEdicao = getPreferenciasDash();
-  renderizarListasModalConfig();
-  document.getElementById('modalEditDash').style.display = 'flex';
-};
-
-window.fecharModalEditarDash = function() {
-  document.getElementById('modalEditDash').style.display = 'none';
-};
-
-window.salvarPreferenciasDash = function() {
-  if (prefsTempEdicao) {
-    localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsTempEdicao));
-  }
-  aplicarLayoutEOrdemDash();
-  atualizarDashboard();
-  fecharModalEditarDash();
-};
-
-window.restaurarPadraoDash = function() {
-  localStorage.removeItem('nexos_dash_prefs_v3');
-  aplicarLayoutEOrdemDash();
-  atualizarDashboard();
-  fecharModalEditarDash();
-};
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-}
+    window.fecharModalAtualizacao = function() {
+      const versaoAtualSistema = "nexos_update_v2026_11_dia15";
+      localStorage.setItem(versaoAtualSistema, 'true');
+      const modal = document.getElementById('updateModalRelease');
+      if (modal) modal.style.display = 'none';
+    };
+  </script>
+</body>
+</html>
