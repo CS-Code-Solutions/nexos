@@ -7,22 +7,33 @@ let manutencoesGlobais = [];
 let horasExtrasGlobais = [];
 let chartsInstancias = {};
 
+// Configuração padrão com suporte a ordenação de seções e gráficos
 const PREFS_DEFAULT = {
-  showQuick: true,
-  showKpis: true,
-  showPreventivas: true,
-  showUltimos: true,
-  chartTipos: { visible: true, type: 'doughnut' },
-  chartReceita: { visible: true, type: 'bar' },
-  chartEvolucao: { visible: true, type: 'line' },
-  chartClientes: { visible: true, type: 'bar' }
+  secoes: [
+    { id: 'block-quick-actions', label: 'Barra de Ações Rápidas', visible: true },
+    { id: 'block-kpis', label: 'Cartões de Indicadores (KPIs)', visible: true },
+    { id: 'charts-container', label: 'Painel de Gráficos', visible: true },
+    { id: 'widget-preventivas-card', label: 'Radar de Preventivas', visible: true },
+    { id: 'widget-ultimos-rs-card', label: 'Lista de Últimos Relatórios', visible: true }
+  ],
+  graficos: [
+    { id: 'card-chart-tipos', label: 'Tipos de Atendimento', visible: true, type: 'doughnut', allowedTypes: ['doughnut', 'pie', 'bar'] },
+    { id: 'card-chart-receita', label: 'Composição de Faturamento', visible: true, type: 'bar', allowedTypes: ['bar', 'doughnut', 'polarArea'], sensitive: true },
+    { id: 'card-chart-evolucao', label: 'Evolução Mensal (6 Meses)', visible: true, type: 'line', allowedTypes: ['line', 'bar'] },
+    { id: 'card-chart-clientes', label: 'Top 5 Clientes Atendidos', visible: true, type: 'bar', allowedTypes: ['bar', 'pie'] }
+  ]
 };
+
+let prefsTempEdicao = null;
 
 function getPreferenciasDash() {
   try {
-    const salvo = localStorage.getItem('nexos_dash_prefs');
+    const salvo = localStorage.getItem('nexos_dash_prefs_v2');
     if (salvo) {
-      return { ...PREFS_DEFAULT, ...JSON.parse(salvo) };
+      const parsed = JSON.parse(salvo);
+      if (Array.isArray(parsed.secoes) && Array.isArray(parsed.graficos)) {
+        return parsed;
+      }
     }
   } catch (e) {
     console.warn("Erro ao ler preferências do dashboard:", e);
@@ -35,7 +46,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
-    aplicarVisibilidadeBlocos();
+    aplicarLayoutEOrdemDash();
     await carregarTodosDadosDashboard();
 
     DataSync.listen('rg_reports', () => carregarTodosDadosDashboard());
@@ -64,7 +75,6 @@ async function carregarTodosDadosDashboard() {
   }
 }
 
-// Filtra relatórios de acordo com o seletor de período
 function filtrarPorPeriodo(lista, campoData = 'date') {
   const filtro = document.getElementById('filtroPeriodo')?.value || 'mes_atual';
   if (filtro === 'todos') return lista;
@@ -117,11 +127,9 @@ window.atualizarDashboard = function() {
   const relatoriosFiltrados = filtrarPorPeriodo(relatoriosGlobais, 'date');
   const horasFiltradas = filtrarPorPeriodo(horasExtrasGlobais, 'data');
 
-  // 1. CÁLCULO DOS INDICADORES (KPIs)
   let totalFaturamento = 0;
   let totalMaoDeObra = 0;
   let totalEmpreitada = 0;
-  let totalDeslocamento = 0;
   let totalDespesas = 0;
   let totalHorasTrab = 0;
 
@@ -135,7 +143,6 @@ window.atualizarDashboard = function() {
 
     const despesasItem = vDesloc + vHosp + vOutras;
     totalDespesas += despesasItem;
-    totalDeslocamento += vDesloc;
 
     if (vTotal > 0) {
       totalFaturamento += vTotal;
@@ -151,7 +158,6 @@ window.atualizarDashboard = function() {
       totalEmpreitada += vEmpreitada;
     }
 
-    // Soma horas trabalhadas apontadas no relatório
     const hApontadas = parseValorNumerico(r.totalHoras || r.horasTrabalhadas);
     totalHorasTrab += hApontadas;
   });
@@ -167,7 +173,6 @@ window.atualizarDashboard = function() {
   document.getElementById('kpi-horas-totais').textContent = formatarHorasDecimais(totalHorasTrab);
   document.getElementById('kpi-horas-extras').textContent = formatarHorasDecimais(totalHorasExtras);
 
-  // Preventivas futuras ou de hoje
   const hojeStr = new Date().toISOString().split('T')[0];
   const preventivasAtivas = manutencoesGlobais
     .filter(m => (m.data || '') >= hojeStr)
@@ -175,18 +180,19 @@ window.atualizarDashboard = function() {
 
   document.getElementById('kpi-preventivas').textContent = preventivasAtivas.length;
 
-  // 2. RENDERIZA OS GRÁFICOS CONFORME PREFERÊNCIAS
-  if (prefs.chartTipos.visible) renderChartTipos(relatoriosFiltrados, prefs.chartTipos.type);
-  if (prefs.chartReceita.visible) renderChartReceita(totalMaoDeObra, totalEmpreitada, totalDespesas, prefs.chartReceita.type);
-  if (prefs.chartEvolucao.visible) renderChartEvolucao(relatoriosGlobais, prefs.chartEvolucao.type);
-  if (prefs.chartClientes.visible) renderChartClientes(relatoriosFiltrados, prefs.chartClientes.type);
+  // Renderiza cada gráfico configurado
+  prefs.graficos.forEach(g => {
+    if (!g.visible) return;
+    if (g.id === 'card-chart-tipos') renderChartTipos(relatoriosFiltrados, g.type);
+    if (g.id === 'card-chart-receita') renderChartReceita(totalMaoDeObra, totalEmpreitada, totalDespesas, g.type);
+    if (g.id === 'card-chart-evolucao') renderChartEvolucao(relatoriosGlobais, g.type);
+    if (g.id === 'card-chart-clientes') renderChartClientes(relatoriosFiltrados, g.type);
+  });
 
-  // 3. RENDERIZA WIDGETS OPERACIONAIS
   renderWidgetPreventivas(preventivasAtivas);
   renderWidgetUltimosRS(relatoriosGlobais);
 };
 
-// Destrói gráfico anterior antes de desenhar o novo formato
 function recriarCanvasChart(canvasId, config) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return;
@@ -384,48 +390,135 @@ function renderWidgetUltimosRS(lista) {
 }
 
 // =========================================================================
-// CONTROLES DO MODAL DE PERSONALIZAÇÃO DO DASHBOARD
+// APLICAÇÃO DE VISIBILIDADE E ORDEM NO PAINEL
 // =========================================================================
 
-function aplicarVisibilidadeBlocos() {
+function aplicarLayoutEOrdemDash() {
   const prefs = getPreferenciasDash();
 
-  const toggleEl = (id, show) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = show ? '' : 'none';
-  };
+  // Aplica ordem e visibilidade das seções principais
+  prefs.secoes.forEach((sec, index) => {
+    const el = document.getElementById(sec.id);
+    if (!el) return;
+    el.style.order = index;
+    el.style.display = sec.visible ? '' : 'none';
+  });
 
-  toggleEl('block-quick-actions', prefs.showQuick);
-  toggleEl('block-kpis', prefs.showKpis);
-  toggleEl('widget-preventivas-card', prefs.showPreventivas);
-  toggleEl('widget-ultimos-rs-card', prefs.showUltimos);
+  // Se apenas um dos widgets laterais (Preventivas ou Últimos RS) estiver visível, expande para largura total
+  const prevVisivel = prefs.secoes.find(s => s.id === 'widget-preventivas-card')?.visible;
+  const ultVisivel = prefs.secoes.find(s => s.id === 'widget-ultimos-rs-card')?.visible;
+  const elPrev = document.getElementById('widget-preventivas-card');
+  const elUlt = document.getElementById('widget-ultimos-rs-card');
+  if (elPrev && elUlt) {
+    elPrev.className = (prevVisivel && !ultVisivel) ? 'card span-12' : 'card span-6';
+    elUlt.className = (ultVisivel && !prevVisivel) ? 'card span-12' : 'card span-6';
+  }
 
-  toggleEl('card-chart-tipos', prefs.chartTipos.visible);
-  toggleEl('card-chart-receita', prefs.chartReceita.visible);
-  toggleEl('card-chart-evolucao', prefs.chartEvolucao.visible);
-  toggleEl('card-chart-clientes', prefs.chartClientes.visible);
+  // Aplica ordem e visibilidade individual dos gráficos
+  prefs.graficos.forEach((g, index) => {
+    const el = document.getElementById(g.id);
+    if (!el) return;
+    el.style.order = index;
+    el.style.display = g.visible ? '' : 'none';
+  });
 }
 
+// =========================================================================
+// CONTROLES DO MODAL DE PERSONALIZAÇÃO (VISIBILIDADE + FORMATO + ORDEM)
+// =========================================================================
+
+const LABELS_FORMATO = {
+  doughnut: 'Rosca (Donut)',
+  pie: 'Pizza',
+  bar: 'Barras',
+  line: 'Linha Suave',
+  polarArea: 'Área Polar'
+};
+
+function renderizarListasModalConfig() {
+  const containerSecoes = document.getElementById('lista-config-secoes');
+  const containerGraficos = document.getElementById('lista-config-graficos');
+  const isTecnico = localStorage.getItem('rg_user_role') === 'tecnico';
+
+  if (containerSecoes && prefsTempEdicao) {
+    containerSecoes.innerHTML = prefsTempEdicao.secoes.map((sec, idx) => `
+      <div class="config-row">
+        <label class="config-row-left">
+          <input type="checkbox" ${sec.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('secoes', ${idx}, this.checked)">
+          <span>${escapeHTML(sec.label)}</span>
+        </label>
+        <div class="config-row-right">
+          <div class="order-btns">
+            <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, -1)">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+            <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.secoes.length - 1 ? 'disabled' : ''} onclick="moverItemLista('secoes', ${idx}, 1)">
+              <i class="fa-solid fa-arrow-down"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  if (containerGraficos && prefsTempEdicao) {
+    containerGraficos.innerHTML = prefsTempEdicao.graficos.map((g, idx) => {
+      if (isTecnico && g.sensitive) return '';
+      const optionsHtml = g.allowedTypes.map(t =>
+        `<option value="${t}" ${g.type === t ? 'selected' : ''}>${LABELS_FORMATO[t] || t}</option>`
+      ).join('');
+
+      return `
+        <div class="config-row">
+          <label class="config-row-left">
+            <input type="checkbox" ${g.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('graficos', ${idx}, this.checked)">
+            <span>${escapeHTML(g.label)}</span>
+          </label>
+          <div class="config-row-right">
+            <select onchange="alterarFormatoGrafico(${idx}, this.value)">
+              ${optionsHtml}
+            </select>
+            <div class="order-btns">
+              <button type="button" class="btn-order" title="Subir" ${idx === 0 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, -1)">
+                <i class="fa-solid fa-arrow-up"></i>
+              </button>
+              <button type="button" class="btn-order" title="Descer" ${idx === prefsTempEdicao.graficos.length - 1 ? 'disabled' : ''} onclick="moverItemLista('graficos', ${idx}, 1)">
+                <i class="fa-solid fa-arrow-down"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+window.alterarVisibilidadeItem = function(grupo, index, checked) {
+  if (!prefsTempEdicao || !prefsTempEdicao[grupo][index]) return;
+  prefsTempEdicao[grupo][index].visible = checked;
+};
+
+window.alterarFormatoGrafico = function(index, novoTipo) {
+  if (!prefsTempEdicao || !prefsTempEdicao.graficos[index]) return;
+  prefsTempEdicao.graficos[index].type = novoTipo;
+};
+
+window.moverItemLista = function(grupo, index, direcao) {
+  if (!prefsTempEdicao || !prefsTempEdicao[grupo]) return;
+  const lista = prefsTempEdicao[grupo];
+  const novoIndex = index + direcao;
+  if (novoIndex < 0 || novoIndex >= lista.length) return;
+
+  const temp = lista[index];
+  lista[index] = lista[novoIndex];
+  lista[novoIndex] = temp;
+
+  renderizarListasModalConfig();
+};
+
 window.abrirModalEditarDash = function() {
-  const prefs = getPreferenciasDash();
-
-  document.getElementById('cfg-show-quick').checked = prefs.showQuick;
-  document.getElementById('cfg-show-kpis').checked = prefs.showKpis;
-  document.getElementById('cfg-show-preventivas').checked = prefs.showPreventivas;
-  document.getElementById('cfg-show-ultimos').checked = prefs.showUltimos;
-
-  document.getElementById('cfg-chart-tipos').checked = prefs.chartTipos.visible;
-  document.getElementById('type-chart-tipos').value = prefs.chartTipos.type;
-
-  document.getElementById('cfg-chart-receita').checked = prefs.chartReceita.visible;
-  document.getElementById('type-chart-receita').value = prefs.chartReceita.type;
-
-  document.getElementById('cfg-chart-evolucao').checked = prefs.chartEvolucao.visible;
-  document.getElementById('type-chart-evolucao').value = prefs.chartEvolucao.type;
-
-  document.getElementById('cfg-chart-clientes').checked = prefs.chartClientes.visible;
-  document.getElementById('type-chart-clientes').value = prefs.chartClientes.type;
-
+  prefsTempEdicao = getPreferenciasDash();
+  renderizarListasModalConfig();
   document.getElementById('modalEditDash').style.display = 'flex';
 };
 
@@ -434,38 +527,17 @@ window.fecharModalEditarDash = function() {
 };
 
 window.salvarPreferenciasDash = function() {
-  const novasPrefs = {
-    showQuick: document.getElementById('cfg-show-quick').checked,
-    showKpis: document.getElementById('cfg-show-kpis').checked,
-    showPreventivas: document.getElementById('cfg-show-preventivas').checked,
-    showUltimos: document.getElementById('cfg-show-ultimos').checked,
-    chartTipos: {
-      visible: document.getElementById('cfg-chart-tipos').checked,
-      type: document.getElementById('type-chart-tipos').value
-    },
-    chartReceita: {
-      visible: document.getElementById('cfg-chart-receita').checked,
-      type: document.getElementById('type-chart-receita').value
-    },
-    chartEvolucao: {
-      visible: document.getElementById('cfg-chart-evolucao').checked,
-      type: document.getElementById('type-chart-evolucao').value
-    },
-    chartClientes: {
-      visible: document.getElementById('cfg-chart-clientes').checked,
-      type: document.getElementById('type-chart-clientes').value
-    }
-  };
-
-  localStorage.setItem('nexos_dash_prefs', JSON.stringify(novasPrefs));
-  aplicarVisibilidadeBlocos();
+  if (prefsTempEdicao) {
+    localStorage.setItem('nexos_dash_prefs_v2', JSON.stringify(prefsTempEdicao));
+  }
+  aplicarLayoutEOrdemDash();
   atualizarDashboard();
   fecharModalEditarDash();
 };
 
 window.restaurarPadraoDash = function() {
-  localStorage.removeItem('nexos_dash_prefs');
-  aplicarVisibilidadeBlocos();
+  localStorage.removeItem('nexos_dash_prefs_v2');
+  aplicarLayoutEOrdemDash();
   atualizarDashboard();
   fecharModalEditarDash();
 };
