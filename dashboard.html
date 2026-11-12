@@ -3,10 +3,42 @@
 <head>
 <script>
   (function() {
+    // 1. Aplica o logótipo instantaneamente
     const logoSalva = localStorage.getItem('rg_logo_base64');
     if (logoSalva && logoSalva.startsWith('data:image')) {
       document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
     }
+
+    // 2. Oculta módulos restritos e aplica transição suave imediata (Elimina o Flicker)
+    const userRole = localStorage.getItem('rg_user_role');
+    const isSuperAdmin = (userRole === 'super_admin');
+    let cssRules = 'main { animation: dashFadeIn 0.15s ease-out; } @keyframes dashFadeIn { from { opacity: 0; } to { opacity: 1; } }';
+
+    if (!isSuperAdmin) {
+      if (localStorage.getItem('rg_page_dashboard') !== 'true') {
+        cssRules += 'a[href="dashboard.html"] { display: none !important; }';
+      }
+      if (localStorage.getItem('rg_page_cadastros') === 'false') {
+        cssRules += 'a[href="cadastros.html"] { display: none !important; }';
+      }
+      if (localStorage.getItem('rg_page_relatorios') === 'false') {
+        cssRules += 'a[href="relatorios.html"] { display: none !important; }';
+      }
+      if (localStorage.getItem('rg_page_manutencoes') === 'false') {
+        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
+      }
+      if (localStorage.getItem('rg_mod_horas_extras') !== 'true') {
+        cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
+      }
+      if (localStorage.getItem('rg_page_orcamentos') === 'false') {
+        cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
+      }
+    }
+    if (userRole === 'tecnico') {
+      cssRules += '.finance-sensitive { display: none !important; }';
+    }
+
+    document.write('<style>' + cssRules + '</style>');
   })();
 </script>
 
@@ -30,7 +62,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <script src="firebase-init.js?v=2"></script>
-  <script src="firebase-sync.js?v=2"></script>
+  <script src="firebase-sync.js?v=3"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -210,7 +242,7 @@
     .widget-item:last-child { margin-bottom: 0; }
 
     /* =====================================================================
-       MODAL DE PERSONALIZAÇÃO (MOBILE E DESKTOP COM SETAS ALINHADAS)
+       MODAL DE PERSONALIZAÇÃO
        ===================================================================== */
     #modalEditDash {
       display: none;
@@ -339,51 +371,7 @@
       justify-content: center;
       gap: 6px;
     }
-    @media (max-width: 480px) {
-      .config-row-select {
-        order: 3;
-        width: 100%;
-        padding-top: 6px;
-        border-top: 1px dashed #E2E8F0;
-      }
-      .config-row-select select {
-        width: 100% !important;
-        max-width: none;
-      }
-      .edit-modal-footer button {
-        flex: 1;
-      }
-    }
   </style>
-
-  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS INSTANTANEAMENTE (ANTI-FLICKER) -->
-  <script>
-    (function() {
-      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-
-      let cssRules = '';
-      if (!isSuperAdmin && showManutencoes === 'false') {
-        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
-      }
-      if (!isSuperAdmin && showHoras !== 'true') {
-        cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
-      }
-      if (!isSuperAdmin && showOrcamentos === 'false') {
-        cssRules += '#d-nav-orcamentos, #nav-item-orcamentos { display: none !important; }';
-      }
-      if (userRole === 'tecnico') {
-        cssRules += '.finance-sensitive { display: none !important; }';
-      }
-
-      if (cssRules) {
-        document.write('<style>' + cssRules + '</style>');
-      }
-    })();
-  </script>
 </head>
 <body>
 
@@ -620,72 +608,6 @@
     </div>
   </div>
 
-  <!-- MODAL FLUTUANTE DE ATUALIZAÇÃO DO SISTEMA (RELEASE NOTES) -->
-  <div id="updateModalRelease" style="display: none; position: fixed; inset: 0; background: rgba(11, 19, 43, 0.88); z-index: 10010; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
-    <div style="background: white; width: 100%; max-width: 520px; max-height: 85vh; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;">
-      <div style="background: var(--deep-navy, #0B132B); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--electric-cyan, #00F5D4); flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <i class="fa-solid fa-bullhorn" style="font-size: 1.2rem; color: var(--electric-cyan, #00F5D4);"></i>
-          <h3 style="margin: 0; font-size: 1.05rem; font-weight: bold;">Novidades na Versão Recente</h3>
-        </div>
-        <span style="background: rgba(0, 245, 212, 0.15); color: var(--electric-cyan, #00F5D4); font-size: 0.72rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;">NexOS Update</span>
-      </div>
-      <div style="padding: 18px; color: #334155; font-size: 0.9rem; line-height: 1.5; overflow-y: auto; flex: 1;">
-        <p style="margin-top: 0; color: #475569; font-size: 0.86rem;">Olá! Preparamos importantes optimizações e melhorias na experiência de uso do sistema:</p>
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
-          <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #3B82F6;">
-            <i class="fa-solid fa-chart-pie" style="font-size: 1.2rem; color: #3B82F6; margin-top: 2px;"></i>
-            <div>
-              <strong style="color: #0B132B; display: block; font-size: 0.9rem; margin-bottom: 2px;">Novo Painel de Controle Personalizável</strong>
-              <span style="font-size: 0.83rem; color: #64748B;">Acompanhe faturamento, horas técnicas e preventivas em gráficos interativos, altere formatos e reordene os blocos como preferir.</span>
-            </div>
-          </div>
-          <div style="display: flex; gap: 12px; background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 4px solid #10B981;">
-            <i class="fa-solid fa-file-signature" style="font-size: 1.2rem; color: #10B981; margin-top: 2px;"></i>
-            <div>
-              <strong style="color: #0B132B; display: block; font-size: 0.9rem; margin-bottom: 2px;">Segurança de Valores na Assinatura</strong>
-              <span style="font-size: 0.83rem; color: #64748B;">O cliente final que assina o relatório digital não visualiza valores monetários, garantindo sigilo comercial.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style="background: #F1F5F9; padding: 12px 18px; display: flex; justify-content: flex-end; border-top: 1px solid #E2E8F0; flex-shrink: 0;">
-        <button type="button" class="btn" onclick="fecharModalAtualizacao()" style="background-color: #10B981; color: white; font-weight: bold; padding: 10px 22px; border-radius: 6px; cursor: pointer; border: none; font-size: 0.88rem;">
-          <i class="fa-solid fa-check"></i> OK, Entendi
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script src="dashboard.js?v=5"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const bottomNav = document.getElementById('mainBottomNav');
-      if (bottomNav) {
-        const activeItem = bottomNav.querySelector('a.active');
-        if (activeItem) {
-          setTimeout(() => {
-            bottomNav.scrollTo({
-              left: activeItem.offsetLeft - (bottomNav.offsetWidth / 2) + (activeItem.offsetWidth / 2),
-              behavior: 'smooth'
-            });
-          }, 100);
-        }
-      }
-
-      const versaoAtualSistema = "nexos_update_v2026_11_dia15";
-      if (!localStorage.getItem(versaoAtualSistema)) {
-        const modal = document.getElementById('updateModalRelease');
-        if (modal) modal.style.display = 'flex';
-      }
-    });
-
-    window.fecharModalAtualizacao = function() {
-      const versaoAtualSistema = "nexos_update_v2026_11_dia15";
-      localStorage.setItem(versaoAtualSistema, 'true');
-      const modal = document.getElementById('updateModalRelease');
-      if (modal) modal.style.display = 'none';
-    };
-  </script>
+  <script src="dashboard.js?v=6"></script>
 </body>
 </html>
