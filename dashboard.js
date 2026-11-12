@@ -33,9 +33,23 @@ const PREFS_DEFAULT = {
 
 let prefsTempEdicao = null;
 
+// Retorna a chave única baseada no UID do usuário logado atualmente
+function getStorageKeyPrefs() {
+  const user = firebase.auth().currentUser;
+  const uid = user ? user.uid : 'guest';
+  return `nexos_dash_prefs_v3_${uid}`;
+}
+
+function getRemoteKeyPrefs() {
+  const user = firebase.auth().currentUser;
+  const uid = user ? user.uid : 'guest';
+  return `rg_dash_prefs_${uid}`;
+}
+
 function getPreferenciasDash() {
   try {
-    const salvo = localStorage.getItem('nexos_dash_prefs_v3');
+    const key = getStorageKeyPrefs();
+    const salvo = localStorage.getItem(key);
     if (salvo) {
       const parsed = JSON.parse(salvo);
       if (Array.isArray(parsed.secoes) && Array.isArray(parsed.kpis) && Array.isArray(parsed.graficos)) {
@@ -79,13 +93,16 @@ firebase.auth().onAuthStateChanged(async (user) => {
 
     DataSync.listen('rg_reports', () => carregarTodosDadosDashboard());
     DataSync.listen('rg_manutencoes', () => carregarTodosDadosDashboard());
-    DataSync.listen('rg_dash_prefs', (prefsNuvem) => {
+    
+    // Ouve as preferências isoladas deste utilizador específico na nuvem
+    DataSync.listen(getRemoteKeyPrefs(), (prefsNuvem) => {
       if (prefsNuvem && typeof prefsNuvem === 'object') {
-        localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsNuvem));
+        localStorage.setItem(getStorageKeyPrefs(), JSON.stringify(prefsNuvem));
         aplicarLayoutEOrdemDash();
         atualizarDashboard();
       }
     });
+
     if (localStorage.getItem('rg_mod_horas_extras') === 'true') {
       DataSync.listen('rg_horas_extras', () => carregarTodosDadosDashboard());
     }
@@ -94,12 +111,12 @@ firebase.auth().onAuthStateChanged(async (user) => {
 
 async function carregarTodosDadosDashboard() {
   try {
-    // Sincroniza preferências da nuvem (Firestore) com prioridade
+    // Sincroniza preferências da nuvem (Firestore) usando a chave isolada do utilizador
     if (typeof DataSync !== 'undefined' && DataSync.load) {
       try {
-        const prefsNuvem = await DataSync.load('rg_dash_prefs');
+        const prefsNuvem = await DataSync.load(getRemoteKeyPrefs());
         if (prefsNuvem && typeof prefsNuvem === 'object' && Array.isArray(prefsNuvem.secoes)) {
-          localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsNuvem));
+          localStorage.setItem(getStorageKeyPrefs(), JSON.stringify(prefsNuvem));
         }
       } catch (errPrefs) {
         console.warn("Não foi possível carregar preferências da nuvem:", errPrefs);
@@ -623,10 +640,10 @@ window.fecharModalEditarDash = function() {
 
 window.salvarPreferenciasDash = async function() {
   if (prefsTempEdicao) {
-    localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsTempEdicao));
+    localStorage.setItem(getStorageKeyPrefs(), JSON.stringify(prefsTempEdicao));
     try {
       if (typeof DataSync !== 'undefined' && DataSync.save) {
-        await DataSync.save('rg_dash_prefs', prefsTempEdicao);
+        await DataSync.save(getRemoteKeyPrefs(), prefsTempEdicao);
       }
     } catch (err) {
       console.warn("Erro ao salvar preferências na nuvem:", err);
@@ -638,10 +655,10 @@ window.salvarPreferenciasDash = async function() {
 };
 
 window.restaurarPadraoDash = async function() {
-  localStorage.removeItem('nexos_dash_prefs_v3');
+  localStorage.removeItem(getStorageKeyPrefs());
   try {
     if (typeof DataSync !== 'undefined' && DataSync.save) {
-      await DataSync.save('rg_dash_prefs', PREFS_DEFAULT);
+      await DataSync.save(getRemoteKeyPrefs(), PREFS_DEFAULT);
     }
   } catch (err) {
     console.warn("Erro ao restaurar preferências na nuvem:", err);
