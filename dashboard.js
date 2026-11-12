@@ -48,7 +48,28 @@ function getPreferenciasDash() {
   return JSON.parse(JSON.stringify(PREFS_DEFAULT));
 }
 
-// Autenticação e Sincronização em Tempo Real
+// --- RENDERIZAÇÃO IMEDIATA COM CACHE LOCAL (ELIMINA PISCADAS) ---
+document.addEventListener("DOMContentLoaded", () => {
+  aplicarLayoutEOrdemDash();
+  
+  try {
+    const cacheReports = localStorage.getItem('rg_reports');
+    const cacheManuts = localStorage.getItem('rg_manutencoes');
+    const cacheHoras = localStorage.getItem('rg_horas_extras');
+
+    if (cacheReports) relatoriosGlobais = JSON.parse(cacheReports) || [];
+    if (cacheManuts) manutencoesGlobais = JSON.parse(cacheManuts) || [];
+    if (cacheHoras) horasExtrasGlobais = JSON.parse(cacheHoras) || [];
+
+    if (relatoriosGlobais.length || manutencoesGlobais.length) {
+      atualizarDashboard();
+    }
+  } catch (e) {
+    console.warn("Aviso ao carregar cache prévio do dashboard:", e);
+  }
+});
+
+// Autenticação e Sincronização em Tempo Real com a Nuvem
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
     window.location.href = 'login.html';
@@ -187,7 +208,6 @@ window.atualizarDashboard = function() {
 
   document.getElementById('kpi-preventivas').textContent = preventivasAtivas.length;
 
-  // Renderiza cada gráfico configurado
   prefs.graficos.forEach(g => {
     if (!g.visible) return;
     if (g.id === 'card-chart-tipos') renderChartTipos(relatoriosFiltrados, g.type);
@@ -404,14 +424,9 @@ window.abrirRelatoriosDoCliente = function(cliente) {
   window.location.href = `relatorios.html?cliente=${encodeURIComponent(cliente)}`;
 };
 
-// =========================================================================
-// APLICAÇÃO DE VISIBILIDADE E ORDEM NO PAINEL
-// =========================================================================
-
 function aplicarLayoutEOrdemDash() {
   const prefs = getPreferenciasDash();
 
-  // 1. Aplica ordem e visibilidade individual dos KPIs
   let algumKpiVisivel = false;
   prefs.kpis.forEach((kpi, index) => {
     const el = document.getElementById(kpi.id);
@@ -423,7 +438,6 @@ function aplicarLayoutEOrdemDash() {
     el.style.display = kpi.visible ? '' : 'none';
   });
 
-  // 2. Aplica ordem e visibilidade das seções principais
   prefs.secoes.forEach((sec, index) => {
     const el = document.getElementById(sec.id);
     if (!el) return;
@@ -436,7 +450,6 @@ function aplicarLayoutEOrdemDash() {
     }
   });
 
-  // Expande widget lateral se o outro estiver oculto
   const prevVisivel = prefs.secoes.find(s => s.id === 'widget-preventivas-card')?.visible;
   const ultVisivel = prefs.secoes.find(s => s.id === 'widget-ultimos-rs-card')?.visible;
   const elPrev = document.getElementById('widget-preventivas-card');
@@ -446,7 +459,6 @@ function aplicarLayoutEOrdemDash() {
     elUlt.className = (ultVisivel && !prevVisivel) ? 'card span-12' : 'card span-6';
   }
 
-  // 3. Aplica ordem e visibilidade individual dos gráficos
   prefs.graficos.forEach((g, index) => {
     const el = document.getElementById(g.id);
     if (!el) return;
@@ -454,10 +466,6 @@ function aplicarLayoutEOrdemDash() {
     el.style.display = g.visible ? '' : 'none';
   });
 }
-
-// =========================================================================
-// CONTROLES DO MODAL DE PERSONALIZAÇÃO (VISIBILIDADE + FORMATO + ORDEM)
-// =========================================================================
 
 const LABELS_FORMATO = {
   doughnut: 'Rosca (Donut)',
@@ -558,7 +566,6 @@ window.alterarVisibilidadeItem = function(grupo, index, checked) {
   if (!prefsTempEdicao || !prefsTempEdicao[grupo][index]) return;
   prefsTempEdicao[grupo][index].visible = checked;
 
-  // Se o usuário ativar qualquer KPI individualmente, garante que a seção principal de KPIs também fique ativa
   if (grupo === 'kpis' && checked) {
     const secKpi = prefsTempEdicao.secoes.find(s => s.id === 'block-kpis');
     if (secKpi) secKpi.visible = true;
