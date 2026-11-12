@@ -52,9 +52,71 @@
     .desktop-nav a.active {
       color: #00F5D4;
     }
+
+    /* Grade de Botões das Categorias de Configuração */
+    .config-tabs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .config-tab-btn {
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      padding: 12px 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      color: #334155;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .config-tab-btn i {
+      font-size: 1.25rem;
+      color: #0B132B;
+      transition: color 0.2s ease;
+    }
+    .config-tab-btn:hover {
+      border-color: #0B132B;
+      background: #F1F5F9;
+    }
+    .config-tab-btn.active {
+      background: #0B132B;
+      color: #00F5D4;
+      border-color: #00F5D4;
+      box-shadow: 0 4px 10px rgba(11, 19, 43, 0.2);
+    }
+    .config-tab-btn.active i {
+      color: #00F5D4;
+    }
+
+    .config-panel-section {
+      display: none;
+      animation: fadeInTab 0.2s ease;
+    }
+    .config-panel-section.active {
+      display: block;
+    }
+    @keyframes fadeInTab {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     @media (max-width: 768px) {
       .desktop-nav {
         display: none !important;
+      }
+      .config-tabs-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .config-tabs-grid .config-tab-btn:last-child {
+        grid-column: span 2;
       }
     }
     @media (min-width: 769px) {
@@ -127,141 +189,180 @@
         <span id="statusText" style="color: #10B981; font-weight: bold;">🟢 A verificar ligação à nuvem...</span>
       </div>
 
-      <form id="configForm">
-        <h3>🏢 Dados da Empresa & Numeração de RS</h3>
-        
-        <div class="form-group">
-          <label for="configName">Razão Social / Nome:</label>
-          <input type="text" id="configName">
-        </div>
+      <!-- MENU DE BOTÕES DAS CATEGORIAS -->
+      <div class="config-tabs-grid">
+        <button type="button" class="config-tab-btn active" data-target="sec-empresa" onclick="abrirSecaoConfig('sec-empresa', this)">
+          <i class="fa-solid fa-building"></i>
+          <span>Dados da Empresa</span>
+        </button>
 
-        <div class="form-group">
-          <label for="configTech">Técnico / Responsável Padrão:</label>
-          <input type="text" id="configTech">
-        </div>
+        <button type="button" class="config-tab-btn" data-target="sec-tecnico" onclick="abrirSecaoConfig('sec-tecnico', this)">
+          <i class="fa-solid fa-user-gear"></i>
+          <span>Dados do Técnico</span>
+        </button>
 
-        <div class="form-group" style="margin-top: 15px;">
-          <label><strong>Assinatura Fixa do Técnico (Responsável):</strong></label>
-          <div style="border: 1px solid #CBD5E1; background: #FFF; width: 100%; max-width: 400px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
-            <canvas id="techSignatureCanvas" width="400" height="150" style="width: 100%; height: 150px; cursor: crosshair; touch-action: none; background: #fff;"></canvas>
-          </div>
-          
-          <div id="containerPreviewAssinatura" style="margin-bottom: 10px; display: none;">
-            <span style="font-size: 0.8rem; color: #10B981; font-weight: bold; display: block; margin-bottom: 4px;">✅ Assinatura Ativa na Nuvem:</span>
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 6px; border-radius: 4px; display: inline-block;">
-              <img id="imgPreviewAssinatura" src="" alt="Assinatura Salva" style="max-height: 60px; display: block;">
-            </div>
-          </div>
+        <button type="button" class="config-tab-btn" data-target="sec-navegacao" onclick="abrirSecaoConfig('sec-navegacao', this)">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Navegação & RS</span>
+        </button>
 
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="salvarAssinaturaTech()">💾 Guardar Assinatura Apenas</button>
-            <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 6px 12px; font-size: 0.85rem;" onclick="limparAssinaturaTech()">✖ Limpar Assinatura</button>
-          </div>
-        </div>
+        <button type="button" class="config-tab-btn" data-target="sec-bancarios" onclick="abrirSecaoConfig('sec-bancarios', this)">
+          <i class="fa-solid fa-building-columns"></i>
+          <span>Dados Bancários</span>
+        </button>
 
-        <div class="form-group">
-          <label for="configDoc">CNPJ / Documento:</label>
-          <input type="text" id="configDoc">
-        </div>
-
-        <div class="form-group">
-          <label for="configEmail">E-mail Comercial:</label>
-          <input type="email" id="configEmail">
-        </div>
-
-        <div class="form-group">
-          <label for="configContact">Telefone / WhatsApp:</label>
-          <input type="text" id="configContact">
-        </div>
-
-        <div class="form-group">
-          <label for="configLocation">Endereço Completo:</label>
-          <input type="text" id="configLocation">
-        </div>
-
-        <div class="form-group">
-          <label for="configNextRs">Próximo Número de Sequência de RS (Inicial / Automático):</label>
-          <input type="number" id="configNextRs" value="1000">
-        </div>
-
-        <!-- PREFERÊNCIA DE PÁGINA INICIAL (SEM DASHBOARD POR HORA) -->
-        <h3 style="margin-top: 25px;">🏠 Preferências de Navegação</h3>
-        <div class="form-group">
-          <label for="configPaginaInicial">Página Inicial ao Abrir o Sistema:</label>
-          <select id="configPaginaInicial" style="width: 100%; padding: 10px; border: 1px solid #CBD5E1; border-radius: 6px; background: #FFF; color: #0B132B; font-weight: bold;">
-            <option value="relatorios.html">Relatórios (RS)</option>
-            <option value="novo-relatorio.html">Novo Relatório (RS)</option>
-            <option value="cadastros.html">Cadastros</option>
-            <option value="manutencoes.html" id="opt-inicio-plan">Planejamento de Preventivas</option>
-            <option value="horas-extras.html" id="opt-inicio-horas">Horas Extras</option>
-          </select>
-          <small style="display: block; color: #64748B; font-size: 0.8rem; margin-top: 4px;">
-            Define qual tela será carregada automaticamente após o login ou ao tocar no logótipo.
-          </small>
-        </div>
-
-        <h3 style="margin-top: 25px;">💳 Dados Bancários - Conta 1</h3>
-        <div class="form-group">
-          <label for="configNomeConta1">Nome / Apelido da Conta 1:</label>
-          <input type="text" id="configNomeConta1" placeholder="Ex: Conta Principal Nubank">
-        </div>
-        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-          <div class="form-group">
-            <label for="configBank1">Banco 1:</label>
-            <input type="text" id="configBank1" placeholder="Ex: Nubank">
-          </div>
-          <div class="form-group">
-            <label for="configAgency1">Agência 1:</label>
-            <input type="text" id="configAgency1" placeholder="Ex: 0001">
-          </div>
-          <div class="form-group">
-            <label for="configAccount1">Conta 1:</label>
-            <input type="text" id="configAccount1" placeholder="Ex: 12345-6">
-          </div>
-        </div>
-
-        <h3 style="margin-top: 25px;">💳 Dados Bancários - Conta 2</h3>
-        <div class="form-group">
-          <label for="configNomeConta2">Nome / Apelido da Conta 2:</label>
-          <input type="text" id="configNomeConta2" placeholder="Ex: Bradesco PJ">
-        </div>
-        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-          <div class="form-group">
-            <label for="configBank2">Banco 2:</label>
-            <input type="text" id="configBank2" placeholder="Ex: Bradesco">
-          </div>
-          <div class="form-group">
-            <label for="configAgency2">Agência 2:</label>
-            <input type="text" id="configAgency2" placeholder="Ex: 1234">
-          </div>
-          <div class="form-group">
-            <label for="configAccount2">Conta 2:</label>
-            <input type="text" id="configAccount2" placeholder="Ex: 98765-4">
-          </div>
-        </div>
-
-        <div style="margin-top: 25px; display: flex; gap: 10px;">
-          <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 10px 20px; width: 100%;">GUARDAR TODAS AS CONFIGURAÇÕES</button>
-        </div>
-      </form>
-
-      <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 35px 0;">
-
-      <!-- Botão de Instalação PWA -->
-      <div id="installContainer" style="margin-bottom: 25px;">
-        <button id="btnInstall" type="button" class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 14px 20px; width: 100%; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0, 245, 212, 0.3); cursor: pointer;">
-          📲 Instalar a Página Agora
+        <button type="button" class="config-tab-btn" data-target="sec-backup" onclick="abrirSecaoConfig('sec-backup', this)">
+          <i class="fa-solid fa-database"></i>
+          <span>Backup & App</span>
         </button>
       </div>
 
-      <div>
-        <h3 style="color: var(--deep-navy); margin-bottom: 10px; font-size: 1.2rem;">💾 Backup e Segurança de Dados</h3>
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-          <button type="button" onclick="fazerBackup()" class="btn" style="background-color: var(--tech-blue); color: white; padding: 10px 20px; flex: 1; min-width: 200px; font-weight: bold;">
+      <form id="configForm">
+
+        <!-- 1. DADOS DA EMPRESA -->
+        <div id="sec-empresa" class="config-panel-section active">
+          <h3 style="margin-top: 0; margin-bottom: 15px; color: #0B132B;"><i class="fa-solid fa-building"></i> Dados da Empresa</h3>
+          
+          <div class="form-group">
+            <label for="configName">Razão Social / Nome:</label>
+            <input type="text" id="configName">
+          </div>
+
+          <div class="form-group">
+            <label for="configDoc">CNPJ / Documento:</label>
+            <input type="text" id="configDoc">
+          </div>
+
+          <div class="form-group">
+            <label for="configEmail">E-mail Comercial:</label>
+            <input type="email" id="configEmail">
+          </div>
+
+          <div class="form-group">
+            <label for="configContact">Telefone / WhatsApp:</label>
+            <input type="text" id="configContact">
+          </div>
+
+          <div class="form-group">
+            <label for="configLocation">Endereço Completo:</label>
+            <input type="text" id="configLocation">
+          </div>
+        </div>
+
+        <!-- 2. DADOS DO TÉCNICO -->
+        <div id="sec-tecnico" class="config-panel-section">
+          <h3 style="margin-top: 0; margin-bottom: 15px; color: #0B132B;"><i class="fa-solid fa-user-gear"></i> Dados do Técnico</h3>
+
+          <div class="form-group">
+            <label for="configTech">Técnico / Responsável Padrão:</label>
+            <input type="text" id="configTech">
+          </div>
+
+          <div class="form-group" style="margin-top: 15px;">
+            <label><strong>Assinatura Fixa do Técnico (Responsável):</strong></label>
+            <div style="border: 1px solid #CBD5E1; background: #FFF; width: 100%; max-width: 400px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+              <canvas id="techSignatureCanvas" width="400" height="150" style="width: 100%; height: 150px; cursor: crosshair; touch-action: none; background: #fff;"></canvas>
+            </div>
+            
+            <div id="containerPreviewAssinatura" style="margin-bottom: 10px; display: none;">
+              <span style="font-size: 0.8rem; color: #10B981; font-weight: bold; display: block; margin-bottom: 4px;">✅ Assinatura Ativa na Nuvem:</span>
+              <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 6px; border-radius: 4px; display: inline-block;">
+                <img id="imgPreviewAssinatura" src="" alt="Assinatura Salva" style="max-height: 60px; display: block;">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); padding: 6px 12px; font-size: 0.85rem; font-weight: bold;" onclick="salvarAssinaturaTech()">💾 Guardar Assinatura Apenas</button>
+              <button type="button" class="btn" style="background-color: #64748B; color: #FFF; padding: 6px 12px; font-size: 0.85rem;" onclick="limparAssinaturaTech()">✖ Limpar Assinatura</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. PREFERÊNCIAS DE NAVEGAÇÃO & RS -->
+        <div id="sec-navegacao" class="config-panel-section">
+          <h3 style="margin-top: 0; margin-bottom: 15px; color: #0B132B;"><i class="fa-solid fa-sliders"></i> Preferências de Navegação & Numeração</h3>
+
+          <div class="form-group">
+            <label for="configPaginaInicial">Página Inicial ao Abrir o Sistema:</label>
+            <select id="configPaginaInicial" style="width: 100%; padding: 10px; border: 1px solid #CBD5E1; border-radius: 6px; background: #FFF; color: #0B132B; font-weight: bold;">
+              <option value="relatorios.html">Relatórios (RS)</option>
+              <option value="novo-relatorio.html">Novo Relatório (RS)</option>
+              <option value="cadastros.html">Cadastros</option>
+              <option value="manutencoes.html" id="opt-inicio-plan">Planejamento de Preventivas</option>
+              <option value="horas-extras.html" id="opt-inicio-horas">Horas Extras</option>
+            </select>
+            <small style="display: block; color: #64748B; font-size: 0.8rem; margin-top: 4px;">
+              Define qual tela será carregada automaticamente após o login ou ao tocar no logótipo.
+            </small>
+          </div>
+
+          <div class="form-group" style="margin-top: 15px;">
+            <label for="configNextRs">Próximo Número de Sequência de RS (Inicial / Automático):</label>
+            <input type="number" id="configNextRs" value="1000">
+            <small style="display: block; color: #64748B; font-size: 0.8rem; margin-top: 4px;">
+              Define o número inicial a partir do qual os próximos Relatórios de Serviço serão numerados.
+            </small>
+          </div>
+        </div>
+
+        <!-- 4. DADOS BANCÁRIOS -->
+        <div id="sec-bancarios" class="config-panel-section">
+          <h3 style="margin-top: 0; margin-bottom: 12px; color: #0B132B;"><i class="fa-solid fa-building-columns"></i> Dados Bancários - Conta 1</h3>
+          <div class="form-group">
+            <label for="configNomeConta1">Nome / Apelido da Conta 1:</label>
+            <input type="text" id="configNomeConta1" placeholder="Ex: Conta Principal Nubank">
+          </div>
+          <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label for="configBank1">Banco 1:</label>
+              <input type="text" id="configBank1" placeholder="Ex: Nubank">
+            </div>
+            <div class="form-group">
+              <label for="configAgency1">Agência 1:</label>
+              <input type="text" id="configAgency1" placeholder="Ex: 0001">
+            </div>
+            <div class="form-group">
+              <label for="configAccount1">Conta 1:</label>
+              <input type="text" id="configAccount1" placeholder="Ex: 12345-6">
+            </div>
+          </div>
+
+          <h3 style="margin-top: 25px; margin-bottom: 12px; color: #0B132B;"><i class="fa-solid fa-building-columns"></i> Dados Bancários - Conta 2</h3>
+          <div class="form-group">
+            <label for="configNomeConta2">Nome / Apelido da Conta 2:</label>
+            <input type="text" id="configNomeConta2" placeholder="Ex: Bradesco PJ">
+          </div>
+          <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label for="configBank2">Banco 2:</label>
+              <input type="text" id="configBank2" placeholder="Ex: Bradesco">
+            </div>
+            <div class="form-group">
+              <label for="configAgency2">Agência 2:</label>
+              <input type="text" id="configAgency2" placeholder="Ex: 1234">
+            </div>
+            <div class="form-group">
+              <label for="configAccount2">Conta 2:</label>
+              <input type="text" id="configAccount2" placeholder="Ex: 98765-4">
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTÃO SALVAR GERAL (EXIBIDO NAS ABAS DE FORMULÁRIO) -->
+        <div id="btnSalvarContainer" style="margin-top: 25px; display: flex; gap: 10px;">
+          <button type="submit" class="btn" style="background-color: var(--electric-cyan); color: var(--deep-navy); font-weight: bold; padding: 12px 20px; width: 100%;">GUARDAR TODAS AS CONFIGURAÇÕES</button>
+        </div>
+      </form>
+
+      <!-- 5. BACKUP & INSTALAÇÃO PWA -->
+      <div id="sec-backup" class="config-panel-section">
+        <h3 style="margin-top: 0; color: var(--deep-navy); margin-bottom: 12px; font-size: 1.2rem;">💾 Backup e Segurança de Dados</h3>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px;">
+          <button type="button" onclick="fazerBackup()" class="btn" style="background-color: var(--tech-blue); color: white; padding: 12px 20px; flex: 1; min-width: 200px; font-weight: bold;">
             📥 Descarregar Backup (JSON)
           </button>
           
-          <div style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px; background: #F8FAFC; border: 1px dashed #CBD5E1; padding: 8px 12px; border-radius: 6px;">
+          <div style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px; background: #F8FAFC; border: 1px dashed #CBD5E1; padding: 10px 12px; border-radius: 6px;">
             <label for="fileRestore" style="cursor: pointer; font-size: 0.9rem; font-weight: bold; color: var(--deep-navy); width: 100%;">
               📤 Restaurar Backup:
               <input type="file" id="fileRestore" accept=".json" onchange="restaurarBackup(event)" style="display: none;">
@@ -269,7 +370,17 @@
             </label>
           </div>
         </div>
+
+        <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 20px 0;">
+
+        <h3 style="color: var(--deep-navy); margin-bottom: 10px; font-size: 1.1rem;">📲 Aplicativo no Dispositivo</h3>
+        <div id="installContainer">
+          <button id="btnInstall" type="button" class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 14px 20px; width: 100%; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0, 245, 212, 0.3); cursor: pointer;">
+            📲 Instalar a Página Agora
+          </button>
+        </div>
       </div>
+
     </section>
   </main>
 
@@ -320,10 +431,29 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="configuracao.js?v=3"></script>
+  <script src="configuracao.js?v=4"></script>
 
-  <!-- SCRIPT DE CONTROLO DE PERMISSÕES E LOGÓTIPO -->
+  <!-- SCRIPT DE NAVEGAÇÃO DAS ABAS, PERMISSÕES E LOGÓTIPO -->
   <script>
+    window.abrirSecaoConfig = function(secaoId, btnEl) {
+      document.querySelectorAll('.config-panel-section').forEach(sec => {
+        sec.classList.remove('active');
+      });
+      document.querySelectorAll('.config-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      const alvo = document.getElementById(secaoId);
+      if (alvo) alvo.classList.add('active');
+      if (btnEl) btnEl.classList.add('active');
+
+      // Oculta o botão de salvar formulário apenas na aba de Backup & App
+      const btnSalvarContainer = document.getElementById('btnSalvarContainer');
+      if (btnSalvarContainer) {
+        btnSalvarContainer.style.display = (secaoId === 'sec-backup') ? 'none' : 'flex';
+      }
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
       const imgLogo = document.getElementById('logo-cliente');
       if (imgLogo) {
