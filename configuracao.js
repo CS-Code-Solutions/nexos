@@ -151,6 +151,26 @@ window.salvarAssinaturaTech = async function() {
   }
 };
 
+// Salva automaticamente ao trocar a Página Inicial no select
+const selectPaginaInicialEl = document.getElementById('configPaginaInicial');
+if (selectPaginaInicialEl) {
+  selectPaginaInicialEl.addEventListener('change', async () => {
+    const destino = selectPaginaInicialEl.value || 'relatorios.html';
+    localStorage.setItem('rg_pagina_inicial', destino);
+    
+    const linkLogoHeader = document.getElementById('linkLogoHeader');
+    if (linkLogoHeader) linkLogoHeader.href = destino;
+
+    try {
+      let configAtual = await DataSync.load('rg_config') || {};
+      configAtual.paginaInicial = destino;
+      await DataSync.save('rg_config', configAtual);
+    } catch (err) {
+      console.warn("Aviso ao sincronizar página inicial:", err);
+    }
+  });
+}
+
 let dadosPendentesSalvar = null;
 
 async function carregarConfiguracoesIniciais() {
@@ -175,6 +195,22 @@ async function carregarConfiguracoesIniciais() {
     document.getElementById('configAccount2').value = config.account2 || '';
 
     document.getElementById('configNextRs').value = config.nextRsNumber || '1000';
+
+    // Carrega e sincroniza a Página Inicial (ignorando dashboard.html por hora)
+    let paginaInicial = config.paginaInicial || localStorage.getItem('rg_pagina_inicial') || 'relatorios.html';
+    if (paginaInicial === 'dashboard.html') {
+      paginaInicial = 'relatorios.html';
+    }
+    localStorage.setItem('rg_pagina_inicial', paginaInicial);
+
+    const selectPagina = document.getElementById('configPaginaInicial');
+    if (selectPagina && [...selectPagina.options].some(o => o.value === paginaInicial)) {
+      selectPagina.value = paginaInicial;
+    }
+    const linkLogoHeader = document.getElementById('linkLogoHeader');
+    if (linkLogoHeader) {
+      linkLogoHeader.href = paginaInicial;
+    }
 
     if (config.techSignature && config.techSignature.length > 100 && ctx && canvas) {
       currentTechSignature = config.techSignature;
@@ -213,6 +249,9 @@ if (configFormEl) {
         currentTechSignature = currentTechSignature || configAtual.techSignature || '';
       }
 
+      const paginaSelecionada = document.getElementById('configPaginaInicial')?.value || 'relatorios.html';
+      localStorage.setItem('rg_pagina_inicial', paginaSelecionada);
+
       dadosPendentesSalvar = {
         ...configAtual,
         name: document.getElementById('configName').value || '',
@@ -222,6 +261,7 @@ if (configFormEl) {
         email: document.getElementById('configEmail').value || '',
         contact: document.getElementById('configContact').value || '',
         location: document.getElementById('configLocation').value || '',
+        paginaInicial: paginaSelecionada,
         nomeConta1: document.getElementById('configNomeConta1').value || '',
         bank1: document.getElementById('configBank1').value || '',
         agency1: document.getElementById('configAgency1').value || '',
@@ -259,6 +299,12 @@ async function executarSalvamentoConfiguracoes() {
     const tenantId = localStorage.getItem('rg_tenant_id');
     if (tenantId) {
        await db.collection('rg_config').doc(tenantId).set(dadosPendentesSalvar, { merge: true });
+    }
+
+    if (dadosPendentesSalvar.paginaInicial) {
+      localStorage.setItem('rg_pagina_inicial', dadosPendentesSalvar.paginaInicial);
+      const linkLogoHeader = document.getElementById('linkLogoHeader');
+      if (linkLogoHeader) linkLogoHeader.href = dadosPendentesSalvar.paginaInicial;
     }
 
     localStorage.setItem('rg_lgpd_consent', 'true');
