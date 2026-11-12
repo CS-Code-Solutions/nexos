@@ -1,66 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- SCRIPT SÍNCRONO UNIVERSAL DE BLINDAGEM E PERMISSÕES (EVITA PISCADAS) -->
-  <script>
-    (function() {
-      const userRole = localStorage.getItem('rg_user_role');
-      const isSuperAdmin = (userRole === 'super_admin');
-      
-      const showDashboard = localStorage.getItem('rg_page_dashboard');
-      const showCadastros = localStorage.getItem('rg_page_cadastros');
-      const showRelatorios = localStorage.getItem('rg_page_relatorios');
-      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
-
-      // Bloqueia usuário nível 'tecnico' de acessar as Configurações da Empresa
-      if (!isSuperAdmin && userRole === 'tecnico') {
-        window.location.replace('relatorios.html');
-        return;
-      }
-
-      let cssRules = '';
-
-      if (!isSuperAdmin) {
-        if (showDashboard === 'false') {
-          cssRules += 'a[href="dashboard.html"], #nav-item-dash, #d-nav-dash { display: none !important; }';
-        }
-        if (showCadastros === 'false') {
-          cssRules += 'a[href="cadastros.html"], #nav-item-cad, #d-nav-cad { display: none !important; }';
-        }
-        if (showRelatorios === 'false') {
-          cssRules += 'a[href="relatorios.html"], #nav-item-rel, #d-nav-rel { display: none !important; }';
-        }
-        if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
-          cssRules += 'a[href="manutencoes.html"], #nav-item-plan, #d-nav-plan { display: none !important; }';
-        }
-        if (showOrcamentos === 'false') {
-          cssRules += 'a[href="orcamentos.html"], a[href="novo-orcamento.html"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
-        }
-        if (showHoras !== 'true') {
-          cssRules += 'a[href="horas-extras.html"], #nav-item-horas, #d-nav-horas { display: none !important; }';
-        }
-      }
-
-      if (userRole === 'tecnico') {
-        cssRules += '.finance-sensitive, a[href="configuracao.html"], #nav-item-config, #d-nav-config { display: none !important; }';
-      }
-
-      if (cssRules) {
-        document.write('<style>' + cssRules + '</style>');
-      }
-    })();
-  </script>
-
-  <script>
-    (function() {
-      const logoSalva = localStorage.getItem('rg_logo_base64');
-      if (logoSalva && logoSalva.startsWith('data:image')) {
-        document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
-      }
-    })();
-  </script>
+<script>
+  (function() {
+    const logoSalva = localStorage.getItem('rg_logo_base64');
+    if (logoSalva && logoSalva.startsWith('data:image')) {
+      document.write('<style>#logo-cliente { content: url("' + logoSalva + '"); }</style>');
+    }
+  })();
+</script>
 
   <link rel="icon" href="nexosico192.png" type="image/png">
   <link rel="manifest" href="manifest.json">
@@ -82,7 +30,7 @@
 
   <!-- Inicialização do Firebase e Sincronização -->
   <script src="firebase-init.js?v=2"></script>
-  <script src="firebase-sync.js?v=3"></script>
+  <script src="firebase-sync.js?v=2"></script>
 
   <style>
     .desktop-nav {
@@ -122,15 +70,15 @@
   <header class="no-print" style="background-color: #0B132B; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #00F5D4; position: sticky; top: 0; z-index: 100;">
     
     <!-- LADO ESQUERDO: LOGO -->
-    <a href="relatorios.html" id="linkLogoHeader" style="display: flex; align-items: center; text-decoration: none;">
+    <a href="dashboard.html" id="linkLogoHeader" style="display: flex; align-items: center; text-decoration: none;">
       <img id="logo-cliente" src="marca.png" alt="NexOS" style="max-height: 35px; width: auto; object-fit: contain; background: transparent;">
     </a>
 
     <!-- CENTRO: MENU DESKTOP -->
     <nav class="desktop-nav">
       <a href="dashboard.html" id="d-nav-dash"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-      <a href="cadastros.html" id="d-nav-cad"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html" id="d-nav-rel"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
       <a href="manutencoes.html" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
       <a href="configuracao.html" class="active"><i class="fa-solid fa-gear"></i> Config</a>
@@ -223,15 +171,15 @@
         <div class="form-group">
           <label for="configPaginaInicial">Página Inicial ao Abrir o Sistema:</label>
           <select id="configPaginaInicial" style="width: 100%; padding: 10px; border: 1px solid #CBD5E1; border-radius: 6px; background: #FFF; color: #0B132B; font-weight: bold;">
-            <option value="dashboard.html" id="opt-inicio-dash">Dashboard (Painel de Controle)</option>
-            <option value="relatorios.html" id="opt-inicio-rel">Relatórios (RS)</option>
-            <option value="novo-relatorio.html" id="opt-inicio-novo-rel">Novo Relatório (RS)</option>
-            <option value="cadastros.html" id="opt-inicio-cad">Cadastros</option>
+            <option value="dashboard.html">Dashboard (Painel de Controle)</option>
+            <option value="relatorios.html">Relatórios (RS)</option>
+            <option value="novo-relatorio.html">Novo Relatório (RS)</option>
+            <option value="cadastros.html">Cadastros</option>
             <option value="manutencoes.html" id="opt-inicio-plan">Planejamento de Preventivas</option>
             <option value="horas-extras.html" id="opt-inicio-horas">Horas Extras</option>
           </select>
           <small style="display: block; color: #64748B; font-size: 0.8rem; margin-top: 4px;">
-            Define qual tela será carregada automaticamente após o login ou ao tocar no logótipo (exibe apenas os módulos ativos no seu plano).
+            Define qual tela será carregada automaticamente após o login ou ao tocar no logótipo.
           </small>
         </div>
 
@@ -336,11 +284,11 @@
       <i class="fa-solid fa-chart-pie"></i>
       <span>Dash</span>
     </a>
-    <a href="cadastros.html" id="nav-item-cad">
+    <a href="cadastros.html">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html" id="nav-item-rel">
+    <a href="relatorios.html">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
@@ -359,7 +307,88 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="configuracao.js?v=3"></script>
+  <script src="configuracao.js?v=2"></script>
+
+  <!-- SCRIPT DE CONTROLO DE PERMISSÕES, LOGÓTIPO E PÁGINA INICIAL -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const imgLogo = document.getElementById('logo-cliente');
+      if (imgLogo) {
+        const logoSalva = localStorage.getItem('rg_logo_base64');
+        if (logoSalva && logoSalva.startsWith('data:image')) {
+          imgLogo.src = logoSalva;
+        } else {
+          imgLogo.src = 'marca.png';
+        }
+      }
+
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      const navHoras = document.getElementById('nav-item-horas');
+      const dNavHoras = document.getElementById('d-nav-horas');
+      const optHoras = document.getElementById('opt-inicio-horas');
+      const optPlan = document.getElementById('opt-inicio-plan');
+
+      if (navHoras) navHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      if (dNavHoras) dNavHoras.style.display = (isSuperAdmin || showHoras === 'true') ? 'flex' : 'none';
+      if (optHoras && !isSuperAdmin && showHoras !== 'true') optHoras.remove();
+      if (optPlan && !isSuperAdmin && showManutencoes === 'false') optPlan.remove();
+
+      // Carrega e salva a preferência de Página Inicial
+      const selectPaginaInicial = document.getElementById('configPaginaInicial');
+      const linkLogoHeader = document.getElementById('linkLogoHeader');
+      const paginaSalva = localStorage.getItem('rg_pagina_inicial') || 'dashboard.html';
+
+      if (linkLogoHeader) {
+        linkLogoHeader.href = paginaSalva;
+      }
+
+      if (selectPaginaInicial) {
+        if ([...selectPaginaInicial.options].some(o => o.value === paginaSalva)) {
+          selectPaginaInicial.value = paginaSalva;
+        }
+
+        // Salva automaticamente ao alterar o select ou submeter o formulário
+        const persistirPaginaInicial = () => {
+          const destino = selectPaginaInicial.value || 'dashboard.html';
+          localStorage.setItem('rg_pagina_inicial', destino);
+          if (linkLogoHeader) linkLogoHeader.href = destino;
+          if (typeof DataSync !== 'undefined' && DataSync.save) {
+            DataSync.save('rg_pagina_inicial', destino).catch(() => {});
+          }
+        };
+
+        selectPaginaInicial.addEventListener('change', persistirPaginaInicial);
+
+        const configForm = document.getElementById('configForm');
+        if (configForm) {
+          configForm.addEventListener('submit', persistirPaginaInicial);
+        }
+      }
+    });
+  </script>
+
+  <!-- SCRIPT SÍNCRONO INSTANTÂNEO -->
+  <script>
+    (function() {
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const userRole = localStorage.getItem('rg_user_role');
+      const isSuperAdmin = (userRole === 'super_admin');
+
+      let css = '';
+      if (!isSuperAdmin && showHoras !== 'true') {
+        css += '#nav-item-horas, #d-nav-horas { display: none !important; }';
+      }
+      if (!isSuperAdmin && showManutencoes === 'false') {
+        css += '#nav-item-plan, #d-nav-plan { display: none !important; }';
+      }
+      if (css) document.write('<style>' + css + '</style>');
+    })();
+  </script>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
