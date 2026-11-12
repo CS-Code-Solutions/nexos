@@ -7,14 +7,21 @@ let manutencoesGlobais = [];
 let horasExtrasGlobais = [];
 let chartsInstancias = {};
 
-// Configuração padrão com suporte a ordenação de seções e gráficos
+// Configuração padrão com suporte a ordenação e ativação individual de Seções, KPIs e Gráficos
 const PREFS_DEFAULT = {
   secoes: [
     { id: 'block-quick-actions', label: 'Barra de Ações Rápidas', visible: true },
-    { id: 'block-kpis', label: 'Cartões de Indicadores (KPIs)', visible: true },
+    { id: 'block-kpis', label: 'Bloco de Indicadores (KPIs)', visible: true },
     { id: 'charts-container', label: 'Painel de Gráficos', visible: true },
     { id: 'widget-preventivas-card', label: 'Radar de Preventivas', visible: true },
     { id: 'widget-ultimos-rs-card', label: 'Lista de Últimos Relatórios', visible: true }
+  ],
+  kpis: [
+    { id: 'kpi-card-faturamento', label: 'Faturamento Estimado', visible: true, sensitive: true, orderable: true },
+    { id: 'kpi-card-rs', label: 'Relatórios (RS)', visible: true, orderable: true },
+    { id: 'kpi-card-horas', label: 'Horas Técnicas', visible: true, orderable: true },
+    { id: 'kpi-card-preventivas', label: 'Preventivas Próximas', visible: true, orderable: true },
+    { id: 'kpi-horas-extras-box', label: 'Detalhe: Horas Extras (dentro de Horas)', visible: true, orderable: false }
   ],
   graficos: [
     { id: 'card-chart-tipos', label: 'Tipos de Atendimento', visible: true, type: 'doughnut', allowedTypes: ['doughnut', 'pie', 'bar'] },
@@ -28,10 +35,10 @@ let prefsTempEdicao = null;
 
 function getPreferenciasDash() {
   try {
-    const salvo = localStorage.getItem('nexos_dash_prefs_v2');
+    const salvo = localStorage.getItem('nexos_dash_prefs_v3');
     if (salvo) {
       const parsed = JSON.parse(salvo);
-      if (Array.isArray(parsed.secoes) && Array.isArray(parsed.graficos)) {
+      if (Array.isArray(parsed.secoes) && Array.isArray(parsed.kpis) && Array.isArray(parsed.graficos)) {
         return parsed;
       }
     }
@@ -396,15 +403,32 @@ function renderWidgetUltimosRS(lista) {
 function aplicarLayoutEOrdemDash() {
   const prefs = getPreferenciasDash();
 
-  // Aplica ordem e visibilidade das seções principais
+  // 1. Aplica ordem e visibilidade individual dos KPIs
+  let algumKpiVisivel = false;
+  prefs.kpis.forEach((kpi, index) => {
+    const el = document.getElementById(kpi.id);
+    if (!el) return;
+    if (kpi.orderable !== false) {
+      el.style.order = index;
+      if (kpi.visible) algumKpiVisivel = true;
+    }
+    el.style.display = kpi.visible ? '' : 'none';
+  });
+
+  // 2. Aplica ordem e visibilidade das seções principais
   prefs.secoes.forEach((sec, index) => {
     const el = document.getElementById(sec.id);
     if (!el) return;
     el.style.order = index;
-    el.style.display = sec.visible ? '' : 'none';
+
+    if (sec.id === 'block-kpis') {
+      el.style.display = (sec.visible && algumKpiVisivel) ? '' : 'none';
+    } else {
+      el.style.display = sec.visible ? '' : 'none';
+    }
   });
 
-  // Se apenas um dos widgets laterais (Preventivas ou Últimos RS) estiver visível, expande para largura total
+  // Expande widget lateral se o outro estiver oculto
   const prevVisivel = prefs.secoes.find(s => s.id === 'widget-preventivas-card')?.visible;
   const ultVisivel = prefs.secoes.find(s => s.id === 'widget-ultimos-rs-card')?.visible;
   const elPrev = document.getElementById('widget-preventivas-card');
@@ -414,7 +438,7 @@ function aplicarLayoutEOrdemDash() {
     elUlt.className = (ultVisivel && !prevVisivel) ? 'card span-12' : 'card span-6';
   }
 
-  // Aplica ordem e visibilidade individual dos gráficos
+  // 3. Aplica ordem e visibilidade individual dos gráficos
   prefs.graficos.forEach((g, index) => {
     const el = document.getElementById(g.id);
     if (!el) return;
@@ -437,6 +461,7 @@ const LABELS_FORMATO = {
 
 function renderizarListasModalConfig() {
   const containerSecoes = document.getElementById('lista-config-secoes');
+  const containerKpis = document.getElementById('lista-config-kpis');
   const containerGraficos = document.getElementById('lista-config-graficos');
   const isTecnico = localStorage.getItem('rg_user_role') === 'tecnico';
 
@@ -457,6 +482,36 @@ function renderizarListasModalConfig() {
         </div>
       </div>
     `).join('');
+  }
+
+  if (containerKpis && prefsTempEdicao) {
+    const kpisOrdenaveis = prefsTempEdicao.kpis.filter(k => k.orderable !== false);
+    containerKpis.innerHTML = prefsTempEdicao.kpis.map((kpi, idx) => {
+      if (isTecnico && kpi.sensitive) return '';
+      const isOrderable = kpi.orderable !== false;
+      const posOrdenavel = kpisOrdenaveis.findIndex(item => item.id === kpi.id);
+
+      const botoesOrdemHtml = isOrderable ? `
+        <div class="order-btns">
+          <button type="button" class="btn-order" title="Subir" ${posOrdenavel <= 0 ? 'disabled' : ''} onclick="moverItemLista('kpis', ${idx}, -1)">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+          <button type="button" class="btn-order" title="Descer" ${posOrdenavel === kpisOrdenaveis.length - 1 ? 'disabled' : ''} onclick="moverItemLista('kpis', ${idx}, 1)">
+            <i class="fa-solid fa-arrow-down"></i>
+          </button>
+        </div>
+      ` : '';
+
+      return `
+        <div class="config-row" style="${!isOrderable ? 'background: #F1F5F9; border-style: dashed;' : ''}">
+          <label class="config-row-left">
+            <input type="checkbox" ${kpi.visible ? 'checked' : ''} onchange="alterarVisibilidadeItem('kpis', ${idx}, this.checked)">
+            <span>${escapeHTML(kpi.label)}</span>
+          </label>
+          ${botoesOrdemHtml}
+        </div>
+      `;
+    }).join('');
   }
 
   if (containerGraficos && prefsTempEdicao) {
@@ -494,6 +549,12 @@ function renderizarListasModalConfig() {
 window.alterarVisibilidadeItem = function(grupo, index, checked) {
   if (!prefsTempEdicao || !prefsTempEdicao[grupo][index]) return;
   prefsTempEdicao[grupo][index].visible = checked;
+
+  // Se o usuário ativar qualquer KPI individualmente, garante que a seção principal de KPIs também fique ativa
+  if (grupo === 'kpis' && checked) {
+    const secKpi = prefsTempEdicao.secoes.find(s => s.id === 'block-kpis');
+    if (secKpi) secKpi.visible = true;
+  }
 };
 
 window.alterarFormatoGrafico = function(index, novoTipo) {
@@ -506,6 +567,7 @@ window.moverItemLista = function(grupo, index, direcao) {
   const lista = prefsTempEdicao[grupo];
   const novoIndex = index + direcao;
   if (novoIndex < 0 || novoIndex >= lista.length) return;
+  if (lista[novoIndex].orderable === false) return;
 
   const temp = lista[index];
   lista[index] = lista[novoIndex];
@@ -526,7 +588,7 @@ window.fecharModalEditarDash = function() {
 
 window.salvarPreferenciasDash = function() {
   if (prefsTempEdicao) {
-    localStorage.setItem('nexos_dash_prefs_v2', JSON.stringify(prefsTempEdicao));
+    localStorage.setItem('nexos_dash_prefs_v3', JSON.stringify(prefsTempEdicao));
   }
   aplicarLayoutEOrdemDash();
   atualizarDashboard();
@@ -534,7 +596,7 @@ window.salvarPreferenciasDash = function() {
 };
 
 window.restaurarPadraoDash = function() {
-  localStorage.removeItem('nexos_dash_prefs_v2');
+  localStorage.removeItem('nexos_dash_prefs_v3');
   aplicarLayoutEOrdemDash();
   atualizarDashboard();
   fecharModalEditarDash();
