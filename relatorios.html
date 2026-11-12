@@ -1,19 +1,53 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- SCRIPT SÍNCRONO PARA OCULTAR MÓDULOS RESTRITOS ANTES DE RENDERIZAR (EVITA PISCADAS) -->
+  <!-- SCRIPT SÍNCRONO UNIVERSAL DE BLINDAGEM E PERMISSÕES (EVITA PISCADAS) -->
   <script>
     (function() {
-      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
-      const showHoras = localStorage.getItem('rg_mod_horas_extras');
       const userRole = localStorage.getItem('rg_user_role');
       const isSuperAdmin = (userRole === 'super_admin');
+      
+      const showDashboard = localStorage.getItem('rg_page_dashboard');
+      const showCadastros = localStorage.getItem('rg_page_cadastros');
+      const showRelatorios = localStorage.getItem('rg_page_relatorios');
+      const showManutencoes = localStorage.getItem('rg_page_manutencoes');
+      const showOrcamentos = localStorage.getItem('rg_page_orcamentos');
+      const showHoras = localStorage.getItem('rg_mod_horas_extras');
 
-      if (!isSuperAdmin && showOrcamentos === 'false') {
-        document.write('<style>a[href="novo-orcamento.html"], option[value="orc"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }</style>');
+      if (!isSuperAdmin && showRelatorios === 'false') {
+        window.location.replace('cadastros.html');
+        return;
       }
-      if (!isSuperAdmin && showHoras !== 'true') {
-        document.write('<style>#nav-item-horas, #d-nav-horas { display: none !important; }</style>');
+
+      let cssRules = '';
+
+      if (!isSuperAdmin) {
+        if (showDashboard === 'false') {
+          cssRules += 'a[href="dashboard.html"], #nav-item-dash, #d-nav-dash { display: none !important; }';
+        }
+        if (showCadastros === 'false') {
+          cssRules += 'a[href="cadastros.html"], #nav-item-cad, #d-nav-cad { display: none !important; }';
+        }
+        if (showRelatorios === 'false') {
+          cssRules += 'a[href="relatorios.html"], #nav-item-rel, #d-nav-rel { display: none !important; }';
+        }
+        if (showManutencoes === 'false' || localStorage.getItem('rg_mod_manutencoes') === 'false') {
+          cssRules += 'a[href="manutencoes.html"], #nav-item-plan, #d-nav-plan { display: none !important; }';
+        }
+        if (showOrcamentos === 'false') {
+          cssRules += 'a[href="orcamentos.html"], a[href="novo-orcamento.html"], option[value="orc"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
+        }
+        if (showHoras !== 'true') {
+          cssRules += 'a[href="horas-extras.html"], #nav-item-horas, #d-nav-horas { display: none !important; }';
+        }
+      }
+
+      if (userRole === 'tecnico') {
+        cssRules += '.finance-sensitive, a[href="configuracao.html"], #nav-item-config, #d-nav-config { display: none !important; }';
+      }
+
+      if (cssRules) {
+        document.write('<style>' + cssRules + '</style>');
       }
     })();
   </script>
@@ -127,12 +161,12 @@
     </a>
 
     <nav class="desktop-nav">
-      <a href="dashboard.html"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-      <a href="cadastros.html"><i class="fa-solid fa-address-book"></i> Cadastros</a>
-      <a href="relatorios.html" class="active"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
-      <a href="manutencoes.html"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
+      <a href="dashboard.html" id="d-nav-dash"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+      <a href="cadastros.html" id="d-nav-cad"><i class="fa-solid fa-address-book"></i> Cadastros</a>
+      <a href="relatorios.html" class="active" id="d-nav-rel"><i class="fa-solid fa-file-lines"></i> Relatórios</a>
+      <a href="manutencoes.html" id="d-nav-plan"><i class="fa-solid fa-calendar-check"></i> Planejamento</a>
       <a href="horas-extras.html" id="d-nav-horas"><i class="fa-solid fa-clock"></i> Horas</a>
-      <a href="configuracao.html"><i class="fa-solid fa-gear"></i> Config</a>
+      <a href="configuracao.html" id="d-nav-config"><i class="fa-solid fa-gear"></i> Config</a>
     </nav>
 
     <button type="button" onclick="fazerLogout();" style="background: transparent; border: none; color: #EF4444; font-size: 1.4rem; cursor: pointer;" title="Encerrar Sessão">
@@ -236,36 +270,35 @@
 
   <footer class="no-print">
     <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" style="color: #00F5D4; text-decoration: none;"><strong>CS Code Solutions</strong></a></p>
-   <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (Faltava este bloco) -->
-  <div id="modalConfirmarExclusao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 3000; justify-content: center; align-items: center; padding: 15px;">
-    <div style="background: white; width: 100%; max-width: 400px; border-radius: 8px; padding: 25px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
-      <i class="fa-solid fa-triangle-exclamation" style="font-size: 3.5rem; color: #EF4444; margin-bottom: 15px;"></i>
-      <h3 style="color: #0B132B; margin-bottom: 10px; font-size: 1.3rem;">Confirmar Exclusão</h3>
-      <p style="color: #475569; margin-bottom: 25px; font-size: 0.95rem;">Tem a certeza de que deseja excluir este documento? Esta ação não poderá ser desfeita.</p>
-      <div style="display: flex; gap: 10px; justify-content: center;">
-        <button class="btn" style="background-color: #64748B; color: white; flex: 1; border: none; padding: 10px;" onclick="fecharModalExclusao()">Cancelar</button>
-        <button class="btn" style="background-color: #EF4444; color: white; flex: 1; border: none; padding: 10px; font-weight: bold;" onclick="executarExclusaoConfirmada()">Sim, Excluir</button>
+    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+    <div id="modalConfirmarExclusao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 3000; justify-content: center; align-items: center; padding: 15px;">
+      <div style="background: white; width: 100%; max-width: 400px; border-radius: 8px; padding: 25px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 3.5rem; color: #EF4444; margin-bottom: 15px;"></i>
+        <h3 style="color: #0B132B; margin-bottom: 10px; font-size: 1.3rem;">Confirmar Exclusão</h3>
+        <p style="color: #475569; margin-bottom: 25px; font-size: 0.95rem;">Tem a certeza de que deseja excluir este documento? Esta ação não poderá ser desfeita.</p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button class="btn" style="background-color: #64748B; color: white; flex: 1; border: none; padding: 10px;" onclick="fecharModalExclusao()">Cancelar</button>
+          <button class="btn" style="background-color: #EF4444; color: white; flex: 1; border: none; padding: 10px; font-weight: bold;" onclick="executarExclusaoConfirmada()">Sim, Excluir</button>
+        </div>
       </div>
     </div>
-  </div>
-
- </footer>
+  </footer>
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR UNIFICADA -->
   <nav class="bottom-nav no-print" id="mainBottomNav">
-    <a href="dashboard.html">
+    <a href="dashboard.html" id="nav-item-dash">
       <i class="fa-solid fa-chart-pie"></i>
       <span>Dash</span>
     </a>
-    <a href="cadastros.html">
+    <a href="cadastros.html" id="nav-item-cad">
       <i class="fa-solid fa-address-book"></i>
       <span>Cadastros</span>
     </a>
-    <a href="relatorios.html" class="active">
+    <a href="relatorios.html" class="active" id="nav-item-rel">
       <i class="fa-solid fa-file-lines"></i>
       <span>Relatórios</span>
     </a>
-    <a href="manutencoes.html">
+    <a href="manutencoes.html" id="nav-item-plan">
       <i class="fa-solid fa-calendar-check"></i>
       <span>Plan</span>
     </a>
