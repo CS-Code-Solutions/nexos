@@ -147,6 +147,8 @@
     .kpi-info small {
       font-size: 0.75rem;
       color: #64748B;
+      display: block;
+      margin-top: 2px;
     }
     .kpi-icon {
       width: 40px;
@@ -365,7 +367,7 @@
 
       let cssRules = '';
       if (!isSuperAdmin && showManutencoes === 'false') {
-        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card { display: none !important; }';
+        cssRules += '#d-nav-plan, #nav-item-plan, #quick-btn-plan, #widget-preventivas-card, #kpi-card-preventivas { display: none !important; }';
       }
       if (!isSuperAdmin && showHoras !== 'true') {
         cssRules += '#d-nav-horas, #nav-item-horas, #kpi-horas-extras-box { display: none !important; }';
@@ -444,9 +446,9 @@
         </a>
       </div>
 
-      <!-- BLOCO 2: CARTÕES DE RESUMO (KPIs) -->
+      <!-- BLOCO 2: CARTÕES DE RESUMO INDIVIDUALIZADOS (KPIs) -->
       <div class="kpi-grid span-12" id="block-kpis">
-        <div class="kpi-card green finance-sensitive" id="kpi-faturamento-box">
+        <div class="kpi-card green finance-sensitive" id="kpi-card-faturamento">
           <div class="kpi-info">
             <span>Faturamento Estimado</span>
             <strong id="kpi-faturamento">R$ 0,00</strong>
@@ -457,7 +459,7 @@
           </div>
         </div>
 
-        <div class="kpi-card blue">
+        <div class="kpi-card blue" id="kpi-card-rs">
           <div class="kpi-info">
             <span>Relatórios (RS)</span>
             <strong id="kpi-total-rs">0</strong>
@@ -468,7 +470,7 @@
           </div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpi-card-horas">
           <div class="kpi-info">
             <span>Horas Técnicas</span>
             <strong id="kpi-horas-totais">0h 00m</strong>
@@ -479,7 +481,7 @@
           </div>
         </div>
 
-        <div class="kpi-card amber" id="kpi-plan-box">
+        <div class="kpi-card amber" id="kpi-card-preventivas">
           <div class="kpi-info">
             <span>Preventivas Próximas</span>
             <strong id="kpi-preventivas">0</strong>
@@ -594,13 +596,16 @@
 
       <div class="edit-modal-body">
         <p style="margin: 0 0 12px 0; font-size: 0.83rem; color: #64748B; line-height: 1.4;">
-          Marque o que deseja exibir, escolha o tipo de gráfico e use as setas <strong>(&uarr; &darr;)</strong> para definir quem aparece primeiro:
+          Ative ou oculte cada cartão, escolha o formato dos gráficos e use as setas <strong>(&uarr; &darr;)</strong> para definir a ordem de exibição:
         </p>
 
         <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 10px 0 8px 0; letter-spacing: 0.5px;">1. Ordem e Visibilidade das Seções</h4>
         <div id="lista-config-secoes"></div>
 
-        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 16px 0 8px 0; letter-spacing: 0.5px;">2. Ordem e Formato dos Gráficos</h4>
+        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 16px 0 8px 0; letter-spacing: 0.5px;">2. Cartões de Indicadores (KPIs)</h4>
+        <div id="lista-config-kpis"></div>
+
+        <h4 style="font-size: 0.78rem; text-transform: uppercase; color: #0284C7; margin: 16px 0 8px 0; letter-spacing: 0.5px;">3. Ordem e Formato dos Gráficos</h4>
         <div id="lista-config-graficos"></div>
       </div>
 
@@ -652,7 +657,7 @@
     </div>
   </div>
 
-  <script src="dashboard.js?v=3"></script>
+  <script src="dashboard.js?v=4"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const bottomNav = document.getElementById('mainBottomNav');
