@@ -383,15 +383,50 @@
         <hr style="border: 0; border-top: 1px solid #CBD5E1; margin: 20px 0;">
 
         <h3 style="color: var(--deep-navy); margin-bottom: 10px; font-size: 1.1rem;">📲 Aplicativo no Dispositivo</h3>
-        <div id="installContainer">
-          <button id="btnInstall" type="button" class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 14px 20px; width: 100%; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0, 245, 212, 0.3); cursor: pointer;">
-            📲 Instalar a Página Agora
+        <div id="installContainer" style="display: flex; flex-direction: column; gap: 10px;">
+          <button id="btnInstall" type="button" class="btn" style="background-color: #00F5D4; color: #0B132B; font-weight: bold; padding: 14px 20px; width: 100%; font-size: 1rem; box-shadow: 0 4px 12px rgba(0, 245, 212, 0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-brands fa-android" style="font-size: 1.2rem;"></i> Instalar no Android
+          </button>
+          <button id="btnInstallIphone" type="button" onclick="abrirModalIphone()" class="btn" style="background-color: #0B132B; color: #FFFFFF; border: 1px solid #00F5D4; font-weight: bold; padding: 14px 20px; width: 100%; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-brands fa-apple" style="font-size: 1.2rem;"></i> Como instalar no iPhone
           </button>
         </div>
       </div>
 
     </section>
   </main>
+
+  <!-- Modal Passo a Passo iPhone (iOS) -->
+  <div id="iphoneInstallModal" onclick="if(event.target === this) fecharModalIphone()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+    <div style="background: #0B132B; border: 2px solid #00F5D4; padding: 22px; border-radius: 12px; width: 100%; max-width: 420px; color: #FFFFFF; box-shadow: 0 12px 30px rgba(0,0,0,0.6);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(0, 245, 212, 0.25); padding-bottom: 10px;">
+        <h3 style="margin: 0; color: #00F5D4; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-brands fa-apple"></i> Instalar NexOS no iPhone
+        </h3>
+        <button type="button" onclick="fecharModalIphone()" style="background: none; border: none; color: #94A3B8; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+
+      <p style="font-size: 0.88rem; color: #CBD5E1; margin-top: 0; margin-bottom: 14px; line-height: 1.4;">
+        No iPhone (iOS), a instalação é feita diretamente pelo navegador <strong>Safari</strong> em 3 passos simples:
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+        <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+          <strong style="color: #00F5D4;">1. Abra no Safari:</strong> Certifique-se de que o site está aberto no navegador <strong>Safari</strong> do seu iPhone.
+        </div>
+        <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+          <strong style="color: #00F5D4;">2. Toque em Compartilhar:</strong> Na barra inferior do Safari, toque no ícone de compartilhamento <span style="display: inline-block; background: rgba(0,245,212,0.15); color: #00F5D4; padding: 1px 6px; border-radius: 4px; font-weight: bold;"><i class="fa-solid fa-arrow-up-from-bracket"></i></span> (quadrado com seta para cima).
+        </div>
+        <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+          <strong style="color: #00F5D4;">3. Adicionar à Tela de Início:</strong> Role as opções para baixo, toque em <strong>"Adicionar à Tela de Início"</strong> <i class="fa-regular fa-square-plus"></i> e depois confirme em <strong>"Adicionar"</strong> no canto superior direito.
+        </div>
+      </div>
+
+      <button type="button" onclick="fecharModalIphone()" style="width: 100%; background-color: #00F5D4; color: #0B132B; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.95rem; cursor: pointer;">
+        Entendi
+      </button>
+    </div>
+  </div>
 
   <!-- Modal LGPD -->
   <div id="lgpdModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;">
@@ -440,7 +475,7 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="configuracao.js?v=5"></script>
+  <script src="configuracao.js?v=6"></script>
 
   <!-- SCRIPT DE NAVEGAÇÃO DAS ABAS, PERMISSÕES E LOGÓTIPO -->
   <script>
