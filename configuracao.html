@@ -15,6 +15,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NexOS - Configurações</title>
+
+  <script>
+    window.nexosInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.nexosInstallPrompt = e;
+    });
+  </script>
   
   <link rel="stylesheet" href="style.css">
   
@@ -396,6 +404,38 @@
     </section>
   </main>
 
+  <!-- Modal Elegante Android -->
+  <div id="androidInstallModal" onclick="if(event.target === this) fecharModalAndroid()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
+    <div style="background: #0B132B; border: 2px solid #00F5D4; padding: 22px; border-radius: 12px; width: 100%; max-width: 420px; color: #FFFFFF; box-shadow: 0 12px 30px rgba(0,0,0,0.6);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(0, 245, 212, 0.25); padding-bottom: 10px;">
+        <h3 id="androidModalTitulo" style="margin: 0; color: #00F5D4; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-brands fa-android"></i> Instalar NexOS no Android
+        </h3>
+        <button type="button" onclick="fecharModalAndroid()" style="background: none; border: none; color: #94A3B8; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+
+      <p id="androidModalSubtitulo" style="font-size: 0.88rem; color: #CBD5E1; margin-top: 0; margin-bottom: 14px; line-height: 1.4;">
+        Siga os passos abaixo no <strong>Google Chrome</strong> para adicionar o aplicativo à tela inicial:
+      </p>
+
+      <div id="androidModalPassos" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+        <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+          <strong style="color: #00F5D4;">1. Abra no Google Chrome:</strong> Certifique-se de estar acessando pelo navegador <strong>Chrome</strong>.
+        </div>
+        <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+          <strong style="color: #00F5D4;">2. Toque no menu superior:</strong> Toque nos <strong>3 pontinhos</strong> <span style="display: inline-block; background: rgba(0,245,212,0.15); color: #00F5D4; padding: 1px 7px; border-radius: 4px; font-weight: bold;"><i class="fa-solid fa-ellipsis-vertical"></i></span> no canto superior direito.
+        </div>
+        <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+          <strong style="color: #00F5D4;">3. Instale o aplicativo:</strong> Selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong> e confirme.
+        </div>
+      </div>
+
+      <button type="button" onclick="fecharModalAndroid()" style="width: 100%; background-color: #00F5D4; color: #0B132B; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.95rem; cursor: pointer;">
+        Entendi
+      </button>
+    </div>
+  </div>
+
   <!-- Modal Passo a Passo iPhone (iOS) -->
   <div id="iphoneInstallModal" onclick="if(event.target === this) fecharModalIphone()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 43, 0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box;">
     <div style="background: #0B132B; border: 2px solid #00F5D4; padding: 22px; border-radius: 12px; width: 100%; max-width: 420px; color: #FFFFFF; box-shadow: 0 12px 30px rgba(0,0,0,0.6);">
@@ -475,7 +515,7 @@
   </nav>
 
   <!-- SCRIPT EXTERNO SEPARADO -->
-  <script src="configuracao.js?v=6"></script>
+  <script src="configuracao.js?v=7"></script>
 
   <!-- SCRIPT DE NAVEGAÇÃO DAS ABAS, PERMISSÕES E LOGÓTIPO -->
   <script>
