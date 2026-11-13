@@ -49,10 +49,20 @@ if (btnInstall) {
       const { outcome } = await deferredPrompt.userChoice;
       deferredPrompt = null;
     } else {
-      alert('Para instalar a aplicação no seu dispositivo:\n\n1. Toque nos 3 pontos (menu) no canto superior direito do seu navegador.\n2. Selecione "Adicionar ao ecrã principal" ou "Instalar aplicação".');
+      alert('Para instalar no Android:\n\n1. Abra o sistema no navegador Google Chrome.\n2. Toque nos 3 pontos (menu) no canto superior direito.\n3. Selecione "Instalar aplicativo" ou "Adicionar à tela inicial".');
     }
   });
 }
+
+window.abrirModalIphone = function() {
+  const modal = document.getElementById('iphoneInstallModal');
+  if (modal) modal.style.display = 'flex';
+};
+
+window.fecharModalIphone = function() {
+  const modal = document.getElementById('iphoneInstallModal');
+  if (modal) modal.style.display = 'none';
+};
 
 const canvas = document.getElementById('techSignatureCanvas');
 const ctx = canvas ? canvas.getContext('2d') : null;
