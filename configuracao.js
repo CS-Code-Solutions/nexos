@@ -35,21 +35,94 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-let deferredPrompt;
 const btnInstall = document.getElementById('btnInstall');
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
-  deferredPrompt = e;
+  window.nexosInstallPrompt = e;
 });
 
+window.abrirModalAndroid = function(modo) {
+  const modal = document.getElementById('androidInstallModal');
+  const titulo = document.getElementById('androidModalTitulo');
+  const subtitulo = document.getElementById('androidModalSubtitulo');
+  const passos = document.getElementById('androidModalPassos');
+  if (!modal) return;
+
+  if (modo === 'instalado') {
+    titulo.innerHTML = '<i class="fa-solid fa-circle-check"></i> Aplicativo Já Instalado';
+    subtitulo.innerHTML = 'Você já está utilizando o <strong>NexOS</strong> como aplicativo instalado neste aparelho.';
+    passos.innerHTML = `
+      <div style="background: #1C2541; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981; font-size: 0.88rem; line-height: 1.4;">
+        <strong style="color: #10B981;">Tudo pronto!</strong> O atalho do NexOS já está ativo na tela inicial do seu celular em modo tela cheia.
+      </div>
+    `;
+  } else if (modo === 'whatsapp') {
+    titulo.innerHTML = '<i class="fa-brands fa-android"></i> Abrir no Google Chrome';
+    subtitulo.innerHTML = 'Você abriu o link dentro do navegador interno do WhatsApp. Para instalar direto:';
+    passos.innerHTML = `
+      <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+        <strong style="color: #00F5D4;">1. Toque nos 3 pontinhos:</strong> No canto superior direito da tela <span style="display: inline-block; background: rgba(0,245,212,0.15); color: #00F5D4; padding: 1px 7px; border-radius: 4px; font-weight: bold;"><i class="fa-solid fa-ellipsis-vertical"></i></span>.
+      </div>
+      <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+        <strong style="color: #00F5D4;">2. Escolha "Abrir no Chrome":</strong> Assim que abrir no Chrome, toque novamente em <strong>Instalar no Android</strong>.
+      </div>
+    `;
+  } else {
+    titulo.innerHTML = '<i class="fa-brands fa-android"></i> Instalar NexOS no Android';
+    subtitulo.innerHTML = 'Siga os passos abaixo no <strong>Google Chrome</strong> para adicionar o aplicativo à tela inicial:';
+    passos.innerHTML = `
+      <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+        <strong style="color: #00F5D4;">1. Abra no Google Chrome:</strong> Certifique-se de estar acessando pelo navegador <strong>Chrome</strong>.
+      </div>
+      <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+        <strong style="color: #00F5D4;">2. Toque no menu superior:</strong> Toque nos <strong>3 pontinhos</strong> <span style="display: inline-block; background: rgba(0,245,212,0.15); color: #00F5D4; padding: 1px 7px; border-radius: 4px; font-weight: bold;"><i class="fa-solid fa-ellipsis-vertical"></i></span> no canto superior direito.
+      </div>
+      <div style="background: #1C2541; padding: 11px 12px; border-radius: 8px; border-left: 3px solid #00F5D4; font-size: 0.88rem; line-height: 1.4;">
+        <strong style="color: #00F5D4;">3. Instale o aplicativo:</strong> Selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong> e confirme.
+      </div>
+    `;
+  }
+
+  modal.style.display = 'flex';
+};
+
+window.fecharModalAndroid = function() {
+  const modal = document.getElementById('androidInstallModal');
+  if (modal) modal.style.display = 'none';
+};
+
 if (btnInstall) {
+  const jaInstalado = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (jaInstalado) {
+    btnInstall.innerHTML = '<i class="fa-solid fa-circle-check" style="font-size: 1.2rem;"></i> Aplicativo Já Instalado';
+    btnInstall.style.backgroundColor = '#10B981';
+    btnInstall.style.color = '#FFFFFF';
+  }
+
   btnInstall.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      deferredPrompt = null;
+    if (jaInstalado) {
+      abrirModalAndroid('instalado');
+      return;
+    }
+
+    if (window.nexosInstallPrompt) {
+      window.nexosInstallPrompt.prompt();
+      const { outcome } = await window.nexosInstallPrompt.userChoice;
+      if (outcome === 'accepted') {
+        btnInstall.innerHTML = '<i class="fa-solid fa-circle-check" style="font-size: 1.2rem;"></i> Aplicativo Instalado!';
+        btnInstall.style.backgroundColor = '#10B981';
+        btnInstall.style.color = '#FFFFFF';
+      }
+      window.nexosInstallPrompt = null;
+      return;
+    }
+
+    const ua = navigator.userAgent || '';
+    const isInApp = /FBAN|FBAV|Instagram|WhatsApp/i.test(ua);
+    if (isInApp) {
+      abrirModalAndroid('whatsapp');
     } else {
-      alert('Para instalar no Android:\n\n1. Abra o sistema no navegador Google Chrome.\n2. Toque nos 3 pontos (menu) no canto superior direito.\n3. Selecione "Instalar aplicativo" ou "Adicionar à tela inicial".');
+      abrirModalAndroid('manual');
     }
   });
 }
