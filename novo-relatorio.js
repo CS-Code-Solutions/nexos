@@ -1,8 +1,18 @@
 /**
  * NexOS - Módulo de Novo Relatório de Serviço (novo-relatorio.js)
+ * 🛡️ BLINDADO: Padrão CS Code Solutions (Zero Trust Input)
  */
 
 window.configHorariosTenant = { intervalo: true, direto: true };
+
+// ==========================================
+// FUNÇÃO DE HIGIENIZAÇÃO (ZERO TRUST INPUT)
+// Remove tentativas de injeção de HTML/Scripts nos inputs antes de enviar à nuvem
+// ==========================================
+function higienizarTexto(texto) {
+  if (typeof texto !== 'string') return texto;
+  return texto.replace(/<[^>]*>?/gm, '').trim();
+}
 
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
@@ -60,10 +70,11 @@ window.avancarParaStep2 = function() {
     return;
   }
 
-  document.getElementById('resumoCliente').textContent = document.getElementById('repClient').value;
-  document.getElementById('resumoMaquina').textContent = document.getElementById('repEquipment').value;
-  document.getElementById('resumoManutencao').textContent = document.getElementById('repServiceNature').value;
-  document.getElementById('resumoServico').textContent = document.getElementById('repDesc').value;
+  // Blindando também os resumos no ecrã (XSS local via DOM)
+  document.getElementById('resumoCliente').textContent = higienizarTexto(document.getElementById('repClient').value);
+  document.getElementById('resumoMaquina').textContent = higienizarTexto(document.getElementById('repEquipment').value);
+  document.getElementById('resumoManutencao').textContent = higienizarTexto(document.getElementById('repServiceNature').value);
+  document.getElementById('resumoServico').textContent = higienizarTexto(document.getElementById('repDesc').value);
 
   document.getElementById('step1').style.display = 'none';
   document.getElementById('step2').style.display = 'block';
@@ -418,7 +429,6 @@ window.converterAnexo = function(event) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Comprime e reduz o peso em cerca de 80% mantendo excelente nitidez
       tempAnexoBase64 = canvas.toDataURL('image/jpeg', 0.75);
     };
     img.src = e.target.result;
@@ -427,7 +437,7 @@ window.converterAnexo = function(event) {
 };
 
 window.adicionarAnexo = function() {
-  const titulo = document.getElementById('anexoTitulo').value;
+  const titulo = higienizarTexto(document.getElementById('anexoTitulo').value);
   if (!tempAnexoBase64) { alert('Selecione uma imagem primeiro.'); return; }
   anexosList.push({ titulo: String(titulo || 'Foto do Equipamento'), imagem: String(tempAnexoBase64) });
   document.getElementById('anexoTitulo').value = '';
@@ -500,7 +510,7 @@ async function verificarPreenchimentoPlaneado() {
       }
       const repDescInput = document.getElementById('repDesc');
       if (repDescInput && dados.description) {
-        repDescInput.value = dados.description;
+        repDescInput.value = higienizarTexto(dados.description);
       }
       localStorage.removeItem('rg_preencher_rs');
     } catch (e) {}
@@ -525,9 +535,9 @@ if (repEquipmentEl) {
     const idx = selectedOption.getAttribute('data-index');
     if (idx !== null && clientMachines[idx]) {
       const m = clientMachines[idx];
-      document.getElementById('repBrand').value = m.brand || m.marca || '';
-      document.getElementById('repModel').value = m.model || m.modelo || '';
-      document.getElementById('repSerialNumber').value = m.serialNumber || m.serial || m.tag || m.Tag || m.serie || m.matricula || '';
+      document.getElementById('repBrand').value = higienizarTexto(m.brand || m.marca || '');
+      document.getElementById('repModel').value = higienizarTexto(m.model || m.modelo || '');
+      document.getElementById('repSerialNumber').value = higienizarTexto(m.serialNumber || m.serial || m.tag || m.Tag || m.serie || m.matricula || '');
     } else {
       document.getElementById('repBrand').value = '';
       document.getElementById('repModel').value = '';
@@ -669,7 +679,7 @@ async function verificarModoEdicao() {
 window.salvarRelatorioFinal = async function() {
   const editIndex = document.getElementById('editIndex').value;
   const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
-  const numRsStr = document.getElementById('repNumber').value;
+  const numRsStr = higienizarTexto(document.getElementById('repNumber').value);
 
   let diasTrabalhoArray = [];
   const cards = document.querySelectorAll('.dia-card-flutuante');
@@ -709,41 +719,42 @@ window.salvarRelatorioFinal = async function() {
     anexosList.forEach(a => {
       if (a && typeof a === 'object') {
         cleanAnexos.push({
-          titulo: String(a.titulo || 'Foto'),
+          titulo: higienizarTexto(String(a.titulo || 'Foto')),
           imagem: String(a.imagem || '')
         });
       }
     });
   }
 
+  // BLINDAGEM COMPLETA NO PAYLOAD (Zero Trust Input)
   const reportData = {
     number: String(numRsStr || ''),
-    date: String(document.getElementById('repDate').value || ''),
-    client: String(document.getElementById('repClient').value || ''),
-    equipment: String(document.getElementById('repEquipment').value || ''),
-    brand: String(document.getElementById('repBrand').value || ''),
-    model: String(document.getElementById('repModel').value || ''),
-    serialNumber: String(document.getElementById('repSerialNumber').value || ''),
-    serviceNature: String(document.getElementById('repServiceNature').value || ''),
-    serviceArea: String(document.getElementById('repServiceArea').value || ''),
-    desc: String(document.getElementById('repDesc').value || ''),
+    date: higienizarTexto(String(document.getElementById('repDate').value || '')),
+    client: higienizarTexto(String(document.getElementById('repClient').value || '')),
+    equipment: higienizarTexto(String(document.getElementById('repEquipment').value || '')),
+    brand: higienizarTexto(String(document.getElementById('repBrand').value || '')),
+    model: higienizarTexto(String(document.getElementById('repModel').value || '')),
+    serialNumber: higienizarTexto(String(document.getElementById('repSerialNumber').value || '')),
+    serviceNature: higienizarTexto(String(document.getElementById('repServiceNature').value || '')),
+    serviceArea: higienizarTexto(String(document.getElementById('repServiceArea').value || '')),
+    desc: higienizarTexto(String(document.getElementById('repDesc').value || '')),
 
-    temEmpreitada: String(document.getElementById('selectEmpreitada').value || 'nao'),
-    valorEmpreitada: String(document.getElementById('repValorEmpreitada').value || '0'),
+    temEmpreitada: higienizarTexto(String(document.getElementById('selectEmpreitada').value || 'nao')),
+    valorEmpreitada: higienizarTexto(String(document.getElementById('repValorEmpreitada').value || '0')),
 
-    temHora: String(document.getElementById('selectHora').value || 'nao'),
+    temHora: higienizarTexto(String(document.getElementById('selectHora').value || 'nao')),
     diasTrabalho: diasTrabalhoArray,
-    valorHora: String(document.getElementById('repValorHora').value || '200'),
+    valorHora: higienizarTexto(String(document.getElementById('repValorHora').value || '200')),
 
-    temDeslocamento: String(document.getElementById('selectDeslocamento').value || 'nao'),
-    valorHoraDeslocamento: String(document.getElementById('valorHoraDeslocamento').value || '260'),
-    tempoDeslocamentoHoras: String(document.getElementById('tempoDeslocamentoHoras').value || '0'),
+    temDeslocamento: higienizarTexto(String(document.getElementById('selectDeslocamento').value || 'nao')),
+    valorHoraDeslocamento: higienizarTexto(String(document.getElementById('valorHoraDeslocamento').value || '260')),
+    tempoDeslocamentoHoras: higienizarTexto(String(document.getElementById('tempoDeslocamentoHoras').value || '0')),
 
-    temHospedagem: String(document.getElementById('selectHospedagem').value || 'nao'),
-    valorHospedagem: String(document.getElementById('valorHospedagem').value || '0'),
+    temHospedagem: higienizarTexto(String(document.getElementById('selectHospedagem').value || 'nao')),
+    valorHospedagem: higienizarTexto(String(document.getElementById('valorHospedagem').value || '0')),
 
-    temOutras: String(document.getElementById('selectOutras').value || 'nao'),
-    valorOutras: String(document.getElementById('repValorOutras') ? document.getElementById('repValorOutras').value : (document.getElementById('valorOutras')?.value || '0')),
+    temOutras: higienizarTexto(String(document.getElementById('selectOutras').value || 'nao')),
+    valorOutras: higienizarTexto(String(document.getElementById('repValorOutras') ? document.getElementById('repValorOutras').value : (document.getElementById('valorOutras')?.value || '0'))),
 
     signature: String(clientSigData || ''),
     anexos: cleanAnexos
