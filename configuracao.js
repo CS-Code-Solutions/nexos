@@ -1,6 +1,15 @@
 /**
  * NexOS - Módulo de Configurações (configuracao.js)
+ * BLINDADO: Padrão CS Code Solutions (Zero Trust Input + Validação de Backup)
  */
+
+function higienizarTexto(texto) {
+  if (typeof texto !== 'string') return texto;
+  return texto
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/gu, '')
+    .trim();
+}
 
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
@@ -148,25 +157,25 @@ if (canvas && ctx) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   function startPosition(e) { painting = true; draw(e); }
-  
-  function finishedPosition() { 
+
+  function finishedPosition() {
     if (painting) {
-      painting = false; 
-      ctx.beginPath(); 
+      painting = false;
+      ctx.beginPath();
       if (hasDrawn) {
         currentTechSignature = canvas.toDataURL('image/png');
         atualizarPreviewAssinatura(currentTechSignature);
       }
     }
   }
-  
+
   function draw(e) {
     if (!painting) return;
     hasDrawn = true;
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#0B132B';
-    
+
     const rect = canvas.getBoundingClientRect();
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
@@ -191,7 +200,7 @@ function atualizarPreviewAssinatura(dataUrl) {
   const boxPreview = document.getElementById('containerPreviewAssinatura');
   const imgPreview = document.getElementById('imgPreviewAssinatura');
   if (boxPreview && imgPreview) {
-    if (dataUrl && dataUrl.length > 100) {
+    if (dataUrl && typeof dataUrl === 'string' && dataUrl.startsWith('data:image/') && dataUrl.length > 100) {
       imgPreview.src = dataUrl;
       boxPreview.style.display = 'block';
     } else {
@@ -208,7 +217,7 @@ window.limparAssinaturaTech = async function() {
   hasDrawn = false;
   currentTechSignature = '';
   atualizarPreviewAssinatura('');
-  
+
   try {
     let configAtual = await DataSync.load('rg_config') || {};
     configAtual.techSignature = '';
@@ -221,10 +230,10 @@ window.limparAssinaturaTech = async function() {
 window.salvarAssinaturaTech = async function() {
   try {
     if (hasDrawn && canvas) { currentTechSignature = canvas.toDataURL('image/png'); }
-    
+
     let configAtual = await DataSync.load('rg_config') || {};
     configAtual.techSignature = currentTechSignature;
-    
+
     await DataSync.save('rg_config', configAtual);
     atualizarPreviewAssinatura(currentTechSignature);
     alert('Assinatura salva com sucesso!');
@@ -234,13 +243,15 @@ window.salvarAssinaturaTech = async function() {
   }
 };
 
-// Salva automaticamente ao trocar a Página Inicial no select
+const PAGINAS_PERMITIDAS = ['relatorios.html', 'novo-relatorio.html', 'cadastros.html', 'manutencoes.html', 'horas-extras.html'];
+
 const selectPaginaInicialEl = document.getElementById('configPaginaInicial');
 if (selectPaginaInicialEl) {
   selectPaginaInicialEl.addEventListener('change', async () => {
-    const destino = selectPaginaInicialEl.value || 'relatorios.html';
+    const val = selectPaginaInicialEl.value;
+    const destino = PAGINAS_PERMITIDAS.includes(val) ? val : 'relatorios.html';
     localStorage.setItem('rg_pagina_inicial', destino);
-    
+
     const linkLogoHeader = document.getElementById('linkLogoHeader');
     if (linkLogoHeader) linkLogoHeader.href = destino;
 
@@ -259,14 +270,14 @@ let dadosPendentesSalvar = null;
 async function carregarConfiguracoesIniciais() {
   try {
     let config = await DataSync.load('rg_config') || {};
-    
+
     document.getElementById('configName').value = config.name || '';
     document.getElementById('configTech').value = config.tech || '';
     document.getElementById('configDoc').value = config.doc || '';
     document.getElementById('configEmail').value = config.email || '';
     document.getElementById('configContact').value = config.contact || '';
     document.getElementById('configLocation').value = config.location || '';
-    
+
     document.getElementById('configNomeConta1').value = config.nomeConta1 || '';
     document.getElementById('configBank1').value = config.bank1 || '';
     document.getElementById('configAgency1').value = config.agency1 || '';
@@ -279,9 +290,8 @@ async function carregarConfiguracoesIniciais() {
 
     document.getElementById('configNextRs').value = config.nextRsNumber || '1000';
 
-    // Carrega e sincroniza a Página Inicial (ignorando dashboard.html por hora)
     let paginaInicial = config.paginaInicial || localStorage.getItem('rg_pagina_inicial') || 'relatorios.html';
-    if (paginaInicial === 'dashboard.html') {
+    if (!PAGINAS_PERMITIDAS.includes(paginaInicial)) {
       paginaInicial = 'relatorios.html';
     }
     localStorage.setItem('rg_pagina_inicial', paginaInicial);
@@ -295,7 +305,7 @@ async function carregarConfiguracoesIniciais() {
       linkLogoHeader.href = paginaInicial;
     }
 
-    if (config.techSignature && config.techSignature.length > 100 && ctx && canvas) {
+    if (config.techSignature && typeof config.techSignature === 'string' && config.techSignature.startsWith('data:image/') && config.techSignature.length > 100 && ctx && canvas) {
       currentTechSignature = config.techSignature;
       const img = new Image();
       img.onload = () => {
@@ -323,7 +333,7 @@ if (configFormEl) {
 
     try {
       let configAtual = {};
-      try { configAtual = await DataSync.load('rg_config') || {}; } 
+      try { configAtual = await DataSync.load('rg_config') || {}; }
       catch (loadErr) { console.warn("Aviso: Sem configuração prévia.", loadErr); }
 
       if (hasDrawn && canvas) {
@@ -332,33 +342,34 @@ if (configFormEl) {
         currentTechSignature = currentTechSignature || configAtual.techSignature || '';
       }
 
-      const paginaSelecionada = document.getElementById('configPaginaInicial')?.value || 'relatorios.html';
+      const rawPag = document.getElementById('configPaginaInicial')?.value || 'relatorios.html';
+      const paginaSelecionada = PAGINAS_PERMITIDAS.includes(rawPag) ? rawPag : 'relatorios.html';
       localStorage.setItem('rg_pagina_inicial', paginaSelecionada);
 
       dadosPendentesSalvar = {
         ...configAtual,
-        name: document.getElementById('configName').value || '',
-        tech: document.getElementById('configTech').value || '',
+        name: higienizarTexto(document.getElementById('configName').value || ''),
+        tech: higienizarTexto(document.getElementById('configTech').value || ''),
         techSignature: currentTechSignature,
-        doc: document.getElementById('configDoc').value || '',
-        email: document.getElementById('configEmail').value || '',
-        contact: document.getElementById('configContact').value || '',
-        location: document.getElementById('configLocation').value || '',
+        doc: higienizarTexto(document.getElementById('configDoc').value || ''),
+        email: higienizarTexto(document.getElementById('configEmail').value || ''),
+        contact: higienizarTexto(document.getElementById('configContact').value || ''),
+        location: higienizarTexto(document.getElementById('configLocation').value || ''),
         paginaInicial: paginaSelecionada,
-        nomeConta1: document.getElementById('configNomeConta1').value || '',
-        bank1: document.getElementById('configBank1').value || '',
-        agency1: document.getElementById('configAgency1').value || '',
-        account1: document.getElementById('configAccount1').value || '',
-        nomeConta2: document.getElementById('configNomeConta2').value || '',
-        bank2: document.getElementById('configBank2').value || '',
-        agency2: document.getElementById('configAgency2').value || '',
-        account2: document.getElementById('configAccount2').value || '',
-        nextRsNumber: document.getElementById('configNextRs').value || '1000',
+        nomeConta1: higienizarTexto(document.getElementById('configNomeConta1').value || ''),
+        bank1: higienizarTexto(document.getElementById('configBank1').value || ''),
+        agency1: higienizarTexto(document.getElementById('configAgency1').value || ''),
+        account1: higienizarTexto(document.getElementById('configAccount1').value || ''),
+        nomeConta2: higienizarTexto(document.getElementById('configNomeConta2').value || ''),
+        bank2: higienizarTexto(document.getElementById('configBank2').value || ''),
+        agency2: higienizarTexto(document.getElementById('configAgency2').value || ''),
+        account2: higienizarTexto(document.getElementById('configAccount2').value || ''),
+        nextRsNumber: String(parseInt(document.getElementById('configNextRs').value, 10) || 1000),
         lgpdConsent: true
       };
 
       const lgpdAceitoLocal = localStorage.getItem('rg_lgpd_consent');
-      
+
       if (lgpdAceitoLocal === 'true' || configAtual.lgpdConsent === true) {
         await executarSalvamentoConfiguracoes();
       } else {
@@ -378,10 +389,10 @@ async function executarSalvamentoConfiguracoes() {
   if (!dadosPendentesSalvar) return;
   try {
     await DataSync.save('rg_config', dadosPendentesSalvar);
-    
+
     const tenantId = localStorage.getItem('rg_tenant_id');
     if (tenantId) {
-       await db.collection('rg_config').doc(tenantId).set(dadosPendentesSalvar, { merge: true });
+      await db.collection('rg_config').doc(tenantId).set(dadosPendentesSalvar, { merge: true });
     }
 
     if (dadosPendentesSalvar.paginaInicial) {
@@ -414,10 +425,10 @@ window.recusarLgpd = function() {
 
 window.fazerBackup = async function() {
   try {
-    const keys = ['rg_config', 'rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos'];
+    const keys = ['rg_config', 'rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos', 'rg_manutencoes', 'rg_horas_extras'];
     const backupData = {};
     for (const key of keys) {
-      backupData[key] = await DataSync.load(key) || [];
+      backupData[key] = await DataSync.load(key) || (key === 'rg_config' ? {} : []);
     }
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -441,6 +452,11 @@ window.restaurarBackup = async function(event) {
     event.target.value = '';
     return;
   }
+  if (file.size > 15 * 1024 * 1024) {
+    alert('Erro: O ficheiro de backup excede o limite de segurança (15MB).');
+    event.target.value = '';
+    return;
+  }
   if (!confirm('Atenção: A restauração irá substituir os dados atuais. Deseja continuar?')) {
     event.target.value = '';
     return;
@@ -455,7 +471,9 @@ window.restaurarBackup = async function(event) {
         'rg_clients': 'rg_clients',
         'rg_machines': 'rg_machines',
         'rg_reports': 'rg_reports',
-        'rg_orcamentos': 'rg_orcamentos'
+        'rg_orcamentos': 'rg_orcamentos',
+        'rg_manutencoes': 'rg_manutencoes',
+        'rg_horas_extras': 'rg_horas_extras'
       };
       let restoredAny = false;
       for (const [fileKey, targetKey] of Object.entries(validKeysMap)) {
