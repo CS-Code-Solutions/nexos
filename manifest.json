@@ -2,7 +2,7 @@
   "name": "NexOS - CS Code Solutions",
   "short_name": "NexOS",
   "description": "Sistema de Gestão de Relatórios de Serviço e Planejamento",
-  "start_url": "./manutencoes.html",
+  "start_url": "./relatorios.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0B132B",
