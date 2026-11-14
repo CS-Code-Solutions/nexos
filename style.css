@@ -1,347 +1,16 @@
-:root {
-  --deep-navy: #0B132B;
-  --tech-blue: #1D4ED8;
-  --electric-cyan: #00F5D4;
-  --slate-gray: #64748B;
-  --ice-white: #F8FAFC;
-  --white: #FFFFFF;
-  --danger: #EF4444;
-  --success: #10B981;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-body {
-  background-color: var(--ice-white);
-  color: var(--deep-navy);
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Header & Navigation */
-header {
-  background-color: var(--deep-navy);
-  color: var(--white);
-  padding: 4px 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0;
-  min-height: auto;
-}
-
-.logo {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: var(--electric-cyan);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  line-height: 1;
-  padding: 2px 0;
-}
-
-.logo img {
-  height: 35px;
-  width: auto;
-  object-fit: contain;
-}
-
-nav ul {
-  list-style: none;
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-nav a {
-  color: var(--white);
-  text-decoration: none;
-  font-size: 0.95rem;
-  padding: 6px 12px;
-  border-radius: 4px;
-  transition: background 0.3s, color 0.3s;
-}
-
-nav a:hover, nav a.active {
-  background-color: var(--tech-blue);
-  color: var(--white);
-}
-
-/* Main Layout */
-main {
-  flex: 1;
-  max-width: 1200px;
-  width: 100%;
-  margin: 20px auto;
-  padding: 0 15px;
-}
-
-.card {
-  background: var(--white);
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  margin-bottom: 20px;
-  border-top: 4px solid var(--tech-blue);
-}
-
-h2 {
-  margin-bottom: 15px;
-  color: var(--deep-navy);
-  font-size: 1.5rem;
-}
-
-/* Forms */
-.form-group {
-  margin-bottom: 15px;
-}
-
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 600;
-  color: var(--slate-gray);
-  font-size: 0.9rem;
-}
-
-input, select, textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #CBD5E1;
-  border-radius: 6px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.3s;
-}
-
-input:focus, select:focus, textarea:focus {
-  border-color: var(--tech-blue);
-  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
-}
-
-/* Buttons */
-.btn {
-  background-color: var(--tech-blue);
-  color: var(--white);
-  border: none;
-  padding: 10px 20px;
-  font-size: 1rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.btn:hover {
-  background-color: #1e40af;
-}
-
-.btn-cyan {
-  background-color: var(--electric-cyan);
-  color: var(--deep-navy);
-}
-.btn-cyan:hover {
-  background-color: #00dbbc;
-}
-
-/* Tables */
-.table-responsive {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-th, td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #E2E8F0;
-  font-size: 0.95rem;
-}
-
-th {
-  background-color: var(--deep-navy);
-  color: var(--white);
-}
-
-tr:hover {
-  background-color: #F1F5F9;
-}
-
-/* Footer */
-footer {
-  background-color: var(--deep-navy);
-  color: var(--slate-gray);
-  text-align: center;
-  padding: 15px;
-  font-size: 0.85rem;
-  margin-top: auto;
-}
-
-/* Responsividade Mobile */
-@media (max-width: 768px) {
-  .nav-container {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-  }
-  
-  header nav ul {
-    display: none !important;
-  }
-}
-
-/* --- BLINDAGEM DA BARRA INFERIOR (CARROSSEL HORIZONTAL AJUSTADO) --- */
-.bottom-nav {
-  display: none; 
-}
-
-@media (max-width: 768px) {
-  .bottom-nav {
-    display: flex !important;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 65px;
-    background-color: #0B132B;
-    
-    /* Configuração do Carrossel Horizontal */
-    overflow-x: auto;          
-    white-space: nowrap;       
-    -webkit-overflow-scrolling: touch; 
-    scrollbar-width: none;     
-
-    justify-content: flex-start; 
-    align-items: center;
-    /* Ajustado o padding para dar folga em cima/baixo e evitar cortes no brilho */
-    padding: 6px 10px;
-    gap: 4px;
-    z-index: 9999;
-    border-top: 1px solid #1e293b;
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
-  }
-
-  /* Ocultar barra de scroll no Chrome, Safari e Edge */
-  .bottom-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .bottom-nav a {
-    color: #94a3b8;
-    text-decoration: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 0.65rem;
-    gap: 3px;
-    
-    /* Propriedades do Carrossel por item */
-    flex: 0 0 auto;            
-    min-width: 72px;           
-    padding: 4px 6px;          /* Espaçamento interno seguro para o fundo ativo */
-    border-radius: 6px;
-
-    transition: color 0.2s, background-color 0.2s;
-  }
-
-  .bottom-nav a i {
-    font-size: 1.3rem;
-  }
-
-  .bottom-nav a.active {
-    color: #00F5D4;
-    font-weight: bold;
-    background: rgba(0, 245, 212, 0.1); /* Destacar sem cortar o visual */
-  }
-
-  body {
-    padding-bottom: 75px !important;
-  }
-}
-
-@media print {
-  .bottom-nav {
-    display: none !important;
-  }
-}
-
-.nav-item-hidden {
-  display: none !important;
-}
-
-/* ========================================= */
-/* MENU DESKTOP NO CABEÇALHO                 */
-/* ========================================= */
-.desktop-nav {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.desktop-nav a {
-  color: #94A3B8;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 0.95rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 0.2s;
-}
-
-.desktop-nav a:hover, 
-.desktop-nav a.active {
-  color: #00F5D4;
-}
-
-/* Ocultar Menu Desktop em Telemóveis */
-@media (max-width: 768px) {
-  .desktop-nav {
-    display: none !important;
-  }
-}
-
-/* Ocultar Barra Inferior em Computadores */
-@media (min-width: 769px) {
-  #mainBottomNav {
-    display: none !important;
-  }
-}
-
 /* Indicadores visuais de rolagem na barra inferior mobile */
 .nav-scroll-hint {
   position: fixed;
   bottom: 0;
-  height: 62px; /* Mesma altura da sua .bottom-nav */
+  height: 65px;
   width: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #00F5D4;
   font-size: 0.85rem;
-  z-index: 1002;
-  pointer-events: none; /* Permite clicar nos botões normalmente por baixo */
+  z-index: 10001;
+  pointer-events: none;
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -368,41 +37,24 @@ footer {
   }
 }
 
-/* Indicadores visuais de rolagem na barra inferior mobile */
-.nav-scroll-hint {
-  position: fixed;
-  bottom: 0;
-  height: 62px; /* Mesma altura da sua .bottom-nav */
-  width: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #00F5D4;
-  font-size: 0.85rem;
-  z-index: 1002;
-  pointer-events: none; /* Permite clicar nos botões normalmente por baixo */
-  opacity: 0;
-  transition: opacity 0.25s ease;
+/* Motion & Skeletons utilitários (CS Code Governance) */
+.nexos-fade-in {
+  animation: nexosFadeIn 0.25s ease-out forwards;
 }
 
-.nav-scroll-hint.visible {
-  opacity: 1;
+@keyframes nexosFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.nav-scroll-hint.left {
-  left: 0;
-  background: linear-gradient(to right, #0B132B 45%, rgba(11, 19, 43, 0));
-  padding-right: 6px;
+.nexos-skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: nexosSkeletonPulse 1.4s ease-in-out infinite;
+  border-radius: 6px;
 }
 
-.nav-scroll-hint.right {
-  right: 0;
-  background: linear-gradient(to left, #0B132B 45%, rgba(11, 19, 43, 0));
-  padding-left: 6px;
-}
-
-@media (min-width: 769px) {
-  .nav-scroll-hint {
-    display: none !important;
-  }
+@keyframes nexosSkeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
