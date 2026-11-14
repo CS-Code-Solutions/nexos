@@ -347,7 +347,6 @@ window.editarTenant = function(uid) {
   } else {
     document.getElementById('logoPreviewContainer').style.display = 'none';
   }
-  document.getElementById('pageDashboard').checked = t.pageDashboard !== false;
   document.getElementById('pageCadastros').checked = t.pageCadastros !== false;
   document.getElementById('pageRelatorios').checked = t.pageRelatorios !== false;
   document.getElementById('pageOrcamentos').checked = t.pageOrcamentos !== false;
