@@ -11,16 +11,11 @@
   const publicPages = ['login.html', '403.html', '404.html', 'assinar-contrato.html'];
   if (publicPages.includes(pageName)) return;
 
-  // 1. Verifica se existe sessão mínima armazenada (evita acesso anônimo direto pela URL)
   const userRole = localStorage.getItem('rg_user_role');
   const tenantId = localStorage.getItem('rg_tenant_id');
-  const userUid = localStorage.getItem('rg_user_uid');
-
-  // Se não houver nenhum dado de sessão no localStorage, aguarda auth ou envia ao login
-  // (Se firebase-sync já gravou sessão anteriormente, estes valores existem)
   const isSuperAdmin = (userRole === 'super_admin');
 
-  // Mapa de permissões por rota
+  // Mapa de permissões por rota existente no sistema
   const routePermissions = {
     'admin.html': () => isSuperAdmin,
     'cadastros.html': () => isSuperAdmin || localStorage.getItem('rg_page_cadastros') !== 'false',
@@ -28,10 +23,9 @@
     'relatorios.html': () => isSuperAdmin || localStorage.getItem('rg_page_relatorios') !== 'false',
     'novo-relatorio.html': () => isSuperAdmin || localStorage.getItem('rg_page_relatorios') !== 'false',
     'manutencoes.html': () => isSuperAdmin || localStorage.getItem('rg_page_manutencoes') !== 'false',
-    'orcamentos.html': () => isSuperAdmin || localStorage.getItem('rg_page_orcamentos') !== 'false',
     'novo-orcamento.html': () => isSuperAdmin || localStorage.getItem('rg_page_orcamentos') !== 'false',
     'horas-extras.html': () => isSuperAdmin || localStorage.getItem('rg_mod_horas_extras') === 'true',
-    'configuracao.html': () => true // Configurações permanece acessível para dados/logout
+    'configuracao.html': () => true
   };
 
   // Encontra a primeira rota permitida para redirecionamento seguro
@@ -54,7 +48,7 @@
     return '403.html';
   }
 
-  // 2. Validação Síncrona Imediata (antes do DOM renderizar)
+  // 1. Validação Síncrona Imediata (antes do DOM renderizar)
   if (routePermissions[pageName] && !routePermissions[pageName]()) {
     const destino = (pageName === 'admin.html') ? '403.html' : getFirstAllowedRoute();
     if (destino !== pageName) {
@@ -63,7 +57,7 @@
     }
   }
 
-  // 3. Injeta CSS síncrono para ocultar links de navegação não permitidos (Desktop e Mobile)
+  // 2. Injeta CSS síncrono para ocultar links de navegação não permitidos (Desktop e Mobile)
   (function applyNavVisibilityCSS() {
     if (isSuperAdmin) return;
 
@@ -78,7 +72,7 @@
       css += 'a[href="manutencoes.html"], #nav-item-plan, #d-nav-plan { display: none !important; }';
     }
     if (localStorage.getItem('rg_page_orcamentos') === 'false') {
-      css += 'a[href="orcamentos.html"], a[href="novo-orcamento.html"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
+      css += 'a[href="novo-orcamento.html"], #nav-item-orcamentos, #d-nav-orcamentos { display: none !important; }';
     }
     if (localStorage.getItem('rg_mod_horas_extras') !== 'true') {
       css += 'a[href="horas-extras.html"], #nav-item-horas, #d-nav-horas { display: none !important; }';
@@ -92,7 +86,7 @@
     }
   })();
 
-  // 4. Revalidação Assíncrona contra adulteração manual do localStorage (via Firebase Auth/Firestore)
+  // 3. Revalidação Assíncrona contra adulteração manual do localStorage (via Firebase Auth/Firestore)
   window.addEventListener('DOMContentLoaded', () => {
     if (typeof firebase === 'undefined' || !firebase.auth) return;
 
@@ -113,7 +107,6 @@
 
         if (realRole === 'super_admin') return;
 
-        // Se tentou forçar admin.html alterando localStorage
         if (pageName === 'admin.html') {
           window.location.replace('403.html');
           return;
@@ -128,14 +121,12 @@
         const tData = tenantDoc.data();
         const flags = tData.feature_flags || tData;
 
-        // Sincroniza permissões reais da nuvem
         if (flags.page_cadastros !== undefined) localStorage.setItem('rg_page_cadastros', String(flags.page_cadastros));
         if (flags.page_relatorios !== undefined) localStorage.setItem('rg_page_relatorios', String(flags.page_relatorios));
         if (flags.page_manutencoes !== undefined) localStorage.setItem('rg_page_manutencoes', String(flags.page_manutencoes));
         if (flags.page_orcamentos !== undefined) localStorage.setItem('rg_page_orcamentos', String(flags.page_orcamentos));
         if (flags.mod_horas_extras !== undefined) localStorage.setItem('rg_mod_horas_extras', String(flags.mod_horas_extras));
 
-        // Re-checa se a página atual continua permitida
         if (routePermissions[pageName] && !routePermissions[pageName]()) {
           window.location.replace(getFirstAllowedRoute());
         }
