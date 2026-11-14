@@ -1,38 +1,59 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 1. Verificação de Super Admin (GRATUITA E RÁPIDA)
+
+    // 1. Verificação de Super Admin (Custo: 0 leituras)
     function isSuperAdmin() {
-      return request.auth != null && request.auth.token.email == 'cristianst3@gmail.com'; 
+      return request.auth != null && request.auth.token.email == 'cristianst3@gmail.com';
     }
 
-    // 2. Busca segura do Tenant (PAGA 1 LEITURA - SÓ RODA SE NECESSÁRIO)
-    // Usamos exists() para não dar erro se o utilizador ainda não estiver registado
+    // 2. Busca segura do Tenant pelo e-mail autenticado (Custo: 1 leitura)
     function getTenantId() {
       let userDoc = /databases/$(database)/documents/saas_users/$(request.auth.token.email);
       return exists(userDoc) ? get(userDoc).data.tenant_id : null;
     }
 
-    // 3. Acesso à lista de controlo de acessos
+    // 3. Controle de Acessos e Licenças (Somente Super Admin escreve)
     match /saas_users/{userEmail} {
-      allow read: if request.auth != null && request.auth.token.email == userEmail;
+      allow read: if request.auth != null && (isSuperAdmin() || request.auth.token.email == userEmail);
       allow write: if isSuperAdmin();
     }
-    // Registo de Aceite dos Termos de Uso (Prova Jurídica)
+
+    match /saas_tenants/{tenantId} {
+      allow read: if request.auth != null && (isSuperAdmin() || getTenantId() == tenantId);
+      allow write: if isSuperAdmin();
+    }
+
+    // 4. Registro de Aceite dos Termos de Uso (Prova Jurídica Imutável)
     match /rg_termos_aceites/{aceiteId} {
       allow read: if request.auth != null && (isSuperAdmin() || aceiteId.matches('^' + request.auth.uid + '_.*'));
       allow create: if request.auth != null && aceiteId.matches('^' + request.auth.uid + '_.*');
-      allow update, delete: if isSuperAdmin(); // Impede que o cliente apague ou altere a prova depois de aceitar!
+      allow update, delete: if isSuperAdmin();
     }
 
-    // 4. Regra Mestra Blindada e Otimizada
-    match /{collectionName}/{docId} {
-      allow read, write: if request.auth != null && (
-        isSuperAdmin() ||                 // 1º Testa se é o chefe (Custo: 0) -> Se sim, entra direto!
-        request.auth.uid == docId ||      // 2º Testa se o doc é o UID dele (Custo: 0) -> Se sim, entra direto!
-        getTenantId() == docId            // 3º SÓ FAZ A LEITURA se falhar nos dois acima (Custo: 1 Leitura)
+    // 5. Configurações da Empresa (Impede cliente de alterar o próprio plano/licença)
+    match /rg_config/{tenantId} {
+      allow read: if request.auth != null && (isSuperAdmin() || getTenantId() == tenantId);
+      allow write: if request.auth != null && (
+        isSuperAdmin() ||
+        (
+          getTenantId() == tenantId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['tipoLicenca', 'dataInicioLicenca', 'role'])
+        )
       );
+    }
+
+    // 6. Regra Mestra para Coleções Operacionais (rg_reports, rg_clients, rg_machines, etc.)
+    match /{collectionName}/{docId} {
+      allow read, write: if request.auth != null &&
+        collectionName != 'saas_users' &&
+        collectionName != 'saas_tenants' &&
+        collectionName != 'rg_termos_aceites' &&
+        collectionName != 'rg_config' && (
+          isSuperAdmin() ||
+          request.auth.uid == docId ||
+          getTenantId() == docId
+        );
     }
   }
 }
