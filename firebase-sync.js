@@ -11,33 +11,41 @@ window.DataSync = {
     return localStorage.getItem('rg_tenant_id') || 'default_tenant';
   },
 
+  _readLocalSafe: function(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      console.warn(`[NexOS] Cache local corrompido em ${key}, limpando...`, e);
+      localStorage.removeItem(key);
+      return fallback;
+    }
+  },
+
   // Usa o tenant_id para carregar configurações em rg_config,
   // ou usa o uid para outras coleções se necessário
   load: async function(collectionName) {
     const tenantId = this.getTenantId();
     const uid = this.getUid();
-    
-    // Se for a coleção de configuração, carrega pelo tenant_id
+
     const documentId = collectionName === 'rg_config' ? tenantId : uid;
+    const fallback = collectionName === 'rg_config' ? null : [];
 
     if (!documentId) {
-      const localData = localStorage.getItem(collectionName);
-      return localData ? JSON.parse(localData) : [];
+      return this._readLocalSafe(collectionName, fallback);
     }
 
     try {
       const doc = await db.collection(collectionName).doc(documentId).get();
       if (doc.exists) {
-        // Se for rg_config, retorna os dados diretamente em vez de procurar "items"
         const data = collectionName === 'rg_config' ? doc.data() : (doc.data().items || []);
         localStorage.setItem(collectionName, JSON.stringify(data));
         return data;
       }
-      return collectionName === 'rg_config' ? null : [];
+      return fallback;
     } catch (error) {
       console.error(`[NexOS] Erro ao carregar coleção ${collectionName}:`, error);
-      const localData = localStorage.getItem(collectionName);
-      return localData ? JSON.parse(localData) : (collectionName === 'rg_config' ? null : []);
+      return this._readLocalSafe(collectionName, fallback);
     }
   },
 
@@ -46,15 +54,16 @@ window.DataSync = {
     const tenantId = this.getTenantId();
 
     if (!uid) {
-      console.error(`[NexOS] Impossível guardar ${collectionName}: utilizador não identificado.`);
-      return;
+      const authErr = new Error(`Utilizador não identificado ao guardar ${collectionName}.`);
+      console.error(`[NexOS]`, authErr);
+      throw authErr;
     }
 
+    // 1. Grava no cache local
+    localStorage.setItem(collectionName, JSON.stringify(dataArray));
+
+    // 2. Grava na nuvem e propaga erro caso falhe (evita falso positivo na UI)
     try {
-      // 1. Grava no cache local
-      localStorage.setItem(collectionName, JSON.stringify(dataArray));
-      
-      // 2. Grava na nuvem
       await db.collection(collectionName).doc(uid).set({
         tenant_id: tenantId,
         user_uid: uid,
@@ -65,14 +74,14 @@ window.DataSync = {
       console.log(`[NexOS] ${collectionName} sincronizado com a nuvem!`);
     } catch (error) {
       console.error(`[NexOS] ERRO ao guardar no Firestore:`, error);
-      alert("Aviso: O registo foi guardado no telemóvel, mas a sincronização com a nuvem falhou.");
+      throw new Error("O registo foi salvo localmente, mas falhou ao sincronizar com a nuvem. Verifique sua conexão.");
     }
   },
 
   listen: function(collectionName, callback) {
     const tenantId = this.getTenantId();
     const uid = this.getUid();
-    
+
     const documentId = collectionName === 'rg_config' ? tenantId : uid;
 
     if (!documentId) return null;
@@ -155,7 +164,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
     let dataInicioStr = null;
     let tenantId = localStorage.getItem('rg_tenant_id');
 
-    // 1. Verifica primeiro no cadastro do usuário (saas_users)
     if (user.email) {
       const userDoc = await db.collection('saas_users').doc(user.email).get();
       if (userDoc.exists) {
@@ -167,7 +175,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
       }
     }
 
-    // 2. Verifica / complementa pelos dados da empresa (rg_config)
     if (tenantId) {
       const cfgDoc = await db.collection('rg_config').doc(tenantId).get();
       if (cfgDoc.exists) {
@@ -177,16 +184,14 @@ firebase.auth().onAuthStateChanged(async (user) => {
       }
     }
 
-    // Se não houver restrição configurada ou for vitalício, segue normalmente
     if (!tipoLicenca || tipoLicenca === 'definitivo') {
       window.nexosLicencaInfo = { tipoLicenca: 'definitivo' };
       window.dispatchEvent(new Event('nexosLicencaCarregada'));
       return;
     }
 
-    // Se estiver em plano 7_dias ou 1_ano mas ainda sem data de início gravada, define hoje
     if (!dataInicioStr) {
-      dataInicioStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      dataInicioStr = new Date().toISOString().split('T')[0];
       if (user.email) {
         await db.collection('saas_users').doc(user.email).set({
           dataInicioLicenca: dataInicioStr,
@@ -220,10 +225,8 @@ firebase.auth().onAuthStateChanged(async (user) => {
       diasRestantes
     };
 
-    // Notifica a página de Configurações para exibir os dados
     window.dispatchEvent(new Event('nexosLicencaCarregada'));
 
-    // Bloqueio automático se venceu
     if (diasRestantes <= 0) {
       exibirBloqueioExpirado(tipoLicenca);
     }
