@@ -1,6 +1,6 @@
 /**
  * NexOS - Módulo Unificado e Blindado de Relatórios e Orçamentos (relatorios.js)
- * 🛡️ BLINDADO: Zero Trust Output via escapeHTML em vez de DOMPurify
+ * BLINDADO: Zero Trust Output via escapeHTML + Sanitização de URLs de Imagem
  */
 
 let listaRelatoriosRS = [];
@@ -11,6 +11,14 @@ let activeBudgetData = {};
 let indexParaExcluir = null;
 let tipoDocumentoExcluir = null;
 let isRendering = false;
+
+function sanitizarImagemSrc(src, fallback = 'marca.png') {
+  if (!src || typeof src !== 'string') return fallback;
+  const limpo = src.trim();
+  if (limpo.startsWith('data:image/')) return limpo;
+  if (limpo === 'marca.png' || limpo === 'nexosico192.png' || limpo === 'nexos512.png') return limpo;
+  return fallback;
+}
 
 firebase.auth().onAuthStateChanged((user) => {
   if (!user) {
@@ -26,7 +34,7 @@ firebase.auth().onAuthStateChanged((user) => {
         DataSync.listen('rg_orcamentos', () => setTimeout(() => renderizarTudo(), 500));
         DataSync.listen('rg_clients', () => setTimeout(() => carregarOpcoesClientes(), 500));
       }
-    } catch(e) {}
+    } catch (e) {}
   }
 });
 
@@ -55,12 +63,12 @@ async function safeLoad(key) {
       new Promise(resolve => setTimeout(() => resolve([]), 4000))
     ]);
     return normalizarLista(result);
-  } catch(e) { return []; }
+  } catch (e) { return []; }
 }
 
 async function carregarOpcoesClientes() {
   const selectFiltro = document.getElementById('selectClienteFiltro');
-  if (!selectFiltro) return; 
+  if (!selectFiltro) return;
   try {
     const clients = await safeLoad('rg_clients');
     if (!clients.length) return;
@@ -82,12 +90,12 @@ async function carregarApelidosContas() {
       db.collection('rg_config').doc(tenantId).get(),
       new Promise(resolve => setTimeout(() => resolve({ exists: false }), 4000))
     ]).catch(() => ({ exists: false }));
-    
+
     const config = configDoc.exists ? configDoc.data() : {};
     const opt1 = document.getElementById('optionBank1Label');
     const opt2 = document.getElementById('optionBank2Label');
-    if (opt1) opt1.textContent = config.nomeConta1 ? `Conta Bancária: ${escapeHTML(config.nomeConta1)}` : 'Conta Bancária 1';
-    if (opt2) opt2.textContent = config.nomeConta2 ? `Conta Bancária: ${escapeHTML(config.nomeConta2)}` : 'Conta Bancária 2';
+    if (opt1) opt1.textContent = config.nomeConta1 ? `Conta Bancária: ${config.nomeConta1}` : 'Conta Bancária 1';
+    if (opt2) opt2.textContent = config.nomeConta2 ? `Conta Bancária: ${config.nomeConta2}` : 'Conta Bancária 2';
   } catch (e) {}
 }
 
@@ -102,7 +110,7 @@ async function renderizarTudo() {
   }
 
   try {
-    const [rawRS, rawORC] = await Promise.all([ safeLoad('rg_reports'), safeLoad('rg_orcamentos') ]);
+    const [rawRS, rawORC] = await Promise.all([safeLoad('rg_reports'), safeLoad('rg_orcamentos')]);
     listaRelatoriosRS = rawRS;
     listaOrcamentos = rawORC;
     if (typeof window.filtrarDocumentos === 'function') { window.filtrarDocumentos(); }
@@ -208,7 +216,8 @@ window.filtrarDocumentos = function() {
     const isRS = item.tipoDoc === 'RS';
     const badgeCor = isRS ? '#2563EB' : '#10B981';
     const badgeTexto = isRS ? 'RELATÓRIO RS' : 'ORÇAMENTO';
-    
+    const idxSafe = Number(item.origemIndex) || 0;
+
     let dataForm = item.data || '-';
     if (typeof dataForm === 'string' && dataForm.includes('-')) {
       const p = dataForm.split('-');
@@ -216,7 +225,7 @@ window.filtrarDocumentos = function() {
     }
 
     htmlCards += `
-      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid ${badgeCor}; border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 165px;">
+      <div class="nexos-fade-in" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid ${badgeCor}; border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 165px;">
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px;">
             <strong style="color: #0B132B; font-size: 1.05rem;">${escapeHTML(item.numero)}</strong>
@@ -238,21 +247,19 @@ window.filtrarDocumentos = function() {
           </div>
         </div>
         <div class="no-print" style="display: flex; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
-          <button class="btn" style="flex: 1.5; padding: 6px 0; font-size: 0.78rem; background-color: #1D4ED8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="${isRS ? `openReportPreview(${item.origemIndex})` : `openBudgetPreview(${item.origemIndex})`}">Gerar PDF</button>
-          <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.78rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="${isRS ? `editReport(${item.origemIndex})` : `editBudget(${item.origemIndex})`}">Editar</button>
-          <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.78rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="${isRS ? `deleteReport(${item.origemIndex})` : `deleteBudget(${item.origemIndex})`}">Excluir</button>
+          <button class="btn" style="flex: 1.5; padding: 6px 0; font-size: 0.78rem; background-color: #1D4ED8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="${isRS ? `openReportPreview(${idxSafe})` : `openBudgetPreview(${idxSafe})`}">Gerar PDF</button>
+          <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.78rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="${isRS ? `editReport(${idxSafe})` : `editBudget(${idxSafe})`}">Editar</button>
+          <button class="btn" style="flex: 1; padding: 6px 0; font-size: 0.78rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="${isRS ? `deleteReport(${idxSafe})` : `deleteBudget(${idxSafe})`}">Excluir</button>
         </div>
       </div>
     `;
   });
-  
-  // REMOÇÃO DO DOMPurify direto na Template para libertar o onclick dos botões.
-  // A segurança (Zero Trust) foi garantida pelo escapeHTML(item...) em TODAS as variáveis inseridas acima.
+
   container.innerHTML = htmlCards;
 };
 
-window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${index}`; };
-window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${index}`; };
+window.editReport = (index) => { window.location.href = `novo-relatorio.html?edit=${Number(index) || 0}`; };
+window.editBudget = (index) => { window.location.href = `novo-orcamento.html?edit=${Number(index) || 0}`; };
 
 window.deleteReport = async function(index) {
   const modalExclusao = document.getElementById('modalConfirmarExclusao') || document.getElementById('deleteModal');
@@ -367,6 +374,7 @@ async function aguardarImagensPDF(elemento) {
 
 async function gerarAnexosPdfHtml(anexos, logoSrc) {
   if (!Array.isArray(anexos) || anexos.length === 0) return '';
+  const safeLogo = sanitizarImagemSrc(logoSrc);
   let htmlPaginas = '';
   for (let i = 0; i < anexos.length; i += 4) {
     const grupo = anexos.slice(i, i + 4);
@@ -374,7 +382,8 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
     let cardsHtml = '';
     for (const anexo of grupo) {
       if (!anexo || !anexo.imagem) continue;
-      const imgOtimizada = await otimizarImagemParaPDF(anexo.imagem);
+      const imgOtimizada = await otimizarImagemParaPDF(sanitizarImagemSrc(anexo.imagem, ''));
+      if (!imgOtimizada) continue;
       cardsHtml += `
         <div style="width: 48%; height: 310px; box-sizing: border-box; border: 1px solid #CBD5E1; border-radius: 6px; padding: 8px; background: #FFFFFF; display: flex; flex-direction: column; page-break-inside: avoid; break-inside: avoid; margin-bottom: 10px;">
           <div style="font-weight: bold; font-size: 11px; color: #0B132B; text-align: left; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -390,7 +399,7 @@ async function gerarAnexosPdfHtml(anexos, logoSrc) {
       htmlPaginas += `
         <div style="page-break-before: always; break-before: page; width: 100%; box-sizing: border-box; background: #FFFFFF; padding: 15px 0; font-family: Arial, sans-serif; color: #0B132B;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; margin-bottom: 12px;">
-            <img src="${escapeHTML(logoSrc)}" style="height: 35px; width: auto; max-width: 130px; object-fit: contain;">
+            <img src="${escapeHTML(safeLogo)}" style="height: 35px; width: auto; max-width: 130px; object-fit: contain;">
             <div style="text-align: right;">
               <h1 style="font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold;">Anexos / Fotos do Equipamento</h1>
               <p style="margin: 3px 0 0; font-size: 9px; color: #64748B;">Registro fotográfico - Página ${numeroPagina}</p>
@@ -450,7 +459,9 @@ window.openReportPreview = function(index) {
     if (typeof dataFormatada === 'string' && dataFormatada.includes('-')) { const p = dataFormatada.split('-'); if (p.length === 3) dataFormatada = `${p[2]}/${p[1]}/${p[0]}`; }
     activeReportData = { number: numDoc, client: clientName };
 
-    const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
+    const logoSrc = sanitizarImagemSrc(config.logoBase64, 'marca.png');
+    const techSigSrc = sanitizarImagemSrc(config.techSignature, '');
+    const clientSigSrc = sanitizarImagemSrc(rep.signature, '');
     const anexosHtml = await gerarAnexosPdfHtml(rep.anexos || [], logoSrc);
 
     if (renderArea) {
@@ -460,10 +471,10 @@ window.openReportPreview = function(index) {
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
-              <img src="${logoSrc}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
+              <img src="${escapeHTML(logoSrc)}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
               <div style="text-align: right;">
                 <h1 style="font-size: 13px; margin: 0; font-weight: bold;">RELATÓRIO DE SERVIÇO (RS)</h1>
-                <p style="margin: 2px 0; font-size: 11px;"><strong>Nº:</strong> RS-${escapeHTML(numDoc).replace(/^RS-?/i, '')} | <strong>Data:</strong> ${dataFormatada}</p>
+                <p style="margin: 2px 0; font-size: 11px;"><strong>Nº:</strong> RS-${escapeHTML(numDoc).replace(/^RS-?/i, '')} | <strong>Data:</strong> ${escapeHTML(dataFormatada)}</p>
               </div>
             </div>
 
@@ -514,12 +525,12 @@ window.openReportPreview = function(index) {
 
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
               <div style="text-align: center; width: 45%;">
-                ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
+                ${techSigSrc ? `<img src="${escapeHTML(techSigSrc)}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
                 <p style="margin: 2px 0;">________________________________________</p>
                 <p style="margin: 0; font-size: 10px;"><strong>Técnico:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
               </div>
               <div style="text-align: center; width: 45%;">
-                ${rep.signature ? `<img src="${rep.signature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
+                ${clientSigSrc ? `<img src="${escapeHTML(clientSigSrc)}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
                 <p style="margin: 2px 0;">________________________________________</p>
                 <p style="margin: 0; font-size: 10px;"><strong>Assinatura do Cliente</strong></p>
               </div>
@@ -550,9 +561,10 @@ window.openBudgetPreview = async function(index) {
   const clientObj = clients.find(c => (c.name || c.nome) === (b.client || b.cliente)) || {};
 
   activeBudgetData = b;
-  const logoSrc = (config.logoBase64 && config.logoBase64.startsWith('data:image')) ? config.logoBase64 : 'marca.png';
+  const logoSrc = sanitizarImagemSrc(config.logoBase64, 'marca.png');
+  const techSigSrc = sanitizarImagemSrc(config.techSignature, '');
   const opt = b.paymentOption || 'banco1';
-  
+
   let bancoInfoHtml = '';
   if (opt === 'banco1') bancoInfoHtml = `<p style="margin: 2px 0;"><strong>Recebimento:</strong> Transferência (${escapeHTML(config.nomeConta1)})</p><p style="margin: 2px 0;"><strong>Banco:</strong> ${escapeHTML(config.bank1)} | <strong>Agência:</strong> ${escapeHTML(config.agency1)} | <strong>Conta:</strong> ${escapeHTML(config.account1)}</p>`;
   else if (opt === 'banco2') bancoInfoHtml = `<p style="margin: 2px 0;"><strong>Recebimento:</strong> Transferência (${escapeHTML(config.nomeConta2)})</p><p style="margin: 2px 0;"><strong>Banco:</strong> ${escapeHTML(config.bank2)} | <strong>Agência:</strong> ${escapeHTML(config.agency2)} | <strong>Conta:</strong> ${escapeHTML(config.account2)}</p>`;
@@ -566,7 +578,7 @@ window.openBudgetPreview = async function(index) {
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 75px; font-weight: bold; color: rgba(0, 245, 212, 0.04); z-index: 0; pointer-events: none; text-align: center; white-space: nowrap; width: 100%;">${escapeHTML(config.name)}</div>
         
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00F5D4; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
-          <img src="${logoSrc}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
+          <img src="${escapeHTML(logoSrc)}" style="height: 40px; width: auto; max-width: 140px; object-fit: contain;">
           <div style="text-align: right;">
             <h1 style="font-size: 13px; margin: 0; font-weight: bold;">ORÇAMENTO DE SERVIÇO</h1>
             <p style="margin: 2px 0; font-size: 11px;"><strong>Nº:</strong> ${escapeHTML(b.number || '-')} | <strong>Data:</strong> ${escapeHTML(b.date || '-')}</p>
@@ -615,7 +627,7 @@ window.openBudgetPreview = async function(index) {
 
         <div style="margin-top: 20px; display: flex; justify-content: center; align-items: flex-end; page-break-inside: avoid; width: 100%; position: relative; z-index: 1;">
           <div style="text-align: center; width: 60%;">
-            ${config.techSignature ? `<img src="${config.techSignature}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
+            ${techSigSrc ? `<img src="${escapeHTML(techSigSrc)}" style="max-height: 45px; width: auto; max-width: 150px; display: block; margin: 0 auto;">` : '<div style="height: 45px;"></div>'}
             <p style="margin: 2px 0;">________________________________________</p>
             <p style="margin: 0; font-size: 10px;"><strong>Técnico Responsável:</strong> ${escapeHTML(config.tech || 'Técnico')}</p>
           </div>
@@ -642,44 +654,46 @@ function getPdfOptions(filename) {
   };
 }
 
-function mostrarModalSalvandoFlutuante(tituloInicial = "A processar...") {
-  let overlay = document.getElementById('globalSaveModalOverlay');
+function mostrarModalProgressoPDF(tituloInicial = "Gerando Documento PDF") {
+  let overlay = document.getElementById('pdfProgressModalOverlay');
   if (!overlay) {
     const modalHTML = `
-    <div id="globalSaveModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 20000; justify-content: center; align-items: center; font-family: inherit;">
+    <div id="pdfProgressModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 20000; justify-content: center; align-items: center; font-family: inherit;">
       <div style="background: #121824; border: 1px solid #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 380px; color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center;">
-        <div id="globalSaveSpinner" style="margin-bottom: 14px; font-size: 2.2rem; color: #38bdf8;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-        <h3 id="globalSaveModalTitle" style="margin-top: 0; color: #38bdf8; font-size: 1.2rem; margin-bottom: 10px;">${tituloInicial}</h3>
-        <p id="globalSaveModalMessage" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">Salvando informações na nuvem...</p>
-        <div id="globalSaveModalButtons" style="display: none; justify-content: center;">
-          <button id="globalSaveModalOkBtn" style="background: #38bdf8; color: #0b132b; border: none; padding: 10px 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem;">OK</button>
+        <div id="pdfProgressSpinner" style="margin-bottom: 14px; font-size: 2.2rem; color: #38bdf8;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+        <h3 id="pdfProgressModalTitle" style="margin-top: 0; color: #38bdf8; font-size: 1.2rem; margin-bottom: 10px;">${tituloInicial}</h3>
+        <p id="pdfProgressModalMessage" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">Preparando layout do documento...</p>
+        <div id="pdfProgressModalButtons" style="display: none; justify-content: center;">
+          <button id="pdfProgressModalOkBtn" style="background: #38bdf8; color: #0b132b; border: none; padding: 10px 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem;">OK</button>
         </div>
       </div>
     </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    overlay = document.getElementById('globalSaveModalOverlay');
+    overlay = document.getElementById('pdfProgressModalOverlay');
   }
-  document.getElementById('globalSaveSpinner').style.display = 'block';
-  document.getElementById('globalSaveSpinner').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-  document.getElementById('globalSaveModalTitle').textContent = tituloInicial;
-  document.getElementById('globalSaveModalMessage').textContent = "Salvando informações na nuvem...";
-  document.getElementById('globalSaveModalButtons').style.display = 'none';
+  document.getElementById('pdfProgressSpinner').style.display = 'block';
+  document.getElementById('pdfProgressSpinner').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+  document.getElementById('pdfProgressModalTitle').textContent = tituloInicial;
+  document.getElementById('pdfProgressModalMessage').textContent = "Preparando layout do documento...";
+  document.getElementById('pdfProgressModalButtons').style.display = 'none';
   overlay.style.display = 'flex';
 }
 
-function atualizarModalSalvandoFlutuante(mensagem, concluido = false) {
-  const overlay = document.getElementById('globalSaveModalOverlay');
+function atualizarModalProgressoPDF(mensagem, concluido = false, eErro = false) {
+  const overlay = document.getElementById('pdfProgressModalOverlay');
   if (!overlay || overlay.style.display === 'none') return;
-  if (mensagem) document.getElementById('globalSaveModalMessage').textContent = mensagem;
+  if (mensagem) document.getElementById('pdfProgressModalMessage').textContent = mensagem;
   if (concluido) {
-    document.getElementById('globalSaveModalTitle').textContent = "Sucesso!";
-    document.getElementById('globalSaveSpinner').innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10B981;"></i>';
-    document.getElementById('globalSaveModalButtons').style.display = 'flex';
+    document.getElementById('pdfProgressModalTitle').textContent = eErro ? "Erro!" : "Sucesso!";
+    document.getElementById('pdfProgressSpinner').innerHTML = eErro
+      ? '<i class="fa-solid fa-circle-xmark" style="color: #EF4444;"></i>'
+      : '<i class="fa-solid fa-circle-check" style="color: #10B981;"></i>';
+    document.getElementById('pdfProgressModalButtons').style.display = 'flex';
   }
 }
 
-function fecharModalSalvandoFlutuante() {
-  const overlay = document.getElementById('globalSaveModalOverlay');
+function fecharModalProgressoPDF() {
+  const overlay = document.getElementById('pdfProgressModalOverlay');
   if (overlay) overlay.style.display = 'none';
 }
 
@@ -687,35 +701,35 @@ async function executarComProgresso(statusEl, btn, callback) {
   const textoOriginal = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> A processar...'; }
   document.body.style.cursor = 'wait';
-  mostrarModalSalvandoFlutuante("Salvar e Encerrar Relatório");
+  mostrarModalProgressoPDF("Gerando Documento PDF");
 
   try {
     if (statusEl) statusEl.textContent = `⏳ 1/4 - Preparando dados do documento...`;
-    atualizarModalSalvandoFlutuante("Preparando dados do documento...");
+    atualizarModalProgressoPDF("Preparando dados do documento...");
     await new Promise(r => setTimeout(r, 200));
 
     if (statusEl) statusEl.textContent = `⏳ 2/4 - Otimizando imagens e anexos...`;
-    atualizarModalSalvandoFlutuante("Otimizando imagens e anexos...");
+    atualizarModalProgressoPDF("Otimizando imagens e anexos...");
     await callback.etapaImagens();
 
     if (statusEl) statusEl.textContent = `⏳ 3/4 - Renderizando o PDF (aguarde)...`;
-    atualizarModalSalvandoFlutuante("Renderizando o PDF...");
+    atualizarModalProgressoPDF("Renderizando o PDF...");
     await new Promise(r => setTimeout(r, 300));
 
     await callback.etapaPdf();
 
     if (statusEl) statusEl.textContent = `✅ 4/4 - Concluído com sucesso!`;
-    atualizarModalSalvandoFlutuante("Documento gerado e salvo com sucesso!", true);
+    atualizarModalProgressoPDF("Documento PDF gerado com sucesso!", true, false);
     if (statusEl) statusEl.textContent = 'Pronto';
 
     await new Promise((resolve) => {
-      document.getElementById('globalSaveModalOkBtn').onclick = () => { fecharModalSalvandoFlutuante(); resolve(true); };
+      document.getElementById('pdfProgressModalOkBtn').onclick = () => { fecharModalProgressoPDF(); resolve(true); };
     });
   } catch (erro) {
     if (statusEl) statusEl.textContent = 'Erro ao gerar documento';
-    atualizarModalSalvandoFlutuante("Ocorreu um erro ao gerar o documento.", true);
+    atualizarModalProgressoPDF("Ocorreu um erro ao gerar o documento.", true, true);
     await new Promise((resolve) => {
-      document.getElementById('globalSaveModalOkBtn').onclick = () => { fecharModalSalvandoFlutuante(); resolve(false); };
+      document.getElementById('pdfProgressModalOkBtn').onclick = () => { fecharModalProgressoPDF(); resolve(false); };
     });
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
@@ -743,7 +757,7 @@ window.compartilharPDFRs = async () => {
     etapaPdf: async () => {
       const blob = await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).outputPdf('blob');
       const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) { await navigator.share({ files: [arquivo], title: `RS ${activeReportData.number}` }); } 
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) { await navigator.share({ files: [arquivo], title: `RS ${activeReportData.number}` }); }
       else { await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save(); }
     }
   });
@@ -769,7 +783,7 @@ window.compartilharPDFOrcamento = async () => {
     etapaPdf: async () => {
       const blob = await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).outputPdf('blob');
       const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) { await navigator.share({ files: [arquivo], title: `Orçamento ${activeBudgetData.number}` }); } 
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) { await navigator.share({ files: [arquivo], title: `Orçamento ${activeBudgetData.number}` }); }
       else { await html2pdf().from(area).set(getPdfOptions(nomeArquivo)).save(); }
     }
   });
