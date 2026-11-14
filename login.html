@@ -12,9 +12,9 @@
   <meta property="og:title" content="NexOS | Gestão de OS, Relatórios e Preventivas">
   <meta property="og:description" content="Sistema completo para empresas de manutenção e assistência técnica. Emita RS em PDF com assinatura digital direto pelo celular.">
   <meta property="og:url" content="https://nexos-gamma.vercel.app/login">
-  <meta property="og:image" content="https://nexos-gamma.vercel.app/nexos%20(1)%20(1).png">
+  <meta property="og:image" content="https://nexos-gamma.vercel.app/nexos%20(1)%20(1).jpg">
   <meta property="og:image:secure_url" content="https://nexos-gamma.vercel.app/nexos%20(1)%20(1).jpg">
-  <meta property="og:image:type" content="image/jpg">
+  <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
@@ -137,6 +137,10 @@
       background-color: rgba(0, 245, 212, 0.15);
       box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
     }
+    .btn-google:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
     .login-footer {
       margin-top: 20px;
       font-size: 0.8rem;
@@ -175,7 +179,7 @@
 </head>
 <body>
 
-  <div class="login-card">
+  <div class="login-card nexos-fade-in">
     <img src="nexos512.png" alt="NexOS" class="logo-login">
     <h2>Iniciar Sessão</h2>
     
@@ -191,7 +195,7 @@
     </div>
   </div>
 
-  <script src="login.js?v=4"></script>
+  <script src="login.js?v=5"></script>
 
   <script>
     let deferredPrompt;
