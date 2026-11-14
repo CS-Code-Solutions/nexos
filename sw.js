@@ -1,8 +1,9 @@
 /**
  * NexOS - Service Worker (sw.js)
+ * BLINDADO: Cache sincronizado com todos os módulos críticos
  */
 
-const CACHE_NAME = 'nexos-cache-v16';
+const CACHE_NAME = 'nexos-cache-v17';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -16,12 +17,16 @@ const ASSETS_TO_CACHE = [
   './configuracao.html',
   './admin.html',
   './style.css',
+  './route-guard.js',
+  './termos-uso.js',
   './admin.js',
   './cadastros.js',
   './configuracao.js',
   './horas-extras.js',
   './login.js',
   './manutencoes.js',
+  './novo-relatorio.js',
+  './novo-orcamento.js',
   './relatorios.js',
   './global-modal.js',
   './firebase-init.js',
@@ -33,7 +38,6 @@ const ASSETS_TO_CACHE = [
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
 
-// Instalação resiliente (não trava se algum arquivo opcional falhar)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -48,7 +52,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Ativação e Limpeza de Caches Antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -63,7 +66,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Interceção de Requisições (Network-First ignorando cache HTTP antigo)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
