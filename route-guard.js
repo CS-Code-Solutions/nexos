@@ -98,7 +98,8 @@
 
       try {
         if (typeof db === 'undefined') return;
-        const userDoc = await db.collection('saas_users').doc(user.uid).get();
+      const userKey = user.email || user.uid;
+const userDoc = await db.collection('saas_users').doc(userKey).get();
         if (!userDoc.exists) return;
 
         const uData = userDoc.data();
