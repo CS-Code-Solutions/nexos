@@ -1,33 +1,32 @@
 /**
  * NexOS - Módulo de Painel Super Admin (admin.js)
- * BLINDADO: Padrão CS Code Solutions
+ * BLINDADO: Padrão CS Code Solutions (Verificação de Privilégio + Zero Trust Input)
  */
 
 function higienizarTexto(texto) {
   if (typeof texto !== 'string') return texto;
-  return texto.replace(/<[^>]*>?/gm, '').trim();
+  return texto
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/gu, '')
+    .trim();
 }
 
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
-    window.location.replace('login.html');
+    window.location.href = 'login.html';
     return;
   }
 
   try {
-    const emailNorm = String(user.email || '').trim().toLowerCase();
-    const userDoc = await db.collection('saas_users').doc(emailNorm).get();
-    const isSuper = userDoc.exists && userDoc.data().role === 'super_admin';
-
-    if (!isSuper) {
-      window.location.replace('403.html');
+    const userDoc = await db.collection('saas_users').doc(user.email).get();
+    if (!userDoc.exists || userDoc.data().role !== 'super_admin' || userDoc.data().status !== 'ativo') {
+      window.location.replace('relatorios.html');
       return;
     }
-
     await carregarPainelAdmin();
   } catch (err) {
-    console.error("[NexOS Admin] Erro na verificação de privilégios:", err);
-    window.location.replace('403.html');
+    console.error("Erro de verificação Super Admin:", err);
+    window.location.replace('relatorios.html');
   }
 });
 
@@ -72,36 +71,6 @@ function formatarResumoLicencaAdmin(data) {
   return `<span style="background: ${corBg}; color: ${corTxt}; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">${labelPlano} • ${restantes}d restantes (até ${dataExpBR})</span>`;
 }
 
-async function calcularMetricasTenant(uid) {
-  let contratoAssinadoUrl = null;
-  let totalBytes = 0;
-
-  const contractPromise = db.collection('rg_contracts').doc(uid).get()
-    .then(snap => {
-      if (snap.exists && snap.data().status === 'assinado') {
-        contratoAssinadoUrl = snap.data().pdfAssinadoUrl || null;
-      }
-    })
-    .catch(() => {});
-
-  const colecoes = ['rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos', 'rg_config'];
-  const sizePromises = colecoes.map(col =>
-    db.collection(col).doc(uid).get()
-      .then(dSnap => {
-        if (dSnap.exists) {
-          totalBytes += JSON.stringify(dSnap.data()).length;
-        }
-      })
-      .catch(() => {})
-  );
-
-  await Promise.all([contractPromise, ...sizePromises]);
-  return {
-    contratoAssinadoUrl,
-    tamanhoKb: (totalBytes / 1024).toFixed(1)
-  };
-}
-
 async function carregarPainelAdmin() {
   const container = document.getElementById('adminTenantList');
   if (!container) return;
@@ -109,49 +78,55 @@ async function carregarPainelAdmin() {
   try {
     const configSnapshot = await db.collection('rg_config').get();
 
+    container.innerHTML = '';
     if (configSnapshot.empty) {
       container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum tenant registado na base de dados.</p>';
       return;
     }
 
     tenantsCache = [];
-    const docsValidos = [];
+    let html = '';
 
     for (const doc of configSnapshot.docs) {
       const data = doc.data();
       const uid = doc.id;
+      const uidSafe = escapeHTML(uid);
       const emailEmpresa = (data.email || '').trim().toLowerCase();
       const nomeEmpresaStr = (data.name || data.nomeEmpresa || '').trim();
 
       const ehMaster = (uid === 'cs_master');
       const semNome = (nomeEmpresaStr === "" || nomeEmpresaStr === "Empresa Sem Nome" || nomeEmpresaStr === "Sem Nome");
-      const semEmail = (emailEmpresa === "" || emailEmpresa.includes("não informado"));
+      const semEmail = (emailEmpresa === "" || emailEmpresa.includes("não informado") || emailEmpresa === " e-mail não informado");
 
       if (!ehMaster && semNome && semEmail) {
         continue;
       }
 
       tenantsCache.push({ uid, ...data });
-      docsValidos.push({ uid, data });
-    }
 
-    if (!docsValidos.length) {
-      container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum cliente válido registado.</p>';
-      return;
-    }
+      let contratoAssinadoUrl = null;
+      try {
+        const contractDoc = await db.collection('rg_contracts').doc(uid).get();
+        if (contractDoc.exists && contractDoc.data().status === 'assinado') {
+          const url = contractDoc.data().pdfAssinadoUrl || '';
+          if (url.startsWith('https://')) {
+            contratoAssinadoUrl = url;
+          }
+        }
+      } catch (e) {}
 
-    // Carrega métricas de todos os tenants em paralelo (Performance)
-    const resultados = await Promise.all(
-      docsValidos.map(async ({ uid, data }) => {
-        const metricas = await calcularMetricasTenant(uid);
-        return { uid, data, ...metricas };
-      })
-    );
+      let totalBytes = 0;
+      const colecoes = ['rg_clients', 'rg_machines', 'rg_reports', 'rg_orcamentos', 'rg_config'];
+      for (const col of colecoes) {
+        try {
+          const dSnap = await db.collection(col).doc(uid).get();
+          if (dSnap.exists) {
+            totalBytes += JSON.stringify(dSnap.data()).length;
+          }
+        } catch (e) {}
+      }
+      const tamanhoKb = (totalBytes / 1024).toFixed(1);
 
-    let html = '';
-    for (const item of resultados) {
-      const { uid, data, contratoAssinadoUrl, tamanhoKb } = item;
-      const uidSafe = escapeHTML(uid);
       const nomeEmpresa = data.name || data.nomeEmpresa || 'Empresa Sem Nome';
       const exibeEmail = data.email || 'E-mail não informado';
       const temLogo = data.logoBase64 ? 'Sim (Personalizado)' : 'Padrão (marca.png)';
@@ -162,11 +137,11 @@ async function carregarPainelAdmin() {
         botaoContratoHtml = `<a href="${escapeHTML(contratoAssinadoUrl)}" target="_blank" rel="noopener noreferrer" class="btn" style="background-color: #10B981; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pdf"></i> Contrato Assinado</a>`;
       } else {
         const linkAssinatura = `assinar-contrato.html?id=${encodeURIComponent(uid)}`;
-        botaoContratoHtml = `<a href="${linkAssinatura}" target="_blank" rel="noopener noreferrer" class="btn" style="background-color: #64748B; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pen"></i> Assinar Contrato</a>`;
+        botaoContratoHtml = `<a href="${linkAssinatura}" target="_blank" class="btn" style="background-color: #64748B; color: white; padding: 6px 10px; font-size: 0.8rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-file-pen"></i> Assinar Contrato</a>`;
       }
 
       html += `
-        <div class="nexos-fade-in" style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 5px solid var(--tech-blue); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
           <div style="flex: 1; min-width: 250px;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
               <strong style="font-size: 1.1rem; color: #0B132B;">${escapeHTML(nomeEmpresa)}</strong>
@@ -189,7 +164,11 @@ async function carregarPainelAdmin() {
       `;
     }
 
-    container.innerHTML = html;
+    if (html === '') {
+      container.innerHTML = '<p style="text-align: center; color: #64748B;">Nenhum cliente válido registado.</p>';
+    } else {
+      container.innerHTML = html;
+    }
   } catch (err) {
     console.error(err);
     container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar dados do painel administrativo.</p>';
@@ -251,8 +230,7 @@ window.exportarBackupCSV = async function(uid) {
       const valores = chaves.map(key => {
         let val = row[key];
         if (val === null || val === undefined) val = '';
-        if (typeof val === 'object') val = JSON.stringify(val);
-        val = String(val).replace(/;/g, ',').replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
+        val = String(val).replace(/;/g, ',').replace(/\n/g, ' ');
         return `"${val}"`;
       });
       csvContent += valores.join(';') + '\n';
@@ -277,12 +255,6 @@ window.exportarBackupCSV = async function(uid) {
 window.processarUploadLogo = function(event) {
   const file = event.target.files[0];
   if (!file) return;
-
-  if (!file.type.startsWith('image/')) {
-    alert('Arquivo inválido. Selecione uma imagem PNG, JPG ou WEBP.');
-    event.target.value = '';
-    return;
-  }
 
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -369,7 +341,7 @@ window.editarTenant = function(uid) {
 
   const logoBase64Val = t.logoBase64 || '';
   document.getElementById('tenantLogoBase64').value = logoBase64Val;
-  if (logoBase64Val) {
+  if (logoBase64Val && logoBase64Val.startsWith('data:image/')) {
     document.getElementById('logoPreviewImg').src = logoBase64Val;
     document.getElementById('logoPreviewContainer').style.display = 'block';
   } else {
@@ -399,18 +371,25 @@ const tenantFormEl = document.getElementById('tenantForm');
 if (tenantFormEl) {
   tenantFormEl.addEventListener('submit', async (e) => {
     e.preventDefault();
-    let uid = higienizarTexto(document.getElementById('tenantUid').value).replace(/[^a-zA-Z0-9_-]/g, '');
+    const submitBtn = document.querySelector('button[form="tenantForm"][type="submit"]');
+    const txtOriginal = submitBtn ? submitBtn.textContent : 'Guardar Configurações';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'A guardar...';
+    }
+
+    let uid = higienizarTexto(document.getElementById('tenantUid').value);
     const emailCliente = higienizarTexto(document.getElementById('tenantEmail').value).toLowerCase();
     const nomeCliente = higienizarTexto(document.getElementById('tenantNome').value) || 'Empresa Sem Nome';
-    const watermarkCliente = higienizarTexto(document.getElementById('tenantWatermark').value);
     const tipoLicenca = document.getElementById('tenantTipoLicenca').value;
-    const dataInicioLicenca = document.getElementById('tenantDataInicioLicenca').value || new Date().toISOString().split('T')[0];
+    const dataInicioLicenca = higienizarTexto(document.getElementById('tenantDataInicioLicenca').value) || new Date().toISOString().split('T')[0];
 
     if (!uid) {
       uid = 'tenant_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     }
 
-    const logoBase64Final = document.getElementById('tenantLogoBase64').value.trim();
+    const rawLogo = document.getElementById('tenantLogoBase64').value.trim();
+    const logoBase64Final = rawLogo.startsWith('data:image/') ? rawLogo : '';
 
     const tenantData = {
       name: nomeCliente,
@@ -419,7 +398,7 @@ if (tenantFormEl) {
       tipoLicenca: tipoLicenca,
       dataInicioLicenca: dataInicioLicenca,
       logoBase64: logoBase64Final,
-      watermark: watermarkCliente,
+      watermark: higienizarTexto(document.getElementById('tenantWatermark').value),
 
       pageCadastros: document.getElementById('pageCadastros').checked,
       pageRelatorios: document.getElementById('pageRelatorios').checked,
@@ -457,8 +436,8 @@ if (tenantFormEl) {
 
       if (emailCliente) {
         await db.collection('saas_users').doc(emailCliente).set({
-          role: uid === 'cs_master' ? 'super_admin' : 'client',
-          status: 'ativo',
+          role: "client",
+          status: "ativo",
           tenant_id: uid,
           email: emailCliente,
           tipoLicenca: tipoLicenca,
@@ -473,6 +452,11 @@ if (tenantFormEl) {
     } catch (err) {
       console.error(err);
       alert('Erro ao salvar tenant e permissões: ' + err.message);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = txtOriginal;
+      }
     }
   });
 }
@@ -480,9 +464,8 @@ if (tenantFormEl) {
 window.excluirTenant = function(uid) {
   const t = tenantsCache.find(item => item.uid === uid);
   const nomeCliente = t ? (t.name || t.nomeEmpresa || '').trim() : '';
-  const emailCliente = t ? (t.email || '').trim().toLowerCase() : '';
 
-  tenantParaExcluir = { uid, nome: nomeCliente, email: emailCliente };
+  tenantParaExcluir = { uid, nome: nomeCliente };
 
   document.getElementById('deleteTenantUid').textContent = `(ID: ${uid})`;
   document.getElementById('deleteTenantNameTarget').textContent = nomeCliente;
@@ -540,24 +523,10 @@ window.fecharModalExclusao = function() {
 
 window.executarExclusaoTenant = async function() {
   if (!tenantParaExcluir) return;
-  const { uid, email } = tenantParaExcluir;
-
-  if (uid === 'cs_master') {
-    alert('Operação bloqueada: O tenant principal (cs_master) não pode ser excluído.');
-    return;
-  }
+  const uid = tenantParaExcluir.uid;
 
   try {
     await db.collection('rg_config').doc(uid).delete();
-
-    // Revoga também o acesso em saas_users para não deixar login órfão
-    if (email && email.includes('@')) {
-      await db.collection('saas_users').doc(email).set({
-        status: 'inativo',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).catch(() => {});
-    }
-
     alert('✅ Configurações e registro do cliente removidos com sucesso.');
     fecharModalExclusao();
     carregarPainelAdmin();
