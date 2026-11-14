@@ -34,7 +34,6 @@ const ASSETS_TO_CACHE = [
   './marca.png',
   './nexosico192.png',
   './manifest.json',
-  './dashboard.js',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
