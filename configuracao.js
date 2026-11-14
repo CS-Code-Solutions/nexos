@@ -243,7 +243,7 @@ window.salvarAssinaturaTech = async function() {
   }
 };
 
-const PAGINAS_PERMITIDAS = ['relatorios.html', 'novo-relatorio.html', 'cadastros.html', 'manutencoes.html', 'horas-extras.html'];
+const PAGINAS_PERMITIDAS = ['relatorios.html', 'novo-relatorio.html', 'cadastros.html', 'manutencoes.html'];
 
 const selectPaginaInicialEl = document.getElementById('configPaginaInicial');
 if (selectPaginaInicialEl) {
