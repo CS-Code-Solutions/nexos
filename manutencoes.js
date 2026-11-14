@@ -1,6 +1,15 @@
 /**
  * NexOS - Módulo de Manutenções Planeadas (manutencoes.js)
+ * BLINDADO: Padrão CS Code Solutions (Zero Trust Input/Output + Proteção Duplo Clique)
  */
+
+function higienizarTexto(texto) {
+  if (typeof texto !== 'string') return texto;
+  return texto
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/gu, '')
+    .trim();
+}
 
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
@@ -34,12 +43,16 @@ async function carregarClientesSelect() {
   try {
     const clientes = await DataSync.load('rg_clients') || [];
     select.innerHTML = '<option value="">Selecione o cliente...</option>';
-    clientes.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.name;
-      opt.textContent = c.name;
-      select.appendChild(opt);
-    });
+    if (Array.isArray(clientes)) {
+      clientes.forEach(c => {
+        const nome = c.name || c.nome || '';
+        if (!nome) return;
+        const opt = document.createElement('option');
+        opt.value = nome;
+        opt.textContent = nome;
+        select.appendChild(opt);
+      });
+    }
   } catch (err) {
     console.error("Erro ao carregar clientes para o select:", err);
   }
@@ -56,7 +69,8 @@ async function carregarManutencoes() {
   if (!listDiv) return;
 
   try {
-    todasManutencoes = await DataSync.load('rg_manutencoes') || [];
+    const raw = await DataSync.load('rg_manutencoes') || [];
+    todasManutencoes = Array.isArray(raw) ? raw : [];
     todasManutencoes.sort((a, b) => new Date(a.data) - new Date(b.data));
 
     listDiv.innerHTML = "";
@@ -66,16 +80,17 @@ async function carregarManutencoes() {
     }
 
     let html = "";
-    todasManutencoes.forEach((item) => {
+    todasManutencoes.forEach((item, idx) => {
       if (!item.id) {
-        item.id = 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
+        item.id = 'm_idx_' + idx;
       }
+      const idSafe = escapeHTML(String(item.id));
 
       html += `
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--electric-cyan); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="nexos-fade-in" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--electric-cyan); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px;">
-              <strong style="font-size: 1rem; color: #0B132B;"><i class="fa-solid fa-calendar"></i> ${formatDateBR(item.data)}</strong>
+              <strong style="font-size: 1rem; color: #0B132B;"><i class="fa-solid fa-calendar"></i> ${escapeHTML(formatDateBR(item.data))}</strong>
               <span style="background: #E0F2FE; color: #0369A1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">${escapeHTML(item.tipo || 'Preventiva')}</span>
             </div>
             <p style="margin: 3px 0; font-size: 0.9rem; color: #0F172A;"><strong>Cliente:</strong> ${escapeHTML(item.cliente)}</p>
@@ -84,12 +99,12 @@ async function carregarManutencoes() {
           </div>
           
           <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
-            <button type="button" class="btn" style="background-color: #10B981; color: white; padding: 8px 0; font-size: 0.85rem; font-weight: bold; border-radius: 4px;" onclick="gerarRelatorioDeManutencao('${item.id}')">
+            <button type="button" class="btn" style="background-color: #10B981; color: white; padding: 8px 0; font-size: 0.85rem; font-weight: bold; border-radius: 4px;" onclick="gerarRelatorioDeManutencao('${idSafe}')">
               <i class="fa-solid fa-file-arrow-up"></i> Gerar Relatório de Serviço (RS)
             </button>
             <div style="display: flex; gap: 6px;">
-              <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border-radius: 4px; font-weight: bold;" onclick="editarManutencao('${item.id}')">Editar</button>
-              <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border-radius: 4px; font-weight: bold;" onclick="excluirManutencao('${item.id}')">Excluir</button>
+              <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border-radius: 4px; font-weight: bold;" onclick="editarManutencao('${idSafe}')">Editar</button>
+              <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border-radius: 4px; font-weight: bold;" onclick="excluirManutencao('${idSafe}')">Excluir</button>
             </div>
           </div>
         </div>
@@ -103,7 +118,7 @@ async function carregarManutencoes() {
 }
 
 window.editarManutencao = function(id) {
-  const item = todasManutencoes.find(m => m.id === id);
+  const item = todasManutencoes.find(m => String(m.id) === String(id));
   if (!item) return;
 
   editingId = item.id;
@@ -116,13 +131,16 @@ window.editarManutencao = function(id) {
   const formTitle = document.getElementById('form-title');
   if (formTitle) formTitle.textContent = "Editar Manutenção Planeada";
   const btnSubmit = document.getElementById('btn-submit-m');
-  if (btnSubmit) btnSubmit.textContent = "Atualizar Agendamento";
+  if (btnSubmit) {
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = "Atualizar Agendamento";
+  }
 
   toggleManutencaoForm(true);
 };
 
 window.gerarRelatorioDeManutencao = function(id) {
-  const item = todasManutencoes.find(m => m.id === id);
+  const item = todasManutencoes.find(m => String(m.id) === String(id));
   if (!item) return;
 
   const dadosPreenchimento = {
@@ -138,7 +156,7 @@ window.excluirManutencao = async function(id) {
   if (confirm("Tem a certeza de que pretende eliminar este agendamento?")) {
     try {
       let list = await DataSync.load('rg_manutencoes') || [];
-      list = list.filter(item => item.id !== id);
+      list = list.filter(item => String(item.id) !== String(id));
       await DataSync.save('rg_manutencoes', list);
       carregarManutencoes();
     } catch (err) {
@@ -153,24 +171,36 @@ window.resetManutencaoForm = function() {
   const formTitle = document.getElementById('form-title');
   if (formTitle) formTitle.textContent = "Novo Agendamento";
   const btnSubmit = document.getElementById('btn-submit-m');
-  if (btnSubmit) btnSubmit.textContent = "Guardar Agendamento";
+  if (btnSubmit) {
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = "Guardar Agendamento";
+  }
   if (formSection) formSection.style.display = 'none';
 };
 
 if (manutencaoForm) {
   manutencaoForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = document.getElementById('m-data').value;
-    const cliente = document.getElementById('m-cliente').value;
-    const maquina = document.getElementById('m-maquina').value;
-    const tipo = document.getElementById('m-tipo').value;
-    const obs = document.getElementById('m-obs').value;
+    const btnSubmit = document.getElementById('btn-submit-m');
+    const txtOriginal = btnSubmit ? btnSubmit.textContent : 'Guardar Agendamento';
+
+    const data = higienizarTexto(document.getElementById('m-data').value);
+    const cliente = higienizarTexto(document.getElementById('m-cliente').value);
+    const maquina = higienizarTexto(document.getElementById('m-maquina').value);
+    const tipo = higienizarTexto(document.getElementById('m-tipo').value);
+    const obs = higienizarTexto(document.getElementById('m-obs').value);
+
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'A guardar...';
+    }
 
     try {
       let list = await DataSync.load('rg_manutencoes') || [];
+      if (!Array.isArray(list)) list = [];
 
       if (editingId !== null) {
-        const idx = list.findIndex(item => item.id === editingId);
+        const idx = list.findIndex(item => String(item.id) === String(editingId));
         if (idx !== -1) {
           list[idx] = { ...list[idx], data, cliente, maquina, tipo, obs };
         } else {
@@ -187,6 +217,10 @@ if (manutencaoForm) {
       carregarManutencoes();
     } catch (err) {
       alert("Erro ao guardar agendamento: " + err.message);
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = txtOriginal;
+      }
     }
   });
 }
