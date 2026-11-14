@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <script src="route-guard.js"></script>
+ <script src="route-guard.js"></script>
+  <script>
+    if (localStorage.getItem('rg_user_role') !== 'super_admin') {
+      window.location.replace('relatorios.html');
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NexOS - Painel Super Admin (CS Code Solutions)</title>
