@@ -2,7 +2,7 @@
  * NexOS - Service Worker (sw.js)
  */
 
-const CACHE_NAME = 'nexos-cache-v14';
+const CACHE_NAME = 'nexos-cache-v15';
 
 const ASSETS_TO_CACHE = [
   './',
