@@ -354,10 +354,6 @@
 
       <span class="sub-label">Módulos Opcionais (Selecione os desejados)</span>
       <div class="grid-options">
-        <label class="option-card" id="card-mod-dashboard">
-          <div class="option-info"><i class="fa-solid fa-chart-pie"></i> Dashboard</div>
-          <input type="checkbox" id="modDashboard" onchange="toggleCardStyle(this, 'card-mod-dashboard')">
-        </label>
         <label class="option-card" id="card-mod-orcamentos">
           <div class="option-info"><i class="fa-solid fa-file-invoice-dollar"></i> Orçamentos</div>
           <input type="checkbox" id="modOrcamentos" onchange="toggleCardStyle(this, 'card-mod-orcamentos')">
@@ -715,7 +711,6 @@
 
       // Captura seleções de Módulos e Critérios
       const modulosOpcionais = [
-        { nome: "Dashboard Gerencial e Indicadores", ativo: document.getElementById('modDashboard').checked },
         { nome: "Orçamentos e Propostas", ativo: document.getElementById('modOrcamentos').checked },
         { nome: "Controle de Horas Extras", ativo: document.getElementById('modHorasExtras').checked }
       ];
