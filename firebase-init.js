@@ -17,19 +17,18 @@ if (!firebase.apps.length) {
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Função Global de Logout do NexOS
+// Função Global de Logout do NexOS (Limpa toda a sessão e cache do tenant)
 async function fazerLogout() {
   try {
     await firebase.auth().signOut();
-    
-    // Limpa a sessão
-    localStorage.removeItem('rg_logged');
-    localStorage.removeItem('rg_user_email');
-    localStorage.removeItem('rg_user_uid');
-    localStorage.removeItem('rg_tenant_id');
-    localStorage.removeItem('rg_user_role');
-    
-    // Redireciona para o login
+
+    // Remove todas as chaves rg_* do localStorage para evitar vazamento entre sessões
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('rg_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
     window.location.href = 'login.html';
   } catch (error) {
     console.error("[NexOS] Erro ao encerrar sessão:", error);
