@@ -1,547 +1,716 @@
 /**
- * NexOS - Lógica de Criação e Edição de Relatório de Serviço (RS)
+ * NexOS - Módulo de Novo Relatório de Serviço (novo-relatorio.js)
+ * BLINDADO: Padrão CS Code Solutions (Zero Trust Input + Modal de Sincronização)
  */
 
-// Função de higienização para evitar quebras na geração de PDF (jsPDF)
-function higienizarTexto(str) {
-  if (!str) return '';
-  return String(str)
+window.configHorariosTenant = { intervalo: true, direto: true };
+
+// ==========================================
+// FUNÇÃO DE HIGIENIZAÇÃO (ZERO TRUST INPUT)
+// Remove tags HTML/Scripts e emojis incompatíveis com jsPDF
+// ==========================================
+function higienizarTexto(texto) {
+  if (typeof texto !== 'string') return texto;
+  return texto
+    .replace(/<[^>]*>?/gm, '')
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/gu, '')
-    .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '')
     .trim();
 }
 
-// Aplica regras de exibição de critérios de cobrança e horários conforme plano do cliente
-function aplicarCriteriosRelatorio() {
-  const userRole = localStorage.getItem('rg_user_role');
-  const isSuperAdmin = (userRole === 'super_admin');
-
-  const critEmpreitada = isSuperAdmin || localStorage.getItem('rg_crit_empreitada') !== 'false';
-  const critHoraTrab = isSuperAdmin || localStorage.getItem('rg_crit_hora_trabalhada') !== 'false';
-  const critDesloc = isSuperAdmin || localStorage.getItem('rg_crit_hora_deslocamento') !== 'false';
-  const critHosp = isSuperAdmin || localStorage.getItem('rg_crit_hospedagem') !== 'false';
-  const critOutras = isSuperAdmin || localStorage.getItem('rg_crit_outras_despesas') !== 'false';
-
-  const horIntervalo = isSuperAdmin || localStorage.getItem('rg_crit_horario_intervalo') !== 'false';
-  const horDireto = isSuperAdmin || localStorage.getItem('rg_crit_horario_direto') !== 'false';
-
-  const cardIntervalo = document.getElementById('cardModoIntervalo');
-  const cardDireto = document.getElementById('cardModoDireto');
-  const boxModoHorario = document.getElementById('boxModoHorario');
-
-  if (cardIntervalo) cardIntervalo.style.display = horIntervalo ? 'block' : 'none';
-  if (cardDireto) cardDireto.style.display = horDireto ? 'block' : 'none';
-
-  if (!horIntervalo && horDireto) {
-    window.selecionarModoHorario('direto');
-    if (boxModoHorario) boxModoHorario.style.display = 'none';
-  } else if (horIntervalo && !horDireto) {
-    window.selecionarModoHorario('intervalo');
-    if (boxModoHorario) boxModoHorario.style.display = 'none';
-  } else if (!horIntervalo && !horDireto) {
-    if (boxModoHorario) boxModoHorario.style.display = 'none';
-  }
-
-  const boxEmp = document.getElementById('boxEmpreitada');
-  const boxHT = document.getElementById('boxHoraTrabalhada');
-  const boxHD = document.getElementById('boxHoraDeslocamento');
-  const boxHosp = document.getElementById('boxHospedagem');
-  const boxOut = document.getElementById('boxOutrasDespesas');
-
-  if (boxEmp) boxEmp.style.display = critEmpreitada ? 'block' : 'none';
-  if (boxHT) boxHT.style.display = critHoraTrab ? 'block' : 'none';
-  if (boxHD) boxHD.style.display = critDesloc ? 'block' : 'none';
-  if (boxHosp) boxHosp.style.display = critHosp ? 'block' : 'none';
-  if (boxOut) boxOut.style.display = critOutras ? 'block' : 'none';
-
-  const nenhumCriterio = !critEmpreitada && !critHoraTrab && !critDesloc && !critHosp && !critOutras;
-  const secCrit = document.getElementById('sectionCriterios');
-  if (secCrit && nenhumCriterio) {
-    secCrit.style.display = 'none';
-  }
-}
-
-window.selecionarModoHorario = function (modo) {
-  document.getElementById('modoHorario').value = modo;
-
-  const cardInt = document.getElementById('cardModoIntervalo');
-  const cardDir = document.getElementById('cardModoDireto');
-  const blocoInt = document.getElementById('blocoIntervalo');
-  const blocoDir = document.getElementById('blocoDireto');
-
-  if (modo === 'intervalo') {
-    if (cardInt) {
-      cardInt.style.borderColor = '#0284C7';
-      cardInt.style.background = '#F0F9FF';
-    }
-    if (cardDir) {
-      cardDir.style.borderColor = '#CBD5E1';
-      cardDir.style.background = '#FFFFFF';
-    }
-    if (blocoInt) blocoInt.style.display = 'block';
-    if (blocoDir) blocoDir.style.display = 'none';
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
   } else {
-    if (cardDir) {
-      cardDir.style.borderColor = '#0284C7';
-      cardDir.style.background = '#F0F9FF';
-    }
-    if (cardInt) {
-      cardInt.style.borderColor = '#CBD5E1';
-      cardInt.style.background = '#FFFFFF';
-    }
-    if (blocoDir) blocoDir.style.display = 'block';
-    if (blocoInt) blocoInt.style.display = 'none';
+    await aplicarFeatureFlagsCriterios();
+    await loadClients();
+    gerarCamposDias();
+    await verificarModoEdicao();
+    verificarPreenchimentoPlaneado();
   }
-};
+});
 
-window.toggleEmpreitada = function (isEmpreitada) {
-  const boxHT = document.getElementById('boxHoraTrabalhada');
-  const boxHD = document.getElementById('boxHoraDeslocamento');
-  const boxHosp = document.getElementById('boxHospedagem');
-  const boxOut = document.getElementById('boxOutrasDespesas');
-  const boxValEmp = document.getElementById('boxValorEmpreitada');
-
-  const userRole = localStorage.getItem('rg_user_role');
-  const isSuperAdmin = (userRole === 'super_admin');
-
-  if (boxValEmp) boxValEmp.style.display = isEmpreitada ? 'block' : 'none';
-
-  if (isEmpreitada) {
-    if (boxHT) boxHT.style.display = 'none';
-    if (boxHD) boxHD.style.display = 'none';
-    if (boxHosp) boxHosp.style.display = 'none';
-    if (boxOut) boxOut.style.display = 'none';
-    document.getElementById('chkHoraTrabalhada').checked = false;
-    document.getElementById('chkHoraDeslocamento').checked = false;
-    document.getElementById('chkHospedagem').checked = false;
-    document.getElementById('chkOutrasDespesas').checked = false;
-    window.toggleInputCriterio('inputHoraTrabalhada', false);
-    window.toggleInputCriterio('inputHoraDeslocamento', false);
-    window.toggleInputCriterio('inputHospedagem', false);
-    window.toggleInputCriterio('inputOutrasDespesas', false);
-  } else {
-    const critHoraTrab = isSuperAdmin || localStorage.getItem('rg_crit_hora_trabalhada') !== 'false';
-    const critDesloc = isSuperAdmin || localStorage.getItem('rg_crit_hora_deslocamento') !== 'false';
-    const critHosp = isSuperAdmin || localStorage.getItem('rg_crit_hospedagem') !== 'false';
-    const critOutras = isSuperAdmin || localStorage.getItem('rg_crit_outras_despesas') !== 'false';
-
-    if (boxHT) boxHT.style.display = critHoraTrab ? 'block' : 'none';
-    if (boxHD) boxHD.style.display = critDesloc ? 'block' : 'none';
-    if (boxHosp) boxHosp.style.display = critHosp ? 'block' : 'none';
-    if (boxOut) boxOut.style.display = critOutras ? 'block' : 'none';
-  }
-};
-
-window.toggleInputCriterio = function (containerId, isChecked) {
-  const el = document.getElementById(containerId);
-  if (el) el.style.display = isChecked ? 'block' : 'none';
-};
-
-// Assinatura do cliente e fotos anexadas
-let canvas, ctx;
-let isDrawing = false;
+let anexosList = [];
+let clientMachines = [];
+let clientCanvas = document.getElementById('clientCanvas');
+let clientCtx = clientCanvas ? clientCanvas.getContext('2d') : null;
+let paintingClient = false;
 let hasSignature = false;
-let fotosAnexadas = [];
+let tempAnexoBase64 = '';
 
-function initSignatureCanvas() {
-  canvas = document.getElementById('signatureCanvas');
-  if (!canvas) return;
-  ctx = canvas.getContext('2d');
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#0F172A';
-
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
-    };
+// =========================================================================
+// MODAL FLUTUANTE DE PROCESSAMENTO E FEEDBACK (EVITA CLIQUE DUPLO)
+// =========================================================================
+function mostrarModalSalvandoFlutuante(tituloInicial = "A processar...") {
+  let overlay = document.getElementById('globalSaveModalOverlay');
+  if (!overlay) {
+    const modalHTML = `
+    <div id="globalSaveModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 20000; justify-content: center; align-items: center; font-family: inherit;">
+      <div style="background: #121824; border: 1px solid #1e293b; padding: 24px; border-radius: 12px; width: 90%; max-width: 380px; color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center;">
+        <div id="globalSaveSpinner" style="margin-bottom: 14px; font-size: 2.2rem; color: #38bdf8;">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+        <h3 id="globalSaveModalTitle" style="margin-top: 0; color: #38bdf8; font-size: 1.2rem; margin-bottom: 10px;">${tituloInicial}</h3>
+        <p id="globalSaveModalMessage" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">Salvando informações na nuvem...</p>
+        <div id="globalSaveModalButtons" style="display: none; justify-content: center;">
+          <button id="globalSaveModalOkBtn" style="background: #38bdf8; color: #0b132b; border: none; padding: 10px 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem;">OK</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    overlay = document.getElementById('globalSaveModalOverlay');
   }
 
-  function startDraw(e) {
-    if (e.cancelable) e.preventDefault();
-    isDrawing = true;
-    hasSignature = true;
-    const pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  }
+  const spinner = document.getElementById('globalSaveSpinner');
+  const titleEl = document.getElementById('globalSaveModalTitle');
+  const msgEl = document.getElementById('globalSaveModalMessage');
+  const btnContainer = document.getElementById('globalSaveModalButtons');
 
-  function moveDraw(e) {
-    if (e.cancelable) e.preventDefault();
-    if (!isDrawing) return;
-    const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  }
-
-  function endDraw() {
-    isDrawing = false;
-  }
-
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', moveDraw);
-  canvas.addEventListener('mouseup', endDraw);
-  canvas.addEventListener('mouseout', endDraw);
-
-  canvas.addEventListener('touchstart', startDraw, { passive: false });
-  canvas.addEventListener('touchmove', moveDraw, { passive: false });
-  canvas.addEventListener('touchend', endDraw);
+  spinner.style.display = 'block';
+  spinner.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+  titleEl.textContent = tituloInicial;
+  msgEl.textContent = "Salvando informações na nuvem...";
+  btnContainer.style.display = 'none';
+  overlay.style.display = 'flex';
 }
 
-window.limparAssinatura = function () {
-  if (!canvas || !ctx) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  hasSignature = false;
+function atualizarModalSalvandoFlutuante(mensagem, concluido = false, eErro = false) {
+  const msgEl = document.getElementById('globalSaveModalMessage');
+  const titleEl = document.getElementById('globalSaveModalTitle');
+  const spinner = document.getElementById('globalSaveSpinner');
+  const btnContainer = document.getElementById('globalSaveModalButtons');
+  const overlay = document.getElementById('globalSaveModalOverlay');
+
+  if (!overlay || overlay.style.display === 'none') return;
+
+  if (mensagem) msgEl.textContent = mensagem;
+
+  if (concluido) {
+    if (eErro) {
+      titleEl.textContent = "Erro!";
+      spinner.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color: #EF4444;"></i>';
+    } else {
+      titleEl.textContent = "Sucesso!";
+      spinner.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10B981;"></i>';
+    }
+    btnContainer.style.display = 'flex';
+  }
+}
+
+function fecharModalSalvandoFlutuante() {
+  const overlay = document.getElementById('globalSaveModalOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function normalizarLista(dados) {
+  if (!dados) return [];
+  if (Array.isArray(dados)) return dados;
+  if (Array.isArray(dados.items)) return dados.items;
+  if (Array.isArray(dados.reports)) return dados.reports;
+  if (Array.isArray(dados.orcamentos)) return dados.orcamentos;
+  if (typeof dados === 'object') {
+    return Object.values(dados).filter(item => item && typeof item === 'object');
+  }
+  return [];
+}
+
+window.avancarParaStep1 = function() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+  document.getElementById('ind-step2').classList.remove('active');
+  document.getElementById('ind-step1').classList.add('active');
 };
 
-// Carrega listas de clientes e máquinas do localStorage
-function carregarListasClientesMaquinas() {
-  const clients = JSON.parse(localStorage.getItem('rg_clients') || '[]');
-  const machines = JSON.parse(localStorage.getItem('rg_machines') || '[]');
-
-  const selClient = document.getElementById('repClient');
-  const selMachine = document.getElementById('repMachine');
-
-  if (selClient) {
-    selClient.innerHTML = '<option value="">-- Selecione o Cliente --</option>';
-    clients.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.nome || c.name || '';
-      opt.textContent = c.nome || c.name || '';
-      selClient.appendChild(opt);
-    });
-  }
-
-  if (selMachine) {
-    selMachine.innerHTML = '<option value="">-- Selecione a Máquina --</option>';
-    machines.forEach(m => {
-      const opt = document.createElement('option');
-      const label = m.nome || m.name || '';
-      const sub = [m.marca, m.modelo].filter(Boolean).join(' ');
-      opt.value = sub ? `${label} (${sub})` : label;
-      opt.textContent = opt.value;
-      selMachine.appendChild(opt);
-    });
-  }
-}
-
-// Gera o próximo número de RS sequencial
-function preencherNumeroRS() {
-  const repNumber = document.getElementById('repNumber');
-  if (!repNumber) return;
-
-  const config = JSON.parse(localStorage.getItem('rg_config') || '{}');
-  const reports = JSON.parse(localStorage.getItem('rg_reports') || '[]');
-
-  let nextNum = parseInt(config.nextRs || '1000', 10);
-  reports.forEach(r => {
-    const match = String(r.number || '').match(/(\d+)/);
-    if (match) {
-      const n = parseInt(match[1], 10);
-      if (n >= nextNum) nextNum = n + 1;
+window.avancarParaStep2 = function() {
+  const reqFields = document.querySelectorAll('#step1 [required]');
+  let isValid = true;
+  reqFields.forEach(f => {
+    if (!f.value) {
+      isValid = false;
+      f.style.borderColor = '#EF4444';
+    } else {
+      f.style.borderColor = '#CBD5E1';
     }
   });
 
-  repNumber.value = `RS-${nextNum}`;
+  if (!isValid) {
+    alert('Por favor, preencha todos os campos obrigatórios no Passo 1.');
+    return;
+  }
+
+  document.getElementById('resumoCliente').textContent = higienizarTexto(document.getElementById('repClient').value);
+  document.getElementById('resumoMaquina').textContent = higienizarTexto(document.getElementById('repEquipment').value);
+  document.getElementById('resumoManutencao').textContent = higienizarTexto(document.getElementById('repServiceNature').value);
+  document.getElementById('resumoServico').textContent = higienizarTexto(document.getElementById('repDesc').value);
+
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  document.getElementById('ind-step1').classList.remove('active');
+  document.getElementById('ind-step2').classList.add('active');
+};
+
+window.confirmarAssinatura = function() {
+  const editIndex = document.getElementById('editIndex').value;
+  if (!hasSignature && !editIndex) {
+    alert('O cliente/responsável precisa desenhar a assinatura antes de salvar.');
+    return;
+  }
+  document.getElementById('areaAssinatura').style.display = 'none';
+  document.getElementById('btnVoltarStep1').style.display = 'none';
+  document.getElementById('msgAssinaturaSucesso').style.display = 'block';
+  document.getElementById('btnAvancarStep3').style.display = 'block';
+};
+
+window.avancarParaStep3 = function() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step3').style.display = 'block';
+  document.getElementById('ind-step2').classList.remove('active');
+  document.getElementById('ind-step3').classList.add('active');
+};
+
+window.voltarParaStep1 = function() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+  document.getElementById('ind-step2').classList.remove('active');
+  document.getElementById('ind-step1').classList.add('active');
+};
+
+window.voltarParaStep2 = function() {
+  document.getElementById('step3').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  document.getElementById('ind-step3').classList.remove('active');
+  document.getElementById('ind-step2').classList.add('active');
+};
+
+async function aplicarFeatureFlagsCriterios() {
+  try {
+    const tenantId = localStorage.getItem('rg_tenant_id') || DataSync.getUid();
+    const configDoc = await db.collection('rg_config').doc(tenantId).get();
+    if (configDoc.exists) {
+      const config = configDoc.data();
+      if (config.criterioEmpreitada === false) { const el = document.getElementById('selectEmpreitada'); if (el && el.closest('div')) el.closest('div').style.display = 'none'; }
+      if (config.criterioHoraTrabalhada === false) { const el = document.getElementById('selectHora'); if (el && el.closest('div')) el.closest('div').style.display = 'none'; }
+      if (config.criterioHoraDeslocamento === false) { const el = document.getElementById('selectDeslocamento'); if (el && el.closest('div')) el.closest('div').style.display = 'none'; }
+      if (config.criterioHospedagem === false) { const el = document.getElementById('selectHospedagem'); if (el && el.closest('div')) el.closest('div').style.display = 'none'; }
+      if (config.criterioOutrasDespesas === false) { const el = document.getElementById('selectOutras'); if (el && el.closest('div')) el.closest('div').style.display = 'none'; }
+      window.configHorariosTenant = { intervalo: config.criterioHorarioIntervalo !== false, direto: config.criterioHorarioDireto !== false };
+    }
+  } catch (err) {}
 }
 
-// Processa upload e compressão leve de imagens anexadas
-function setupPhotoUpload() {
-  const input = document.getElementById('repPhotos');
-  if (!input) return;
+if (clientCanvas && clientCtx) {
+  function startClient(e) { paintingClient = true; hasSignature = true; drawClient(e); }
+  function finishClient() { paintingClient = false; clientCtx.beginPath(); }
+  function drawClient(e) {
+    if (!paintingClient) return;
+    e.preventDefault();
+    clientCtx.lineWidth = 2;
+    clientCtx.lineCap = 'round';
+    clientCtx.strokeStyle = '#0B132B';
+    const rect = clientCanvas.getBoundingClientRect();
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+    clientCtx.lineTo(x, y);
+    clientCtx.stroke();
+    clientCtx.beginPath();
+    clientCtx.moveTo(x, y);
+  }
+  clientCanvas.addEventListener('mousedown', startClient);
+  clientCanvas.addEventListener('mouseup', finishClient);
+  clientCanvas.addEventListener('mousemove', drawClient);
+  clientCanvas.addEventListener('touchstart', startClient, { passive: false });
+  clientCanvas.addEventListener('touchend', finishClient);
+  clientCanvas.addEventListener('touchmove', drawClient, { passive: false });
+}
 
-  input.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = function (ev) {
-        const img = new Image();
-        img.onload = function () {
-          const maxDim = 900;
-          let w = img.width;
-          let h = img.height;
-          if (w > maxDim || h > maxDim) {
-            if (w > h) {
-              h = Math.round((h * maxDim) / w);
-              w = maxDim;
-            } else {
-              w = Math.round((w * maxDim) / h);
-              h = maxDim;
-            }
-          }
-          const c = document.createElement('canvas');
-          c.width = w;
-          c.height = h;
-          c.getContext('2d').drawImage(img, 0, 0, w, h);
-          const compressed = c.toDataURL('image/jpeg', 0.72);
-          fotosAnexadas.push(compressed);
-          renderPhotoPreview();
-        };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-    input.value = '';
+window.clearClientSig = function() {
+  if (clientCtx && clientCanvas) {
+    clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
+    hasSignature = false;
+  }
+};
+
+function gerarOpcoesHoras(selecionado = '08:00') {
+  let html = '';
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      let hs = String(h).padStart(2, '0');
+      let ms = String(m).padStart(2, '0');
+      let val = `${hs}:${ms}`;
+      let sel = (val === selecionado) ? 'selected' : '';
+      html += `<option value="${val}" ${sel}>${hs}:${ms}</option>`;
+    }
+  }
+  return html;
+}
+
+window.alternarTipoHorarioDia = function(index) {
+  const selectTipo = document.getElementById(`tipo_registo_${index}`);
+  const boxTurnos = document.getElementById(`box_turnos_${index}`);
+  const boxDireto = document.getElementById(`box_direto_${index}`);
+  if (!selectTipo || !boxTurnos || !boxDireto) return;
+  if (selectTipo.value === 'turnos') { boxTurnos.style.display = 'block'; boxDireto.style.display = 'none'; }
+  else { boxTurnos.style.display = 'none'; boxDireto.style.display = 'block'; }
+};
+
+window.gerarCamposDias = function(dadosSalvos = []) {
+  let qtd = parseInt(document.getElementById('numDiasTrabalho').value) || 1;
+  if (qtd < 1) qtd = 1; if (qtd > 30) qtd = 30;
+  const container = document.getElementById('containerDiasHorarios');
+  if (!container) return;
+
+  const valoresAtuais = [];
+  const cardsAtuais = container.querySelectorAll('.dia-card-flutuante');
+  cardsAtuais.forEach((card, idx) => {
+    const tipoRegisto = document.getElementById(`tipo_registo_${idx}`) ? document.getElementById(`tipo_registo_${idx}`).value : 'turnos';
+    let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+    let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+    let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+    let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+    let iniDir = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+    let fimDir = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+    let dataIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+    valoresAtuais.push({ tipo: tipoRegisto, dataIni, iniM, fimM, iniT, fimT, iniDir, fimDir });
   });
-}
 
-function renderPhotoPreview() {
-  const grid = document.getElementById('photoPreviewGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
+  container.innerHTML = '';
+  const agoraLocal = new Date();
+  const ano = agoraLocal.getFullYear();
+  const mes = String(agoraLocal.getMonth() + 1).padStart(2, '0');
+  const dia = String(agoraLocal.getDate()).padStart(2, '0');
+  let hojeStr = `${ano}-${mes}-${dia}`;
+  const permiteIntervalo = window.configHorariosTenant ? window.configHorariosTenant.intervalo : true;
+  const permiteDireto = window.configHorariosTenant ? window.configHorariosTenant.direto : true;
 
-  fotosAnexadas.forEach((src, idx) => {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'position: relative; border-radius: 6px; overflow: hidden; border: 1px solid #CBD5E1; aspect-ratio: 1;';
-    wrap.innerHTML = `
-      <img src="${src}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-      <button type="button" onclick="removerFoto(${idx})" style="position: absolute; top: 4px; right: 4px; background: rgba(239,68,68,0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem; cursor: pointer; font-weight: bold;">&times;</button>
+  for (let i = 0; i < qtd; i++) {
+    const d = dadosSalvos[i] || valoresAtuais[i] || {};
+    let temSubTurnos = d.inicioManha || d.fimManha || d.iniM || (d.inicio && d.fimManha);
+    let tipoVal = d.tipo || (temSubTurnos ? 'turnos' : 'direto');
+    if (!permiteIntervalo && permiteDireto) tipoVal = 'direto';
+    if (permiteIntervalo && !permiteDireto) tipoVal = 'turnos';
+
+    let dataIniVal = d.dataIni || (d.inicio ? d.inicio.split('T')[0] : hojeStr);
+    let iniM_val = d.iniM || (d.inicioManha ? d.inicioManha.split('T')[1] : '08:00');
+    let fimM_val = d.fimM || (d.fimManha ? d.fimManha.split('T')[1] : '12:00');
+    let iniT_val = d.iniT || (d.inicioTarde ? d.inicioTarde.split('T')[1] : '13:00');
+    let fimT_val = d.fimT || (d.fimTarde ? d.fimTarde.split('T')[1] : '17:00');
+    let iniDir_val = d.iniDir || (d.inicio ? d.inicio.split('T')[1] : '08:00');
+    let fimDir_val = d.fimDir || (d.fim ? d.fim.split('T')[1] : '17:00');
+
+    let opcoesSelectHTML = '';
+    if (permiteIntervalo) { opcoesSelectHTML += `<option value="turnos" ${tipoVal === 'turnos' ? 'selected' : ''}>Com Intervalo (Manhã/Tarde)</option>`; }
+    if (permiteDireto) { opcoesSelectHTML += `<option value="direto" ${tipoVal === 'direto' ? 'selected' : ''}>Direto / Turno Único</option>`; }
+
+    let displaySeletor = (permiteIntervalo && permiteDireto) ? 'flex' : 'none';
+
+    container.innerHTML += `
+      <div class="dia-card-flutuante">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; margin-bottom: 10px;">
+          <p style="font-weight: bold; font-size: 0.9rem; color: #0B132B; margin: 0;">📅 Dia ${i + 1}</p>
+          <div style="display: ${displaySeletor}; align-items: center; gap: 6px;">
+            <label style="font-size: 0.75rem; font-weight: bold; color: #475569; margin: 0;">Formato:</label>
+            <select id="tipo_registo_${i}" onchange="alternarTipoHorarioDia(${i})" style="padding: 3px 6px; font-size: 0.8rem; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFF;">
+              ${opcoesSelectHTML}
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <label style="font-size: 0.8rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Data do Atendimento:</label>
+          <input type="date" class="dia-data-ini" value="${dataIniVal}" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">
+        </div>
+        <div id="box_turnos_${i}" style="display: ${tipoVal === 'turnos' ? 'block' : 'none'};">
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #0D9488; display: block; margin-bottom: 2px;">Início Manhã:</label>
+            <select class="dia-ini-manha" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">${gerarOpcoesHoras(iniM_val)}</select>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #0D9488; display: block; margin-bottom: 2px;">Final Manhã (Intervalo):</label>
+            <select class="dia-fim-manha" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">${gerarOpcoesHoras(fimM_val)}</select>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #1D4ED8; display: block; margin-bottom: 2px;">Início Tarde (Retorno):</label>
+            <select class="dia-ini-tarde" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">${gerarOpcoesHoras(iniT_val)}</select>
+          </div>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: bold; color: #1D4ED8; display: block; margin-bottom: 2px;">Final Tarde (Encerramento):</label>
+            <select class="dia-fim-tarde" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">${gerarOpcoesHoras(fimT_val)}</select>
+          </div>
+        </div>
+        <div id="box_direto_${i}" style="display: ${tipoVal === 'direto' ? 'block' : 'none'};">
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Início do Atendimento:</label>
+            <select class="dia-hora-ini-direto" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">${gerarOpcoesHoras(iniDir_val)}</select>
+          </div>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: bold; color: #475569; display: block; margin-bottom: 2px;">Final do Atendimento:</label>
+            <select class="dia-hora-fim-direto" style="width:100%; padding:6px; border:1px solid #CBD5E1; border-radius:4px; background:#FFF;">${gerarOpcoesHoras(fimDir_val)}</select>
+          </div>
+        </div>
+      </div>
     `;
-    grid.appendChild(wrap);
-  });
-}
-
-window.removerFoto = function (idx) {
-  fotosAnexadas.splice(idx, 1);
-  renderPhotoPreview();
+  }
 };
 
-// Carrega dados de um relatório existente quando ?edit=<index> está na URL
-function carregarEdicaoSeExistir() {
-  const params = new URLSearchParams(window.location.search);
-  const editIdx = params.get('edit');
-  const paramCliente = params.get('cliente');
-  const paramMaquina = params.get('maquina');
+window.toggleEmpreitadaSelect = function() {
+  const val = document.getElementById('selectEmpreitada').value;
+  document.getElementById('boxEmpreitadaDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+};
+window.toggleHoraSelect = function() {
+  const val = document.getElementById('selectHora').value;
+  document.getElementById('boxHoraDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+  if (val === 'sim' && document.getElementById('containerDiasHorarios').children.length === 0) { window.gerarCamposDias(); }
+};
+window.toggleDeslocamentoSelect = function() {
+  const val = document.getElementById('selectDeslocamento').value;
+  document.getElementById('boxDeslocamentoDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+  window.calcularTotalDeslocamento();
+};
+window.toggleHospedagemSelect = function() {
+  const val = document.getElementById('selectHospedagem').value;
+  document.getElementById('boxHospedagemDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+};
+window.toggleOutrasSelect = function() {
+  const val = document.getElementById('selectOutras').value;
+  document.getElementById('boxOutrasDetalhes').style.display = (val === 'sim') ? 'block' : 'none';
+};
 
-  if (paramCliente) {
-    const selC = document.getElementById('repClient');
-    if (selC) selC.value = decodeURIComponent(paramCliente);
-  }
-  if (paramMaquina) {
-    const selM = document.getElementById('repMachine');
-    if (selM) selM.value = decodeURIComponent(paramMaquina);
-  }
+window.calcularTotalDeslocamento = function() {
+  const valorHora = Number(document.getElementById('valorHoraDeslocamento').value) || 0;
+  const horas = Number(document.getElementById('tempoDeslocamentoHoras').value) || 0;
+  const total = valorHora * horas;
+  document.getElementById('totalDeslocamentoCalculado').value = total.toFixed(2).replace('.', ',');
+};
 
-  if (editIdx === null || editIdx === '') return;
-
-  const reports = JSON.parse(localStorage.getItem('rg_reports') || '[]');
-  const rep = reports[parseInt(editIdx, 10)];
-  if (!rep) return;
-
-  document.getElementById('editIndex').value = editIdx;
-  const pageTitle = document.getElementById('pageTitle');
-  if (pageTitle) pageTitle.textContent = `Editar Relatório (${rep.number || ''})`;
-
-  document.getElementById('repNumber').value = rep.number || '';
-  document.getElementById('repDate').value = rep.date || '';
-  document.getElementById('repStatus').value = rep.status || 'Concluído';
-  document.getElementById('repTech').value = rep.tech || '';
-  document.getElementById('repClient').value = rep.client || '';
-  document.getElementById('repMachine').value = rep.machine || '';
-
-  const modo = rep.modoHorario || 'intervalo';
-  window.selecionarModoHorario(modo);
-
-  if (modo === 'direto') {
-    document.getElementById('repStartDirect').value = rep.startDirect || rep.startMorning || '';
-    document.getElementById('repEndDirect').value = rep.endDirect || rep.endAfternoon || '';
-  } else {
-    document.getElementById('repStartMorning').value = rep.startMorning || '';
-    document.getElementById('repEndMorning').value = rep.endMorning || '';
-    document.getElementById('repStartAfternoon').value = rep.startAfternoon || '';
-    document.getElementById('repEndAfternoon').value = rep.endAfternoon || '';
-  }
-
-  document.getElementById('repProblem').value = rep.problem || '';
-  document.getElementById('repAction').value = rep.action || '';
-  document.getElementById('repParts').value = rep.parts || '';
-  document.getElementById('repObs').value = rep.obs || '';
-  document.getElementById('repSignerName').value = rep.signerName || '';
-
-  if (rep.isEmpreitada) {
-    document.getElementById('chkEmpreitada').checked = true;
-    window.toggleEmpreitada(true);
-    document.getElementById('valorEmpreitada').value = rep.valorEmpreitada || '';
-  } else {
-    if (rep.hasHoraTrabalhada) {
-      document.getElementById('chkHoraTrabalhada').checked = true;
-      window.toggleInputCriterio('inputHoraTrabalhada', true);
-      document.getElementById('valorHoraTrabalhada').value = rep.valorHoraTrabalhada || '';
-    }
-    if (rep.hasHoraDeslocamento) {
-      document.getElementById('chkHoraDeslocamento').checked = true;
-      window.toggleInputCriterio('inputHoraDeslocamento', true);
-      document.getElementById('qtdHoraDeslocamento').value = rep.qtdHoraDeslocamento || '';
-      document.getElementById('valorHoraDeslocamento').value = rep.valorHoraDeslocamento || '';
-    }
-    if (rep.hasHospedagem) {
-      document.getElementById('chkHospedagem').checked = true;
-      window.toggleInputCriterio('inputHospedagem', true);
-      document.getElementById('valorHospedagem').value = rep.valorHospedagem || '';
-    }
-    if (rep.hasOutrasDespesas) {
-      document.getElementById('chkOutrasDespesas').checked = true;
-      window.toggleInputCriterio('inputOutrasDespesas', true);
-      document.getElementById('descOutrasDespesas').value = rep.descOutrasDespesas || '';
-      document.getElementById('valorOutras').value = rep.valorOutrasDespesas || '';
-    }
-  }
-
-  if (Array.isArray(rep.photos)) {
-    fotosAnexadas = [...rep.photos];
-    renderPhotoPreview();
-  }
-
-  if (rep.signature && rep.signature.startsWith('data:image') && canvas && ctx) {
-    const imgSig = new Image();
-    imgSig.onload = function () {
-      ctx.drawImage(imgSig, 0, 0, canvas.width, canvas.height);
-      hasSignature = true;
+window.converterAnexo = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const MAX_WIDTH = 800; const MAX_HEIGHT = 800;
+      let width = img.width; let height = img.height;
+      if (width > height) { if (width > MAX_WIDTH) { height = Math.round(height * (MAX_WIDTH / width)); width = MAX_WIDTH; } }
+      else { if (height > MAX_HEIGHT) { width = Math.round(width * (MAX_HEIGHT / height)); height = MAX_HEIGHT; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      tempAnexoBase64 = canvas.toDataURL('image/jpeg', 0.75);
     };
-    imgSig.src = rep.signature;
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.adicionarAnexo = function() {
+  const titulo = higienizarTexto(document.getElementById('anexoTitulo').value);
+  if (!tempAnexoBase64) { alert('Selecione uma imagem primeiro.'); return; }
+  anexosList.push({ titulo: String(titulo || 'Foto do Equipamento'), imagem: String(tempAnexoBase64) });
+  document.getElementById('anexoTitulo').value = '';
+  document.getElementById('anexoFile').value = '';
+  tempAnexoBase64 = '';
+  renderizarAnexos();
+};
+
+window.removerAnexo = function(index) {
+  anexosList.splice(index, 1);
+  renderizarAnexos();
+};
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function renderizarAnexos() {
+  const container = document.getElementById('listaAnexos');
+  if (!container) return;
+  container.innerHTML = '';
+  anexosList.forEach((a, idx) => {
+    container.innerHTML += `
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; border: 1px solid #CBD5E1; padding: 6px 10px; border-radius: 4px;">
+        <span><strong>${idx + 1}.</strong> ${escapeHTML(a.titulo)}</span>
+        <button type="button" class="btn" style="background-color: #EF4444; padding: 2px 6px; font-size: 0.75rem;" onclick="removerAnexo(${idx})">Remover</button>
+      </div>
+    `;
+  });
+}
+
+async function loadClients() {
+  const select = document.getElementById('repClient');
+  if (!select) return;
+  try {
+    const rawClients = await DataSync.load('rg_clients');
+    const clients = normalizarLista(rawClients);
+    select.innerHTML = '<option value="">Selecione um cliente...</option>';
+    clients.forEach(c => { select.innerHTML += `<option value="${escapeHTML(c.name || c.nome)}">${escapeHTML(c.name || c.nome)}</option>`; });
+  } catch (e) { console.error("Erro ao carregar clientes", e); }
+}
+
+async function carregarMaquinasDoCliente(clientName, selectedEquipment = '') {
+  const eqSelect = document.getElementById('repEquipment');
+  if (!eqSelect) return;
+  eqSelect.innerHTML = '<option value="">Selecione a máquina...</option>';
+  clientMachines = [];
+  if (!clientName) return;
+  try {
+    const rawMachines = await DataSync.load('rg_machines');
+    const machines = normalizarLista(rawMachines);
+    clientMachines = machines.filter(m => m.client === clientName || m.cliente === clientName);
+    clientMachines.forEach((m, idx) => {
+      const eqName = m.name || m.equipment || m.nome || `Máquina ${idx + 1}`;
+      const isSelected = (eqName === selectedEquipment) ? 'selected' : '';
+      eqSelect.innerHTML += `<option value="${escapeHTML(eqName)}" data-index="${idx}" ${isSelected}>${escapeHTML(eqName)}</option>`;
+    });
+  } catch (e) {}
+}
+
+async function verificarPreenchimentoPlaneado() {
+  const dadosPend = localStorage.getItem('rg_preencher_rs');
+  if (dadosPend) {
+    try {
+      const dados = JSON.parse(dadosPend);
+      const repClientSelect = document.getElementById('repClient');
+      if (repClientSelect && dados.client) {
+        repClientSelect.value = dados.client;
+        await carregarMaquinasDoCliente(dados.client, dados.machine);
+      }
+      const repDescInput = document.getElementById('repDesc');
+      if (repDescInput && dados.description) {
+        repDescInput.value = higienizarTexto(dados.description);
+      }
+      localStorage.removeItem('rg_preencher_rs');
+    } catch (e) {}
   }
 }
 
-// Modais flutuantes de salvamento na nuvem
-function mostrarModalSalvando() {
-  const m = document.getElementById('modalSalvando');
-  if (m) m.style.display = 'flex';
+const repClientEl = document.getElementById('repClient');
+if (repClientEl) {
+  repClientEl.addEventListener('change', async function() {
+    const clientName = this.value;
+    document.getElementById('repBrand').value = '';
+    document.getElementById('repModel').value = '';
+    document.getElementById('repSerialNumber').value = '';
+    await carregarMaquinasDoCliente(clientName);
+  });
 }
 
-function esconderModalSalvando() {
-  const m = document.getElementById('modalSalvando');
-  if (m) m.style.display = 'none';
+const repEquipmentEl = document.getElementById('repEquipment');
+if (repEquipmentEl) {
+  repEquipmentEl.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const idx = selectedOption.getAttribute('data-index');
+    if (idx !== null && clientMachines[idx]) {
+      const m = clientMachines[idx];
+      document.getElementById('repBrand').value = higienizarTexto(m.brand || m.marca || '');
+      document.getElementById('repModel').value = higienizarTexto(m.model || m.modelo || '');
+      document.getElementById('repSerialNumber').value = higienizarTexto(m.serialNumber || m.serial || m.tag || m.Tag || m.serie || m.matricula || '');
+    } else {
+      document.getElementById('repBrand').value = '';
+      document.getElementById('repModel').value = '';
+      document.getElementById('repSerialNumber').value = '';
+    }
+  });
 }
 
-function mostrarModalSucesso() {
-  esconderModalSalvando();
-  const m = document.getElementById('modalSucesso');
-  if (m) m.style.display = 'flex';
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initSignatureCanvas();
-  aplicarCriteriosRelatorio();
-  carregarListasClientesMaquinas();
-  setupPhotoUpload();
-
-  // Preenche data de hoje e técnico padrão das configurações
-  const repDate = document.getElementById('repDate');
-  if (repDate && !repDate.value) {
-    repDate.value = new Date().toISOString().split('T')[0];
+async function verificarModoEdicao() {
+  const repDateEl = document.getElementById('repDate');
+  if (repDateEl && !repDateEl.value) {
+    const agoraLocal = new Date();
+    const ano = agoraLocal.getFullYear();
+    const mes = String(agoraLocal.getMonth() + 1).padStart(2, '0');
+    const dia = String(agoraLocal.getDate()).padStart(2, '0');
+    repDateEl.value = `${ano}-${mes}-${dia}`;
   }
 
-  const config = JSON.parse(localStorage.getItem('rg_config') || '{}');
-  const repTech = document.getElementById('repTech');
-  if (repTech && !repTech.value && config.tech) {
-    repTech.value = config.tech;
+  const urlParams = new URLSearchParams(window.location.search);
+  const editIndex = urlParams.get('edit');
+
+  if (editIndex !== null) {
+    try {
+      let rawReports = await DataSync.load('rg_reports');
+      let reports = normalizarLista(rawReports);
+      const rep = reports[editIndex];
+      if (rep) {
+        document.getElementById('editIndex').value = editIndex;
+        document.getElementById('formTitle').textContent = `Editar Relatório - ${rep.number || 'RS-1000'}`;
+        document.getElementById('repNumber').value = rep.number || '';
+        document.getElementById('repDate').value = rep.date || '';
+        document.getElementById('repClient').value = rep.client || '';
+        await carregarMaquinasDoCliente(rep.client, rep.equipment);
+
+        document.getElementById('repBrand').value = rep.brand || '';
+        document.getElementById('repModel').value = rep.model || '';
+        document.getElementById('repSerialNumber').value = rep.serialNumber || '';
+        document.getElementById('repServiceNature').value = rep.serviceNature || 'Corretiva';
+        document.getElementById('repServiceArea').value = rep.serviceArea || 'Mecânica';
+        document.getElementById('repDesc').value = rep.desc || '';
+
+        if (rep.temEmpreitada === 'sim') { document.getElementById('selectEmpreitada').value = 'sim'; toggleEmpreitadaSelect(); document.getElementById('repValorEmpreitada').value = rep.valorEmpreitada || 0; }
+        else { document.getElementById('selectEmpreitada').value = 'nao'; toggleEmpreitadaSelect(); }
+
+        if (rep.temHora === 'sim') {
+          document.getElementById('selectHora').value = 'sim'; toggleHoraSelect(); document.getElementById('repValorHora').value = rep.valorHora || 200.00;
+          if (rep.diasTrabalho && Array.isArray(rep.diasTrabalho) && rep.diasTrabalho.length > 0) { document.getElementById('numDiasTrabalho').value = rep.diasTrabalho.length; gerarCamposDias(rep.diasTrabalho); }
+        } else { document.getElementById('selectHora').value = 'nao'; toggleHoraSelect(); }
+
+        if (rep.temDeslocamento === 'sim') { document.getElementById('selectDeslocamento').value = 'sim'; toggleDeslocamentoSelect(); document.getElementById('valorHoraDeslocamento').value = rep.valorHoraDeslocamento || 260.00; document.getElementById('tempoDeslocamentoHoras').value = rep.tempoDeslocamentoHoras || 0; calcularTotalDeslocamento(); }
+        else { document.getElementById('selectDeslocamento').value = 'nao'; toggleDeslocamentoSelect(); }
+
+        if (rep.temHospedagem === 'sim') { document.getElementById('selectHospedagem').value = 'sim'; toggleHospedagemSelect(); document.getElementById('valorHospedagem').value = rep.valorHospedagem || 0; }
+        else { document.getElementById('selectHospedagem').value = 'nao'; toggleHospedagemSelect(); }
+
+        if (rep.temOutras === 'sim') { document.getElementById('selectOutras').value = 'sim'; toggleOutrasSelect(); document.getElementById('valorOutras').value = rep.valorOutras || 0; }
+        else { document.getElementById('selectOutras').value = 'nao'; toggleOutrasSelect(); }
+
+        if (rep.signature && clientCtx) {
+          const img = new Image();
+          img.onload = () => { clientCtx.drawImage(img, 0, 0); hasSignature = true; };
+          img.src = rep.signature;
+        }
+        if (rep.anexos && Array.isArray(rep.anexos)) {
+          anexosList = rep.anexos;
+          renderizarAnexos();
+        }
+      }
+    } catch (e) {}
+  } else {
+    try {
+      let rawReports = await DataSync.load('rg_reports');
+      let reports = normalizarLista(rawReports);
+      let config = await DataSync.load('rg_config') || {};
+      let nextNum = 1000;
+      let maxNum = 999;
+      reports.forEach(r => {
+        if (r && r.number) {
+          const match = String(r.number).match(/\d+/);
+          if (match) { const num = parseInt(match[0], 10); if (num > maxNum) maxNum = num; }
+        }
+      });
+      if (config.nextRsNumber && Number(config.nextRsNumber) > maxNum) { nextNum = Number(config.nextRsNumber); }
+      else { nextNum = maxNum + 1; }
+      document.getElementById('repNumber').value = `RS-${nextNum}`;
+    } catch (e) {
+      document.getElementById('repNumber').value = 'RS-1000';
+    }
   }
+}
 
-  preencherNumeroRS();
-  carregarEdicaoSeExistir();
+window.salvarRelatorioFinal = async function() {
+  const editIndex = document.getElementById('editIndex').value;
+  const clientSigData = clientCanvas ? clientCanvas.toDataURL() : '';
+  const numRsStr = higienizarTexto(document.getElementById('repNumber').value);
 
-  // Reatualiza listas quando firebase-sync terminar de baixar os dados da nuvem
-  window.addEventListener('nexosDadosSincronizados', () => {
-    const clientAtual = document.getElementById('repClient')?.value;
-    const machineAtual = document.getElementById('repMachine')?.value;
-    carregarListasClientesMaquinas();
-    if (clientAtual) document.getElementById('repClient').value = clientAtual;
-    if (machineAtual) document.getElementById('repMachine').value = machineAtual;
+  mostrarModalSalvandoFlutuante("Salvar e Encerrar Relatório");
 
-    const editVal = document.getElementById('editIndex')?.value;
-    if (!editVal) {
-      preencherNumeroRS();
+  let diasTrabalhoArray = [];
+  const cards = document.querySelectorAll('.dia-card-flutuante');
+  cards.forEach((card, idx) => {
+    let dIni = card.querySelector('.dia-data-ini') ? card.querySelector('.dia-data-ini').value : '';
+    const selectTipo = document.getElementById(`tipo_registo_${idx}`);
+    const tipo = selectTipo ? selectTipo.value : 'turnos';
+
+    if (tipo === 'turnos') {
+      let iniM = card.querySelector('.dia-ini-manha') ? card.querySelector('.dia-ini-manha').value : '08:00';
+      let fimM = card.querySelector('.dia-fim-manha') ? card.querySelector('.dia-fim-manha').value : '12:00';
+      let iniT = card.querySelector('.dia-ini-tarde') ? card.querySelector('.dia-ini-tarde').value : '13:00';
+      let fimT = card.querySelector('.dia-fim-tarde') ? card.querySelector('.dia-fim-tarde').value : '17:00';
+      diasTrabalhoArray.push({ tipo: 'turnos', inicio: dIni ? `${dIni}T${iniM}` : '', fimManha: dIni ? `${dIni}T${fimM}` : '', inicioTarde: dIni ? `${dIni}T${iniT}` : '', fim: dIni ? `${dIni}T${fimT}` : '' });
+    } else {
+      let hIni = card.querySelector('.dia-hora-ini-direto') ? card.querySelector('.dia-hora-ini-direto').value : '08:00';
+      let hFim = card.querySelector('.dia-hora-fim-direto') ? card.querySelector('.dia-hora-fim-direto').value : '17:00';
+      diasTrabalhoArray.push({ tipo: 'direto', inicio: dIni ? `${dIni}T${hIni}` : '', fim: dIni ? `${dIni}T${hFim}` : '' });
     }
   });
 
-  // Submissão do formulário de Relatório
-  const form = document.getElementById('reportForm');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const btnSubmit = document.getElementById('btnSubmitReport');
-      if (btnSubmit) btnSubmit.disabled = true;
-      mostrarModalSalvando();
-
-      try {
-        const editIdxStr = document.getElementById('editIndex').value;
-        const reports = JSON.parse(localStorage.getItem('rg_reports') || '[]');
-        const modoHorario = document.getElementById('modoHorario').value || 'intervalo';
-
-        const isEmpreitada = document.getElementById('chkEmpreitada').checked;
-        const hasHoraTrabalhada = document.getElementById('chkHoraTrabalhada').checked;
-        const hasHoraDeslocamento = document.getElementById('chkHoraDeslocamento').checked;
-        const hasHospedagem = document.getElementById('chkHospedagem').checked;
-        const hasOutrasDespesas = document.getElementById('chkOutrasDespesas').checked;
-
-        const signatureData = hasSignature && canvas ? canvas.toDataURL('image/png') : '';
-
-        const novoRelatorio = {
-          number: higienizarTexto(document.getElementById('repNumber').value),
-          date: document.getElementById('repDate').value,
-          status: document.getElementById('repStatus').value,
-          tech: higienizarTexto(document.getElementById('repTech').value),
-          client: higienizarTexto(document.getElementById('repClient').value),
-          machine: higienizarTexto(document.getElementById('repMachine').value),
-          modoHorario: modoHorario,
-          startMorning: modoHorario === 'intervalo' ? document.getElementById('repStartMorning').value : document.getElementById('repStartDirect').value,
-          endMorning: modoHorario === 'intervalo' ? document.getElementById('repEndMorning').value : '',
-          startAfternoon: modoHorario === 'intervalo' ? document.getElementById('repStartAfternoon').value : '',
-          endAfternoon: modoHorario === 'intervalo' ? document.getElementById('repEndAfternoon').value : document.getElementById('repEndDirect').value,
-          startDirect: modoHorario === 'direto' ? document.getElementById('repStartDirect').value : '',
-          endDirect: modoHorario === 'direto' ? document.getElementById('repEndDirect').value : '',
-          problem: higienizarTexto(document.getElementById('repProblem').value),
-          action: higienizarTexto(document.getElementById('repAction').value),
-          parts: higienizarTexto(document.getElementById('repParts').value),
-          obs: higienizarTexto(document.getElementById('repObs').value),
-          signerName: higienizarTexto(document.getElementById('repSignerName').value),
-          signature: signatureData,
-          photos: fotosAnexadas,
-          isEmpreitada: isEmpreitada,
-          valorEmpreitada: isEmpreitada ? document.getElementById('valorEmpreitada').value : '',
-          hasHoraTrabalhada: hasHoraTrabalhada,
-          valorHoraTrabalhada: hasHoraTrabalhada ? document.getElementById('valorHoraTrabalhada').value : '',
-          hasHoraDeslocamento: hasHoraDeslocamento,
-          qtdHoraDeslocamento: hasHoraDeslocamento ? document.getElementById('qtdHoraDeslocamento').value : '',
-          valorHoraDeslocamento: hasHoraDeslocamento ? document.getElementById('valorHoraDeslocamento').value : '',
-          hasHospedagem: hasHospedagem,
-          valorHospedagem: hasHospedagem ? document.getElementById('valorHospedagem').value : '',
-          hasOutrasDespesas: hasOutrasDespesas,
-          descOutrasDespesas: hasOutrasDespesas ? higienizarTexto(document.getElementById('descOutrasDespesas').value) : '',
-          valorOutrasDespesas: hasOutrasDespesas ? document.getElementById('valorOutras').value : '',
-          updatedAt: new Date().toISOString()
-        };
-
-        if (editIdxStr !== '') {
-          const idx = parseInt(editIdxStr, 10);
-          novoRelatorio.createdAt = reports[idx]?.createdAt || new Date().toISOString();
-          reports[idx] = novoRelatorio;
-        } else {
-          novoRelatorio.createdAt = new Date().toISOString();
-          reports.unshift(novoRelatorio);
-        }
-
-        localStorage.setItem('rg_reports', JSON.stringify(reports));
-
-        if (typeof window.syncReportsToCloud === 'function') {
-          await window.syncReportsToCloud(reports);
-        } else if (typeof window.salvarDadosNuvem === 'function') {
-          await window.salvarDadosNuvem();
-        }
-
-        mostrarModalSucesso();
-      } catch (err) {
-        esconderModalSalvando();
-        if (btnSubmit) btnSubmit.disabled = false;
-        alert('Erro ao guardar o relatório: ' + err.message);
+  let cleanAnexos = [];
+  if (Array.isArray(anexosList)) {
+    anexosList.forEach(a => {
+      if (a && typeof a === 'object') {
+        cleanAnexos.push({ titulo: higienizarTexto(String(a.titulo || 'Foto')), imagem: String(a.imagem || '') });
       }
     });
   }
-});
+
+  // BLINDAGEM PAYLOAD (Zero Trust Input)
+  const reportData = {
+    number: String(numRsStr || ''),
+    date: higienizarTexto(String(document.getElementById('repDate').value || '')),
+    client: higienizarTexto(String(document.getElementById('repClient').value || '')),
+    equipment: higienizarTexto(String(document.getElementById('repEquipment').value || '')),
+    brand: higienizarTexto(String(document.getElementById('repBrand').value || '')),
+    model: higienizarTexto(String(document.getElementById('repModel').value || '')),
+    serialNumber: higienizarTexto(String(document.getElementById('repSerialNumber').value || '')),
+    serviceNature: higienizarTexto(String(document.getElementById('repServiceNature').value || '')),
+    serviceArea: higienizarTexto(String(document.getElementById('repServiceArea').value || '')),
+    desc: higienizarTexto(String(document.getElementById('repDesc').value || '')),
+
+    temEmpreitada: higienizarTexto(String(document.getElementById('selectEmpreitada').value || 'nao')),
+    valorEmpreitada: higienizarTexto(String(document.getElementById('repValorEmpreitada').value || '0')),
+
+    temHora: higienizarTexto(String(document.getElementById('selectHora').value || 'nao')),
+    diasTrabalho: diasTrabalhoArray,
+    valorHora: higienizarTexto(String(document.getElementById('repValorHora').value || '200')),
+
+    temDeslocamento: higienizarTexto(String(document.getElementById('selectDeslocamento').value || 'nao')),
+    valorHoraDeslocamento: higienizarTexto(String(document.getElementById('valorHoraDeslocamento').value || '260')),
+    tempoDeslocamentoHoras: higienizarTexto(String(document.getElementById('tempoDeslocamentoHoras').value || '0')),
+
+    temHospedagem: higienizarTexto(String(document.getElementById('selectHospedagem').value || 'nao')),
+    valorHospedagem: higienizarTexto(String(document.getElementById('valorHospedagem').value || '0')),
+
+    temOutras: higienizarTexto(String(document.getElementById('selectOutras').value || 'nao')),
+    valorOutras: higienizarTexto(String(document.getElementById('repValorOutras') ? document.getElementById('repValorOutras').value : (document.getElementById('valorOutras')?.value || '0'))),
+
+    signature: String(clientSigData || ''),
+    anexos: cleanAnexos
+  };
+
+  try {
+    atualizarModalSalvandoFlutuante("A sincronizar relatório com a nuvem...");
+
+    let rawReports = await DataSync.load('rg_reports');
+    let reports = normalizarLista(rawReports);
+
+    if (editIndex !== '') {
+      reports[editIndex] = reportData;
+    } else {
+      reports.push(reportData);
+      try {
+        let config = await DataSync.load('rg_config') || {};
+        let maxNum = 999;
+        reports.forEach(r => {
+          if (r && r.number) {
+            const m = String(r.number).match(/\d+/);
+            if (m) { const val = parseInt(m[0], 10); if (val > maxNum) maxNum = val; }
+          }
+        });
+        config.nextRsNumber = String(maxNum + 1);
+        await DataSync.save('rg_config', config);
+      } catch (configErr) {}
+    }
+
+    await DataSync.save('rg_reports', reports);
+
+    atualizarModalSalvandoFlutuante("Relatório de serviço salvo e sincronizado com sucesso!", true);
+    const okBtn = document.getElementById('globalSaveModalOkBtn');
+    if (okBtn) {
+      okBtn.onclick = () => {
+        fecharModalSalvandoFlutuante();
+        window.location.href = 'relatorios.html';
+      };
+    }
+  } catch (err) {
+    atualizarModalSalvandoFlutuante("Erro ao salvar relatório: " + err.message, true, true);
+    const okBtn = document.getElementById('globalSaveModalOkBtn');
+    if (okBtn) {
+      okBtn.onclick = () => {
+        fecharModalSalvandoFlutuante();
+      };
+    }
+  }
+};
+
+window.resetForm = function() {
+  window.location.href = 'relatorios.html';
+};
