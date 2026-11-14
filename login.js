@@ -16,7 +16,10 @@ function escapeHTML(str) {
 
 async function validarAcessoSaaS(userEmail) {
   try {
-    const docRef = db.collection('saas_users').doc(userEmail);
+    const emailNorm = String(userEmail || '').trim().toLowerCase();
+    if (!emailNorm) return false;
+
+    const docRef = db.collection('saas_users').doc(emailNorm);
     const docSnap = await docRef.get();
 
     if (docSnap.exists) {
@@ -52,7 +55,6 @@ function resolverDestinoInicial(isSuperAdmin) {
     ? window.getPaginaInicialNexOS()
     : (localStorage.getItem('rg_pagina_inicial') || 'relatorios.html');
 
-  // Se o destino salvo for dashboard ou estiver desativado para o cliente, usa a primeira página permitida
   if (!paginasPermitidas[destino]) {
     const ordemFallback = [
       'relatorios.html',
@@ -86,20 +88,28 @@ window.handleGoogleLogin = async function() {
     const provider = new firebase.auth.GoogleAuthProvider();
     const result = await firebase.auth().signInWithPopup(provider);
     const user = result.user;
+    const emailNorm = String(user.email || '').trim().toLowerCase();
 
-    const acessoSaaS = await validarAcessoSaaS(user.email);
-    
+    const acessoSaaS = await validarAcessoSaaS(emailNorm);
+
     if (!acessoSaaS) {
       await firebase.auth().signOut();
-      throw new Error(`Acesso negado: O e-mail (${user.email}) não está registado no sistema ou encontra-se inativo.`);
+      throw new Error(`Acesso negado: O e-mail (${emailNorm}) não está registado no sistema ou encontra-se inativo.`);
     }
 
+    // Limpa caches residuais rg_* de sessões anteriores antes de gravar a nova sessão
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('rg_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
     localStorage.setItem('rg_logged', 'true');
-    localStorage.setItem('rg_user_email', escapeHTML(user.email));
+    localStorage.setItem('rg_user_email', escapeHTML(emailNorm));
     localStorage.setItem('rg_user_uid', escapeHTML(user.uid));
     localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
     localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
-    
+
     // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS, PÁGINA INICIAL E LOGO DO TENANT ---
     try {
       const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
@@ -111,7 +121,7 @@ window.handleGoogleLogin = async function() {
         localStorage.setItem('rg_page_orcamentos', cfg.pageOrcamentos !== false ? 'true' : 'false');
         localStorage.setItem('rg_page_manutencoes', cfg.pageManutencoes !== false ? 'true' : 'false');
         localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
-        
+
         if (cfg.paginaInicial && cfg.paginaInicial !== 'dashboard.html') {
           localStorage.setItem('rg_pagina_inicial', cfg.paginaInicial);
         } else {
