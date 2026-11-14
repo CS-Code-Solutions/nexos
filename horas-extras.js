@@ -1,6 +1,15 @@
 /**
  * NexOS - Módulo de Registo de Horas Extras (horas-extras.js)
+ * BLINDADO: Padrão CS Code Solutions (Zero Trust Input + Proteção Duplo Clique)
  */
+
+function higienizarTexto(texto) {
+  if (typeof texto !== 'string') return texto;
+  return texto
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/gu, '')
+    .trim();
+}
 
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) {
@@ -95,10 +104,11 @@ async function loadHorasExtras() {
 
   try {
     allHE = await DataSync.load('rg_horas_extras') || [];
+    if (!Array.isArray(allHE)) allHE = [];
     allHE.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     listDiv.innerHTML = "";
-    
+
     if (allHE.length === 0) {
       listDiv.innerHTML = "<div style='grid-column: 1 / -1; text-align: center; background: #FFF; padding: 30px; border-radius: 8px; border: 1px dashed #CBD5E1;'><p style='color: #64748B; margin-bottom: 10px;'>Nenhum registo de hora extra encontrado.</p><button class='btn' style='background-color: #0B132B; color: #FFF; padding: 8px 16px;' onclick='toggleHEForm(true)'>+ Criar o primeiro registo</button></div>";
       return;
@@ -107,7 +117,8 @@ async function loadHorasExtras() {
     let html = "";
     allHE.forEach((item, index) => {
       const dataFormatada = formatDateBR(item.date);
-      
+      const itemKey = escapeHTML(String(item.id || index));
+
       const inicioM = item.timeStartManha || item.start;
       const fimM = item.timeEndManha;
       const inicioT = item.timeStartTarde;
@@ -115,29 +126,29 @@ async function loadHorasExtras() {
 
       let turnosHtml = '';
       if (inicioM && fimM) {
-        turnosHtml += `<p style="margin: 3px 0; font-size: 0.85rem; color: #475569;"><strong>Manhã:</strong> ${formatDateTimeBR(inicioM)} às ${formatDateTimeBR(fimM)}</p>`;
+        turnosHtml += `<p style="margin: 3px 0; font-size: 0.85rem; color: #475569;"><strong>Manhã:</strong> ${escapeHTML(formatDateTimeBR(inicioM))} às ${escapeHTML(formatDateTimeBR(fimM))}</p>`;
       }
       if (inicioT && fimT) {
-        turnosHtml += `<p style="margin: 3px 0; font-size: 0.85rem; color: #475569;"><strong>Tarde:</strong> ${formatDateTimeBR(inicioT)} às ${formatDateTimeBR(fimT)}</p>`;
+        turnosHtml += `<p style="margin: 3px 0; font-size: 0.85rem; color: #475569;"><strong>Tarde:</strong> ${escapeHTML(formatDateTimeBR(inicioT))} às ${escapeHTML(formatDateTimeBR(fimT))}</p>`;
       }
       if (!turnosHtml && inicioM) {
-        turnosHtml = `<p style="margin: 3px 0; font-size: 0.85rem; color: #475569;"><strong>Período:</strong> ${formatDateTimeBR(inicioM)} ${item.end ? 'às ' + formatDateTimeBR(item.end) : ''}</p>`;
+        turnosHtml = `<p style="margin: 3px 0; font-size: 0.85rem; color: #475569;"><strong>Período:</strong> ${escapeHTML(formatDateTimeBR(inicioM))} ${item.end ? 'às ' + escapeHTML(formatDateTimeBR(item.end)) : ''}</p>`;
       }
 
       html += `
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="nexos-fade-in" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid var(--tech-blue); border-radius: 6px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; border-bottom: 1px solid #F1F5F9; padding-bottom: 6px;">
-              <strong style="font-size: 1rem; color: #0B132B;">Data: ${dataFormatada}</strong>
-              <span style="background: #10B981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">R$ ${item.totalValue || '0.00'}</span>
+              <strong style="font-size: 1rem; color: #0B132B;">Data: ${escapeHTML(dataFormatada)}</strong>
+              <span style="background: #10B981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">R$ ${escapeHTML(String(item.totalValue || '0.00'))}</span>
             </div>
             ${turnosHtml}
-            <p style="margin: 4px 0; font-size: 0.85rem; color: #0D9488; font-weight: bold;"><strong>Duração:</strong> ${item.totalHoursText || '0h'}</p>
+            <p style="margin: 4px 0; font-size: 0.85rem; color: #0D9488; font-weight: bold;"><strong>Duração:</strong> ${escapeHTML(item.totalHoursText || '0h')}</p>
             <p style="margin: 4px 0; font-size: 0.85rem; color: #475569;"><strong>Motivo:</strong> ${escapeHTML(item.reason || 'Sem motivo')}</p>
           </div>
           <div style="display: flex; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F1F5F9;">
-            <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="prepararEdicaoHE('${item.id || index}')">Editar</button>
-            <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="excluirHE('${item.id || index}')">Excluir</button>
+            <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #F59E0B; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="prepararEdicaoHE('${itemKey}')">Editar</button>
+            <button type="button" class="btn" style="flex: 1; padding: 6px 0; font-size: 0.8rem; background-color: #EF4444; color: white; border: none; border-radius: 4px; font-weight: bold;" onclick="excluirHE('${itemKey}')">Excluir</button>
           </div>
         </div>
       `;
@@ -145,23 +156,23 @@ async function loadHorasExtras() {
     listDiv.innerHTML = html;
   } catch (error) {
     console.error("Erro ao carregar:", error);
-    listDiv.innerHTML = `<p style='color: red; grid-column: 1 / -1; text-align: center;'>Erro ao carregar dados: ${error.message}</p>`;
+    listDiv.innerHTML = `<p style='color: red; grid-column: 1 / -1; text-align: center;'>Erro ao carregar dados: ${escapeHTML(error.message)}</p>`;
   }
 }
 
 window.prepararEdicaoHE = function(idOrIndex) {
-  const item = allHE.find(h => (h.id && h.id === idOrIndex) || allHE.indexOf(h) == idOrIndex);
+  const item = allHE.find(h => (h.id && String(h.id) === String(idOrIndex)) || allHE.indexOf(h) == idOrIndex);
   if (!item) return;
 
   editingHEId = item.id || idOrIndex;
   document.getElementById('he-date').value = item.date || '';
   document.getElementById('he-valor-hora').value = item.valorHora || 38.63;
-  
+
   document.getElementById('he-start-manha').value = item.timeStartManha || item.start || '';
   document.getElementById('he-end-manha').value = item.timeEndManha || '';
   document.getElementById('he-start-tarde').value = item.timeStartTarde || '';
   document.getElementById('he-end-tarde').value = item.timeEndTarde || (item.end !== item.start ? item.end : '');
-  
+
   document.getElementById('he-reason').value = item.reason || '';
 
   if (formTitle) formTitle.textContent = "Editar Registo de Hora Extra";
@@ -179,7 +190,10 @@ window.resetForm = function() {
   const heValHora = document.getElementById('he-valor-hora');
   if (heValHora) heValHora.value = 38.63;
   if (formTitle) formTitle.textContent = "Adicionar Registo Manual";
-  if (btnSubmitHE) btnSubmitHE.textContent = "Guardar Hora Extra";
+  if (btnSubmitHE) {
+    btnSubmitHE.disabled = false;
+    btnSubmitHE.textContent = "Guardar Hora Extra";
+  }
   if (btnCancelEdit) btnCancelEdit.style.display = "none";
   if (heFormSection) heFormSection.style.display = 'none';
 };
@@ -244,7 +258,7 @@ if (btnGerarExcel) {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Horas Extras");
 
-    worksheet['!cols'] = [{wch: 15}, {wch: 45}, {wch: 35}, {wch: 15}, {wch: 18}];
+    worksheet['!cols'] = [{ wch: 15 }, { wch: 45 }, { wch: 35 }, { wch: 15 }, { wch: 18 }];
     XLSX.writeFile(workbook, `Relatorio_Horas_Extras_${mesSel}_${anoSel}.xlsx`);
   });
 }
@@ -254,7 +268,7 @@ window.excluirHE = async function(idOrIndex) {
     try {
       let list = await DataSync.load('rg_horas_extras') || [];
       if (String(idOrIndex).length > 5) {
-        list = list.filter(item => item.id !== idOrIndex);
+        list = list.filter(item => String(item.id) !== String(idOrIndex));
       } else {
         list.splice(Number(idOrIndex), 1);
       }
@@ -269,19 +283,24 @@ window.excluirHE = async function(idOrIndex) {
 if (heForm) {
   heForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const date = document.getElementById('he-date').value;
+    const date = higienizarTexto(document.getElementById('he-date').value);
     const valorHora = parseFloat(document.getElementById('he-valor-hora').value) || 38.63;
-    
-    const timeStartManha = document.getElementById('he-start-manha').value;
-    const timeEndManha = document.getElementById('he-end-manha').value;
-    const timeStartTarde = document.getElementById('he-start-tarde').value;
-    const timeEndTarde = document.getElementById('he-end-tarde').value;
-    
-    const reason = document.getElementById('he-reason').value;
+
+    const timeStartManha = higienizarTexto(document.getElementById('he-start-manha').value);
+    const timeEndManha = higienizarTexto(document.getElementById('he-end-manha').value);
+    const timeStartTarde = higienizarTexto(document.getElementById('he-start-tarde').value);
+    const timeEndTarde = higienizarTexto(document.getElementById('he-end-tarde').value);
+
+    const reason = higienizarTexto(document.getElementById('he-reason').value);
 
     if (!timeStartManha && !timeStartTarde) {
       alert("Por favor, preencha pelo menos um horário de início (Manhã ou Tarde)!");
       return;
+    }
+
+    if (btnSubmitHE) {
+      btnSubmitHE.disabled = true;
+      btnSubmitHE.textContent = "A guardar...";
     }
 
     const calc = calcularMinutosHE(timeStartManha, timeEndManha, timeStartTarde, timeEndTarde, valorHora);
@@ -305,13 +324,14 @@ if (heForm) {
 
     try {
       let list = await DataSync.load('rg_horas_extras') || [];
+      if (!Array.isArray(list)) list = [];
 
       if (editingHEId !== null && editingHEId !== '') {
-        const idx = list.findIndex(item => item.id === editingHEId || list.indexOf(item) == editingHEId);
+        const idx = list.findIndex(item => String(item.id) === String(editingHEId) || list.indexOf(item) == editingHEId);
         if (idx !== -1) {
           list[idx] = { ...list[idx], ...payload };
         } else {
-          list.push(payload);
+          list.push({ id: 'he_' + Date.now(), ...payload });
         }
       } else {
         list.push({ id: 'he_' + Date.now(), ...payload });
@@ -324,6 +344,10 @@ if (heForm) {
     } catch (error) {
       console.error("Erro ao guardar:", error);
       alert("Erro ao guardar: " + error.message);
+      if (btnSubmitHE) {
+        btnSubmitHE.disabled = false;
+        btnSubmitHE.textContent = editingHEId ? "Atualizar Registo" : "Guardar Hora Extra";
+      }
     }
   });
 }
