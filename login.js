@@ -4,6 +4,9 @@
 
 document.addEventListener('contextmenu', event => event.preventDefault());
 
+const SVG_GOOGLE = `<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.49h4.84c-.21 1.12-.85 2.08-1.81 2.72v2.26h2.92c1.71-1.57 2.69-3.88 2.69-6.63z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.95v2.33C2.43 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.71c-.18-.54-.28-1.12-.28-1.71s.1-1.17.28-1.71V4.96H.95C.35 6.15 0 7.52 0 9s.35 2.85.95 4.04l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.48 0 2.43 2.02.95 4.96l3.02 2.33c.71-2.13 2.69-3.71 5.03-3.71z"/></svg>`;
+const SVG_MICROSOFT = `<svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>`;
+
 function escapeHTML(str) {
   if (!str) return '';
   return String(str)
@@ -70,9 +73,87 @@ function resolverDestinoInicial(isSuperAdmin) {
   return destino;
 }
 
+async function concluirAutenticacaoSaaS(user) {
+  const emailNorm = String(user.email || '').trim().toLowerCase();
+  const acessoSaaS = await validarAcessoSaaS(emailNorm);
+
+  if (!acessoSaaS) {
+    await firebase.auth().signOut();
+    throw new Error(`Acesso negado: O e-mail (${emailNorm}) não está registado no sistema ou encontra-se inativo.`);
+  }
+
+  // Limpa caches residuais rg_* de sessões anteriores antes de gravar a nova sessão
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('rg_')) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  localStorage.setItem('rg_logged', 'true');
+  localStorage.setItem('rg_user_email', escapeHTML(emailNorm));
+  localStorage.setItem('rg_user_uid', escapeHTML(user.uid));
+  localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
+  localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
+
+  // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS, PÁGINA INICIAL E LOGO DO TENANT ---
+  try {
+    const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
+    if (configDoc.exists) {
+      const cfg = configDoc.data();
+      localStorage.setItem('rg_page_dashboard', 'false');
+      localStorage.setItem('rg_page_cadastros', cfg.pageCadastros !== false ? 'true' : 'false');
+      localStorage.setItem('rg_page_relatorios', cfg.pageRelatorios !== false ? 'true' : 'false');
+      localStorage.setItem('rg_page_orcamentos', cfg.pageOrcamentos !== false ? 'true' : 'false');
+      localStorage.setItem('rg_page_manutencoes', cfg.pageManutencoes !== false ? 'true' : 'false');
+      localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
+
+      if (cfg.paginaInicial && cfg.paginaInicial !== 'dashboard.html') {
+        localStorage.setItem('rg_pagina_inicial', cfg.paginaInicial);
+      } else {
+        localStorage.removeItem('rg_pagina_inicial');
+      }
+
+      if (cfg.logoBase64 && cfg.logoBase64.startsWith('data:image')) {
+        localStorage.setItem('rg_logo_base64', cfg.logoBase64);
+      } else {
+        localStorage.removeItem('rg_logo_base64');
+      }
+    } else {
+      localStorage.setItem('rg_page_dashboard', 'false');
+      localStorage.setItem('rg_page_cadastros', 'true');
+      localStorage.setItem('rg_page_relatorios', 'true');
+      localStorage.setItem('rg_page_orcamentos', 'true');
+      localStorage.setItem('rg_page_manutencoes', 'true');
+      localStorage.setItem('rg_mod_horas_extras', 'false');
+      localStorage.removeItem('rg_pagina_inicial');
+      localStorage.removeItem('rg_logo_base64');
+    }
+  } catch (cErr) {
+    console.warn("Aviso ao carregar permissões visuais:", cErr);
+  }
+
+  const isSuperAdmin = (acessoSaaS.role === 'super_admin');
+  window.location.href = resolverDestinoInicial(isSuperAdmin);
+}
+
+function restaurarBotoesLogin() {
+  const btnGoogle = document.getElementById('btnGoogle');
+  const btnMicrosoft = document.getElementById('btnMicrosoft');
+
+  if (btnGoogle) {
+    btnGoogle.disabled = false;
+    btnGoogle.innerHTML = `${SVG_GOOGLE} Entrar com Conta Google`;
+  }
+  if (btnMicrosoft) {
+    btnMicrosoft.disabled = false;
+    btnMicrosoft.innerHTML = `${SVG_MICROSOFT} Entrar com Microsoft / Hotmail`;
+  }
+}
+
 window.handleGoogleLogin = async function() {
   const errorBox = document.getElementById('loginError');
   const btnGoogle = document.getElementById('btnGoogle');
+  const btnMicrosoft = document.getElementById('btnMicrosoft');
 
   if (errorBox) {
     errorBox.style.display = 'none';
@@ -84,71 +165,11 @@ window.handleGoogleLogin = async function() {
       btnGoogle.disabled = true;
       btnGoogle.textContent = 'A ligar à Google...';
     }
+    if (btnMicrosoft) btnMicrosoft.disabled = true;
 
     const provider = new firebase.auth.GoogleAuthProvider();
     const result = await firebase.auth().signInWithPopup(provider);
-    const user = result.user;
-    const emailNorm = String(user.email || '').trim().toLowerCase();
-
-    const acessoSaaS = await validarAcessoSaaS(emailNorm);
-
-    if (!acessoSaaS) {
-      await firebase.auth().signOut();
-      throw new Error(`Acesso negado: O e-mail (${emailNorm}) não está registado no sistema ou encontra-se inativo.`);
-    }
-
-    // Limpa caches residuais rg_* de sessões anteriores antes de gravar a nova sessão
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('rg_')) {
-        localStorage.removeItem(key);
-      }
-    });
-
-    localStorage.setItem('rg_logged', 'true');
-    localStorage.setItem('rg_user_email', escapeHTML(emailNorm));
-    localStorage.setItem('rg_user_uid', escapeHTML(user.uid));
-    localStorage.setItem('rg_tenant_id', escapeHTML(acessoSaaS.tenant_id));
-    localStorage.setItem('rg_user_role', escapeHTML(acessoSaaS.role));
-
-    // --- BUSCA E ARMAZENA AS PERMISSÕES VISUAIS, PÁGINA INICIAL E LOGO DO TENANT ---
-    try {
-      const configDoc = await db.collection('rg_config').doc(acessoSaaS.tenant_id).get();
-      if (configDoc.exists) {
-        const cfg = configDoc.data();
-        localStorage.setItem('rg_page_dashboard', 'false');
-        localStorage.setItem('rg_page_cadastros', cfg.pageCadastros !== false ? 'true' : 'false');
-        localStorage.setItem('rg_page_relatorios', cfg.pageRelatorios !== false ? 'true' : 'false');
-        localStorage.setItem('rg_page_orcamentos', cfg.pageOrcamentos !== false ? 'true' : 'false');
-        localStorage.setItem('rg_page_manutencoes', cfg.pageManutencoes !== false ? 'true' : 'false');
-        localStorage.setItem('rg_mod_horas_extras', cfg.modHorasExtras === true ? 'true' : 'false');
-
-        if (cfg.paginaInicial && cfg.paginaInicial !== 'dashboard.html') {
-          localStorage.setItem('rg_pagina_inicial', cfg.paginaInicial);
-        } else {
-          localStorage.removeItem('rg_pagina_inicial');
-        }
-
-        if (cfg.logoBase64 && cfg.logoBase64.startsWith('data:image')) {
-          localStorage.setItem('rg_logo_base64', cfg.logoBase64);
-        } else {
-          localStorage.removeItem('rg_logo_base64');
-        }
-      } else {
-        localStorage.setItem('rg_page_dashboard', 'false');
-        localStorage.setItem('rg_page_cadastros', 'true');
-        localStorage.setItem('rg_page_relatorios', 'true');
-        localStorage.setItem('rg_page_orcamentos', 'true');
-        localStorage.setItem('rg_page_manutencoes', 'true');
-        localStorage.setItem('rg_mod_horas_extras', 'false');
-        localStorage.removeItem('rg_pagina_inicial');
-        localStorage.removeItem('rg_logo_base64');
-      }
-    } catch (cErr) {
-      console.warn("Aviso ao carregar permissões visuais:", cErr);
-    }
-
-    const isSuperAdmin = (acessoSaaS.role === 'super_admin');
-    window.location.href = resolverDestinoInicial(isSuperAdmin);
+    await concluirAutenticacaoSaaS(result.user);
 
   } catch (error) {
     console.error("Erro no login Google:", error);
@@ -156,9 +177,38 @@ window.handleGoogleLogin = async function() {
       errorBox.textContent = error.message || 'Erro ao autenticar com a conta Google.';
       errorBox.style.display = 'block';
     }
-    if (btnGoogle) {
-      btnGoogle.disabled = false;
-      btnGoogle.innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.49h4.84c-.21 1.12-.85 2.08-1.81 2.72v2.26h2.92c1.71-1.57 2.69-3.88 2.69-6.63z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.95v2.33C2.43 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.71c-.18-.54-.28-1.12-.28-1.71s.1-1.17.28-1.71V4.96H.95C.35 6.15 0 7.52 0 9s.35 2.85.95 4.04l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.48 0 2.43 2.02.95 4.96l3.02 2.33c.71-2.13 2.69-3.71 5.03-3.71z"/></svg> Entrar com Conta Google`;
+    restaurarBotoesLogin();
+  }
+};
+
+window.handleMicrosoftLogin = async function() {
+  const errorBox = document.getElementById('loginError');
+  const btnGoogle = document.getElementById('btnGoogle');
+  const btnMicrosoft = document.getElementById('btnMicrosoft');
+
+  if (errorBox) {
+    errorBox.style.display = 'none';
+    errorBox.textContent = '';
+  }
+
+  try {
+    if (btnMicrosoft) {
+      btnMicrosoft.disabled = true;
+      btnMicrosoft.textContent = 'A ligar à Microsoft...';
     }
+    if (btnGoogle) btnGoogle.disabled = true;
+
+    const provider = new firebase.auth.OAuthProvider('microsoft.com');
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const result = await firebase.auth().signInWithPopup(provider);
+    await concluirAutenticacaoSaaS(result.user);
+
+  } catch (error) {
+    console.error("Erro no login Microsoft:", error);
+    if (errorBox) {
+      errorBox.textContent = error.message || 'Erro ao autenticar com a conta Microsoft.';
+      errorBox.style.display = 'block';
+    }
+    restaurarBotoesLogin();
   }
 };
