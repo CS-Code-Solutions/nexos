@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <link rel="icon" href="nexosico192.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>NexOS - Sem Ligação à Internet</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NexOS">
+  <link rel="apple-touch-icon" href="nexos512.png">
+  <meta name="theme-color" content="#0B132B">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #0B132B;
+      background-image: radial-gradient(circle at 50% 20%, #162447 0%, #0B132B 70%);
+      color: #FFFFFF;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .offline-container {
+      background: rgba(19, 30, 58, 0.92);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      border-top: 4px solid #F59E0B;
+      padding: 38px 25px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+      width: 100%;
+      max-width: 440px;
+      margin: auto;
+    }
+
+    .offline-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #FCD34D;
+      background: rgba(245, 158, 11, 0.16);
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .offline-icon {
+      width: 74px;
+      height: 74px;
+      margin: 0 auto 18px auto;
+      border-radius: 50%;
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #F59E0B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .offline-title {
+      font-size: 1.45rem;
+      color: #FFFFFF;
+      margin-bottom: 10px;
+    }
+
+    .offline-desc {
+      font-size: 0.92rem;
+      color: #94A3B8;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-action {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: bold;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-retry {
+      background-color: #00F5D4;
+      color: #0B132B;
+      border: none;
+    }
+
+    .btn-retry:hover {
+      background-color: #00dbbc;
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+    }
+
+    .btn-cached {
+      background-color: #1C2541;
+      color: #FFFFFF;
+      border: 1px solid rgba(0, 245, 212, 0.5);
+    }
+
+    .btn-cached:hover {
+      background-color: rgba(0, 245, 212, 0.12);
+    }
+
+    .status-line {
+      margin-top: 18px;
+      font-size: 0.78rem;
+      color: #64748B;
+    }
+
+    footer {
+      font-size: 0.8rem;
+      color: #94A3B8;
+    }
+
+    footer a {
+      color: #00F5D4;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div></div>
+
+  <main class="offline-container">
+    <span class="offline-badge">Modo Offline • Sem Sinal</span>
+
+    <div class="offline-icon">
+      <!-- Ícone SVG inline para funcionar 100% mesmo sem cache de fontes externas -->
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+
+    <h1 class="offline-title">Sem Ligação à Internet</h1>
+    <p class="offline-desc">
+      Não foi possível ligar ao servidor do NexOS neste momento. Verifique o Wi-Fi ou os dados móveis do aparelho e tente novamente.
+    </p>
+
+    <div class="actions">
+      <button type="button" class="btn-action btn-retry" onclick="window.location.reload()">
+        Tentar Novamente
+      </button>
+      <a href="relatorios.html" class="btn-action btn-cached">
+        Abrir Relatórios Guardados
+      </a>
+    </div>
+
+    <div class="status-line" id="netStatus">A aguardar restabelecimento do sinal...</div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" rel="noopener noreferrer"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+
+  <script>
+    // Recarrega automaticamente assim que a internet voltar
+    window.addEventListener('online', () => {
+      const statusEl = document.getElementById('netStatus');
+      if (statusEl) statusEl.textContent = 'Ligação restabelecida! A recarregar...';
+      setTimeout(() => window.location.reload(), 600);
+    });
+  </script>
+
+</body>
+</html>
