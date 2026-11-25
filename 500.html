@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>NexOS - Erro Interno do Servidor (500)</title>
+
+  <link rel="icon" href="nexosico192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="nexos512.png">
+  <meta name="theme-color" content="#0B132B">
+
+  <!-- White-Label instantâneo (caso o cliente tenha logo salva em cache) -->
+  <script>
+    (function () {
+      try {
+        const logoSalva = localStorage.getItem('rg_logo_base64');
+        if (logoSalva && /^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,/i.test(logoSalva)) {
+          const style = document.createElement('style');
+          style.textContent = `#logo-cliente { content: url("${logoSalva}"); }`;
+          document.head.appendChild(style);
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --deep-navy: #0B132B;
+      --card-navy: #131E3A;
+      --tech-blue: #1D4ED8;
+      --electric-cyan: #00F5D4;
+      --danger: #EF4444;
+      --slate-light: #94A3B8;
+      --white: #FFFFFF;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--deep-navy);
+      background-image: radial-gradient(circle at 50% 20%, #162447 0%, #0B132B 70%);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .top-brand {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      justify-content: center;
+      padding-top: 10px;
+    }
+
+    .top-brand img {
+      max-height: 42px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .error-card {
+      background: rgba(19, 30, 58, 0.92);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      border-top: 4px solid var(--danger);
+      border-radius: 14px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55);
+      width: 100%;
+      max-width: 480px;
+      padding: 36px 28px;
+      text-align: center;
+      animation: fadeUp 0.3s ease-out forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .icon-badge {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 18px auto;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: var(--danger);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    .error-code {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #FCA5A5;
+      background: rgba(239, 68, 68, 0.18);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 1.55rem;
+      color: var(--white);
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+
+    p.description {
+      font-size: 0.94rem;
+      color: var(--slate-light);
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (min-width: 460px) {
+      .actions {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
+
+    .btn {
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+      flex: 1;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: var(--electric-cyan);
+      color: var(--deep-navy);
+    }
+
+    .btn-primary:hover {
+      background-color: #00dbbc;
+      box-shadow: 0 0 16px rgba(0, 245, 212, 0.35);
+    }
+
+    .btn-secondary {
+      background-color: #1E293B;
+      color: var(--white);
+      border: 1px solid #334155;
+    }
+
+    .btn-secondary:hover {
+      background-color: #273549;
+      border-color: var(--electric-cyan);
+    }
+
+    .tech-ref {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.15);
+      font-size: 0.76rem;
+      color: #64748B;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--slate-light);
+      padding-bottom: 6px;
+    }
+
+    footer a {
+      color: var(--electric-cyan);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-brand">
+    <img id="logo-cliente" src="marca.png" alt="NexOS">
+  </div>
+
+  <main class="error-card">
+    <div class="icon-badge">
+      <i class="fa-solid fa-server"></i>
+    </div>
+
+    <span class="error-code">Erro 500 • Falha Interna</span>
+    <h1>Algo deu errado no servidor</h1>
+    <p class="description">
+      Encontramos uma instabilidade temporária ao processar sua solicitação. Seus dados salvos localmente permanecem seguros. Tente recarregar a página ou voltar à tela inicial.
+    </p>
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" onclick="tentarNovamente()">
+        <i class="fa-solid fa-rotate-right"></i> Tentar Novamente
+      </button>
+      <button type="button" class="btn btn-secondary" onclick="voltarInicio()">
+        <i class="fa-solid fa-house"></i> Voltar ao Início
+      </button>
+    </div>
+
+    <div class="tech-ref" id="errorTimestamp"></div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 NexOS | Powered by <a href="https://www.instagram.com/cs_code_solutions?exln=Ym1mNDMzYTYxa3d6" target="_blank" rel="noopener noreferrer"><strong>CS Code Solutions</strong></a></p>
+  </footer>
+
+  <script>
+    (function () {
+      const refEl = document.getElementById('errorTimestamp');
+      if (refEl) {
+        const agora = new Date().toLocaleString('pt-BR');
+        refEl.textContent = `Código: HTTP 500 • Registro: ${agora}`;
+      }
+    })();
+
+    function tentarNovamente() {
+      if (document.referrer && document.referrer !== window.location.href) {
+        window.location.href = document.referrer;
+      } else {
+        window.location.reload();
+      }
+    }
+
+    function voltarInicio() {
+      const logado = localStorage.getItem('rg_logged') === 'true';
+      if (!logado) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const pagInicial = localStorage.getItem('rg_pagina_inicial');
+      const destino = (!pagInicial || pagInicial === 'dashboard.html') ? 'relatorios.html' : pagInicial;
+      window.location.href = destino;
+    }
+  </script>
+</body>
+</html>
