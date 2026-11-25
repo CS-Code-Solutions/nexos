@@ -1,9 +1,9 @@
 /**
  * NexOS - Service Worker (sw.js)
- * BLINDADO: Cache sincronizado com todos os módulos críticos
+ * BLINDADO: Cache sincronizado com todos os módulos críticos e fallback offline
  */
 
-const CACHE_NAME = 'nexos-cache-v18';
+const CACHE_NAME = 'nexos-cache-v19';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -16,6 +16,9 @@ const ASSETS_TO_CACHE = [
   './horas-extras.html',
   './configuracao.html',
   './admin.html',
+  './404.html',
+  './500.html',
+  './offline.html',
   './style.css',
   './route-guard.js',
   './termos-uso.js',
@@ -33,6 +36,7 @@ const ASSETS_TO_CACHE = [
   './firebase-sync.js',
   './marca.png',
   './nexosico192.png',
+  './nexos512.png',
   './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
@@ -82,8 +86,14 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       })
-      .catch(() => {
-        return caches.match(event.request);
+      .catch(async () => {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        if (event.request.mode === 'navigate') {
+          return caches.match('./offline.html');
+        }
       })
   );
 });
